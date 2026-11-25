@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { HealthController } from './health.controller.js';
 import { validateEnv, type Env } from './config.js';
 import { entities, migrations } from './data-source.js';
+import { GamesModule } from './games/games.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { entities, migrations } from './data-source.js';
       },
     }),
     AuthModule,
+    GamesModule,
   ],
   controllers: [HealthController],
 })

@@ -15,6 +15,24 @@ export type UserDto = {
   email: string;
 };
 
+/** PATCH /games/:id — todos os campos opcionais */
+export const updateGameSchema = createGameSchema.partial();
+export type UpdateGameInput = z.infer<typeof updateGameSchema>;
+
+export type GameDto = {
+  id: string;
+  organizerId: string;
+  title: string;
+  location: string;
+  startsAt: string; // ISO
+  slots: number;
+  subs: number;
+  priceCents: number;
+  inviteCode: string;
+  status: "open" | "cancelled" | "done";
+  createdAt: string; // ISO
+};
+
 /** POST /auth/login */
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
