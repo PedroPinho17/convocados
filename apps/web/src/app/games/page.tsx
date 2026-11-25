@@ -3,22 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { GameDto } from "@convocados/shared";
+import type { CreateGameInput, GameDto } from "@convocados/shared";
 import { ApiError, createGame, listGames, logout } from "@/lib/api";
-import { PriceRangeText } from "@/components/price-range-text";
+import { GameForm } from "@/components/game-form";
 
 export default function GamesPage() {
   const router = useRouter();
   const [games, setGames] = useState<GameDto[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  const [title, setTitle] = useState("");
-  const [location, setLocation] = useState("");
-  const [startsAt, setStartsAt] = useState("");
-  const [slots, setSlots] = useState(10);
-  const [subs, setSubs] = useState(2);
-  const [totalEuros, setTotalEuros] = useState(30);
+  // Muda a key do formulário para o limpar depois de criar um jogo.
+  const [formKey, setFormKey] = useState(0);
 
   const onLoadError = useCallback(
     (err: unknown) => {
@@ -43,32 +37,10 @@ export default function GamesPage() {
     };
   }, [onLoadError]);
 
-  const totalPriceCents = Math.round((Number.isFinite(totalEuros) ? totalEuros : 0) * 100);
-
-  async function onCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setPending(true);
-    try {
-      // datetime-local → ISO
-      const iso = new Date(startsAt).toISOString();
-      await createGame({
-        title,
-        location,
-        startsAt: iso,
-        slots,
-        subs,
-        totalPriceCents,
-      });
-      setTitle("");
-      setLocation("");
-      setStartsAt("");
-      setGames(await listGames());
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Erro ao criar jogo.");
-    } finally {
-      setPending(false);
-    }
+  async function onCreate(input: CreateGameInput) {
+    await createGame(input);
+    setFormKey((k) => k + 1);
+    setGames(await listGames());
   }
 
   async function onLogout() {
@@ -85,53 +57,10 @@ export default function GamesPage() {
         </button>
       </header>
 
-      <form onSubmit={onCreate} className="flex flex-col gap-2 rounded border border-zinc-200 p-4">
+      <section className="flex flex-col gap-2">
         <h2 className="font-medium">Novo jogo</h2>
-        <input className="rounded border px-3 py-2" placeholder="Título" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <input className="rounded border px-3 py-2" placeholder="Local" value={location} onChange={(e) => setLocation(e.target.value)} required />
-        <input className="rounded border px-3 py-2" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
-        <div className="grid grid-cols-3 gap-2">
-          <label className="flex flex-col gap-1 text-sm">
-            Vagas
-            <input
-              className="rounded border px-3 py-2"
-              type="number"
-              min={2}
-              max={30}
-              value={slots}
-              onChange={(e) => setSlots(Number(e.target.value))}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Suplentes
-            <input
-              className="rounded border px-3 py-2"
-              type="number"
-              min={0}
-              max={10}
-              value={subs}
-              onChange={(e) => setSubs(Number(e.target.value))}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Custo total (€)
-            <input
-              className="rounded border px-3 py-2"
-              type="number"
-              min={0}
-              step="0.01"
-              value={totalEuros}
-              onChange={(e) => setTotalEuros(Number(e.target.value))}
-            />
-          </label>
-        </div>
-        <p className="text-xs text-zinc-500">
-          <PriceRangeText totalPriceCents={totalPriceCents} slots={slots} subs={subs} />
-        </p>
-        <button type="submit" disabled={pending} className="rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50">
-          {pending ? "A criar…" : "Criar jogo"}
-        </button>
-      </form>
+        <GameForm key={formKey} submitLabel="Criar jogo" onSubmit={onCreate} />
+      </section>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

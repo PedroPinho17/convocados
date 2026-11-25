@@ -4,6 +4,7 @@ import type {
   GameDto,
   LoginInput,
   RegisterInput,
+  UpdateGameInput,
   UserDto,
 } from "@convocados/shared";
 
@@ -98,3 +99,5 @@ export const listGames = () => request<GameDto[]>("/games");
 export const getGame = (id: string) => request<GameDto>(`/games/${id}`);
 export const createGame = (input: CreateGameInput) =>
   request<GameDto>("/games", json(input));
+export const updateGame = (id: string, input: UpdateGameInput) =>
+  request<GameDto>(`/games/${id}`, json(input, "PATCH"));

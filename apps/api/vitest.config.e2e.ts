@@ -6,5 +6,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    // Registar contas usa scrypt (lento de propósito).
+    testTimeout: 20_000,
   },
 });

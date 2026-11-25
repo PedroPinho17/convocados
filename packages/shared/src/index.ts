@@ -53,6 +53,16 @@ export function priceRangeCents(game: Pick<GameDto, "totalPriceCents" | "slots" 
   };
 }
 
+/**
+ * ISO (UTC) → "YYYY-MM-DDTHH:mm" na hora local, o formato do <input type="datetime-local">.
+ * `toISOString().slice(0, 16)` daria a hora UTC (1h a menos no inverno em Portugal).
+ */
+export function toLocalDateTimeInput(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function formatEuros(cents: number): string {
   return (cents / 100).toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
 }

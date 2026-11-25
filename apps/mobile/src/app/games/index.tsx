@@ -1,29 +1,15 @@
 import { useCallback, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, Pressable, StyleSheet, FlatList } from "react-native";
 import { Link, router, useFocusEffect } from "expo-router";
-import type { GameDto } from "@convocados/shared";
+import type { CreateGameInput, GameDto } from "@convocados/shared";
 import { ApiError, createGame, listGames, logout } from "../../lib/api";
-import { priceRangeText } from "../../lib/price";
+import { GameForm } from "../../components/game-form";
 
 export default function GamesScreen() {
   const [games, setGames] = useState<GameDto[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  const [title, setTitle] = useState("");
-  const [location, setLocation] = useState("");
-  const [startsAt, setStartsAt] = useState(""); // ex: 2026-11-27T21:00
-  const [slots, setSlots] = useState("10");
-  const [subs, setSubs] = useState("2");
-  const [totalEuros, setTotalEuros] = useState("30");
+  // Muda a key do formulário para o limpar depois de criar um jogo.
+  const [formKey, setFormKey] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -43,32 +29,10 @@ export default function GamesScreen() {
     }, [load]),
   );
 
-  const s = Number(slots) || 0;
-  const b = Number(subs) || 0;
-  const totalPriceCents = Math.round((Number(totalEuros.replace(",", ".")) || 0) * 100);
-
-  async function onCreate() {
-    setError(null);
-    setPending(true);
-    try {
-      const iso = new Date(startsAt).toISOString();
-      await createGame({
-        title,
-        location,
-        startsAt: iso,
-        slots: s,
-        subs: b,
-        totalPriceCents,
-      });
-      setTitle("");
-      setLocation("");
-      setStartsAt("");
-      await load();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Erro ao criar.");
-    } finally {
-      setPending(false);
-    }
+  async function onCreate(input: CreateGameInput) {
+    await createGame(input);
+    setFormKey((k) => k + 1);
+    await load();
   }
 
   async function onLogout() {
@@ -82,8 +46,8 @@ export default function GamesScreen() {
       data={games}
       keyExtractor={(g) => g.id}
       ListHeaderComponent={
-        <View style={styles.form}>
-          <View style={styles.header}>
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
             <Text style={styles.title}>Os meus jogos</Text>
             <Pressable onPress={onLogout}>
               <Text style={styles.link}>Sair</Text>
@@ -91,35 +55,9 @@ export default function GamesScreen() {
           </View>
 
           <Text style={styles.section}>Novo jogo</Text>
-          <TextInput style={styles.input} placeholder="Título" value={title} onChangeText={setTitle} />
-          <TextInput style={styles.input} placeholder="Local" value={location} onChangeText={setLocation} />
-          <TextInput
-            style={styles.input}
-            placeholder="Data (2026-11-27T21:00)"
-            value={startsAt}
-            onChangeText={setStartsAt}
-            autoCapitalize="none"
-          />
-          <View style={styles.row}>
-            <TextInput style={[styles.input, styles.half]} placeholder="Vagas" keyboardType="number-pad" value={slots} onChangeText={setSlots} />
-            <TextInput style={[styles.input, styles.half]} placeholder="Suplentes" keyboardType="number-pad" value={subs} onChangeText={setSubs} />
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Custo total (€)"
-            keyboardType="decimal-pad"
-            value={totalEuros}
-            onChangeText={setTotalEuros}
-          />
-          <Text style={styles.hint}>
-            {priceRangeText({ totalPriceCents, slots: s, subs: b })}
-          </Text>
+          <GameForm key={formKey} submitLabel="Criar jogo" onSubmit={onCreate} />
 
           {error && <Text style={styles.error}>{error}</Text>}
-
-          <Pressable style={styles.button} onPress={onCreate} disabled={pending}>
-            {pending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Criar jogo</Text>}
-          </Pressable>
         </View>
       }
       ListEmptyComponent={<Text style={styles.empty}>Ainda não tens jogos.</Text>}
@@ -139,16 +77,10 @@ export default function GamesScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 12 },
-  form: { gap: 10, marginBottom: 16 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  header: { gap: 10, marginBottom: 16 },
+  titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   title: { fontSize: 24, fontWeight: "600" },
   section: { fontWeight: "600", marginTop: 8 },
-  input: { borderWidth: 1, borderColor: "#d4d4d8", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
-  row: { flexDirection: "row", gap: 8 },
-  half: { flex: 1 },
-  hint: { color: "#71717a", fontSize: 12 },
-  button: { backgroundColor: "#18181b", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  buttonText: { color: "#fff", fontWeight: "600" },
   link: { textDecorationLine: "underline", color: "#52525b" },
   error: { color: "#dc2626" },
   empty: { color: "#71717a" },
