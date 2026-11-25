@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { GameDto } from "@convocados/shared";
@@ -19,21 +19,28 @@ export default function GamesPage() {
   const [subs, setSubs] = useState(2);
   const [totalEuros, setTotalEuros] = useState(30);
 
-  async function load() {
-    try {
-      setGames(await listGames());
-    } catch (err) {
+  const onLoadError = useCallback(
+    (err: unknown) => {
       if (err instanceof ApiError && err.status === 401) {
         router.replace("/login");
         return;
       }
       setError(err instanceof ApiError ? err.message : "Erro ao carregar jogos.");
-    }
-  }
+    },
+    [router],
+  );
 
   useEffect(() => {
-    void load();
-  }, []);
+    let cancelled = false;
+    listGames()
+      .then((rows) => {
+        if (!cancelled) setGames(rows);
+      })
+      .catch(onLoadError);
+    return () => {
+      cancelled = true;
+    };
+  }, [onLoadError]);
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -55,7 +62,7 @@ export default function GamesPage() {
       setTitle("");
       setLocation("");
       setStartsAt("");
-      await load();
+      setGames(await listGames());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Erro ao criar jogo.");
     } finally {

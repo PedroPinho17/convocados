@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import {
   createGameSchema,
   updateGameSchema,
@@ -28,13 +28,13 @@ export class GamesController {
   }
 
   @Get(':id')
-  get(@Param('id') id: string): Promise<GameDto> {
+  get(@Param('id', ParseUUIDPipe) id: string): Promise<GameDto> {
     return this.games.get(id);
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: UserDto,
     @Body({ schema: updateGameSchema }) body: UpdateGameInput,
   ): Promise<GameDto> {
