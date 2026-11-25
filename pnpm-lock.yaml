@@ -178,6 +178,9 @@ importers:
       '@convocados/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@convocados/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@nestjs/common':
         specifier: ^12.0.1
         version: 12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)

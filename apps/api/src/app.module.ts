@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module.js';
 import { HealthController } from './health.controller.js';
 import { validateEnv, type Env } from './config.js';
 import { entities, migrations } from './data-source.js';
@@ -26,6 +27,7 @@ import { entities, migrations } from './data-source.js';
         };
       },
     }),
+    AuthModule,
   ],
   controllers: [HealthController],
 })

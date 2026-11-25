@@ -7,6 +7,9 @@ export const envSchema = z
     PORT: z.coerce.number().int().positive().default(3001),
     WEB_ORIGIN: z.string().default('http://localhost:3000'),
     DB_SYNCHRONIZE: z.stringbool().default(false),
+    SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+    COOKIE_SECURE: z.stringbool().optional(),
+    ALLOW_REGISTRATION: z.stringbool().default(true),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.DB_SYNCHRONIZE) {
@@ -16,7 +19,11 @@ export const envSchema = z
         path: ['DB_SYNCHRONIZE'],
       });
     }
-  });
+  })
+  .transform((env) => ({
+    ...env,
+    COOKIE_SECURE: env.COOKIE_SECURE ?? env.NODE_ENV === 'production',
+  }));
 
 export type Env = z.infer<typeof envSchema>;
 
