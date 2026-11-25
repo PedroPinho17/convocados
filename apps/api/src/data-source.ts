@@ -1,8 +1,11 @@
 import { join } from 'node:path';
 import { DataSource } from 'typeorm';
+import { User, Game } from '@convocados/db';
 
-export const entities = [];
-export const migrations = [];
+import { Init1795621974591 } from './migrations/1795621974591-Init.js';
+
+export const entities = [User, Game];
+export const migrations = [Init1795621974591];
 
 try {
   process.loadEnvFile(join(import.meta.dirname, '..', '..', '..', '.env'));

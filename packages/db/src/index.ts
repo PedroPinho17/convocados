@@ -1,2 +1,2 @@
-// Entidades entram na Fase 1 (users, games, …).
-export {};
+export * from './entities/user.entity.js';
+export * from './entities/game.entity.js';
