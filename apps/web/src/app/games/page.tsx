@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { GameDto } from "@convocados/shared";
 import { ApiError, createGame, listGames, logout } from "@/lib/api";
+import { PriceRangeText } from "@/components/price-range-text";
 
 export default function GamesPage() {
   const router = useRouter();
@@ -42,6 +43,8 @@ export default function GamesPage() {
     };
   }, [onLoadError]);
 
+  const totalPriceCents = Math.round((Number.isFinite(totalEuros) ? totalEuros : 0) * 100);
+
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -49,15 +52,13 @@ export default function GamesPage() {
     try {
       // datetime-local → ISO
       const iso = new Date(startsAt).toISOString();
-      const players = slots + subs;
-      const priceCents = Math.round(totalEuros * 100 / players);
       await createGame({
         title,
         location,
         startsAt: iso,
         slots,
         subs,
-        priceCents,
+        totalPriceCents,
       });
       setTitle("");
       setLocation("");
@@ -125,12 +126,7 @@ export default function GamesPage() {
           </label>
         </div>
         <p className="text-xs text-zinc-500">
-          Cada um paga{" "}
-          {(slots + subs > 0 ? totalEuros / (slots + subs) : 0).toLocaleString("pt-PT", {
-            style: "currency",
-            currency: "EUR",
-          })}{" "}
-          ({slots + subs} jogadores)
+          <PriceRangeText totalPriceCents={totalPriceCents} slots={slots} subs={subs} />
         </p>
         <button type="submit" disabled={pending} className="rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50">
           {pending ? "A criar…" : "Criar jogo"}

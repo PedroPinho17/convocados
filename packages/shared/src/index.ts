@@ -6,7 +6,8 @@ export const createGameSchema = z.object({
   startsAt: z.string().datetime(),
   slots: z.number().int().min(2).max(30),
   subs: z.number().int().min(0).max(10),
-  priceCents: z.number().int().min(0),
+  /** Custo total do jogo (ex.: 3000 = 30 € do campo), não o valor por pessoa. */
+  totalPriceCents: z.number().int().min(0).max(1_000_000),
 });
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type UserDto = {
@@ -27,11 +28,34 @@ export type GameDto = {
   startsAt: string; // ISO
   slots: number;
   subs: number;
-  priceCents: number;
+  totalPriceCents: number;
   inviteCode: string;
   status: "open" | "cancelled" | "done";
   createdAt: string; // ISO
 };
+
+/**
+ * Quanto paga cada jogador: total ÷ jogadores, arredondado para cima ao cêntimo,
+ * para o organizador nunca ficar a pagar a diferença (30 € ÷ 7 = 4,29 €).
+ */
+export function sharePerPlayerCents(totalCents: number, players: number): number {
+  return Math.ceil(totalCents / Math.max(1, Math.floor(players)));
+}
+
+/**
+ * Intervalo do valor por pessoa antes de haver confirmações:
+ * `min` se vierem todos (vagas + suplentes), `max` se vierem só as vagas.
+ */
+export function priceRangeCents(game: Pick<GameDto, "totalPriceCents" | "slots" | "subs">) {
+  return {
+    min: sharePerPlayerCents(game.totalPriceCents, game.slots + game.subs),
+    max: sharePerPlayerCents(game.totalPriceCents, game.slots),
+  };
+}
+
+export function formatEuros(cents: number): string {
+  return (cents / 100).toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
+}
 
 /** POST /auth/login */
 export const loginSchema = z.object({

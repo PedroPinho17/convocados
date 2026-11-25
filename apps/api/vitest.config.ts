@@ -8,5 +8,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.spec.ts'],
+    // O 1.º import do Nest/TypeORM + scrypt em paralelo passa dos 5s num runner de 2 cores.
+    testTimeout: 20_000,
   },
 });

@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import type { GameDto } from "@convocados/shared";
+import { formatEuros, type GameDto } from "@convocados/shared";
 import { ApiError, getGame } from "@/lib/api";
+import { PriceRangeText } from "@/components/price-range-text";
 
 export function GameDetailClient() {
   const { id } = useParams<{ id: string }>();
@@ -37,12 +38,10 @@ export function GameDetailClient() {
       <p>{game.location}</p>
       <p>{new Date(game.startsAt).toLocaleString("pt-PT")}</p>
       <p>
-        {game.slots} vagas · {game.subs} suplentes ·{" "}
-        {(game.priceCents / 100).toLocaleString("pt-PT", {
-          style: "currency",
-          currency: "EUR",
-        })}{" "}
-        / pessoa
+        {game.slots} vagas · {game.subs} suplentes · total {formatEuros(game.totalPriceCents)}
+      </p>
+      <p className="text-zinc-600">
+        <PriceRangeText {...game} />
       </p>
       <p>
         Código de convite: <strong>{game.inviteCode}</strong>

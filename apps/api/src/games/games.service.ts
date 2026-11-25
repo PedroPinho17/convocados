@@ -13,7 +13,7 @@ const toDto = (g: Game): GameDto => ({
   startsAt: g.startsAt.toISOString(),
   slots: g.slots,
   subs: g.subs,
-  priceCents: g.priceCents,
+  totalPriceCents: g.totalPriceCents,
   inviteCode: g.inviteCode,
   status: g.status,
   createdAt: g.createdAt.toISOString(),
@@ -66,7 +66,7 @@ export class GamesService {
     if (input.startsAt !== undefined) game.startsAt = new Date(input.startsAt);
     if (input.slots !== undefined) game.slots = input.slots;
     if (input.subs !== undefined) game.subs = input.subs;
-    if (input.priceCents !== undefined) game.priceCents = input.priceCents;
+    if (input.totalPriceCents !== undefined) game.totalPriceCents = input.totalPriceCents;
     return toDto(await this.games.save(game));
   }
 }

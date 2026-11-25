@@ -37,8 +37,9 @@ import {
     @Column({ type: 'int', default: 0 })
     subs!: number;
   
+    /** Custo total do jogo (ex.: aluguer do campo). Cada um paga total ÷ jogadores. */
     @Column({ type: 'int', default: 0 })
-    priceCents!: number;
+    totalPriceCents!: number;
   
     @Index({ unique: true })
     @Column()

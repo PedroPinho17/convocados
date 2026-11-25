@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import type { GameDto } from "@convocados/shared";
+import { formatEuros, type GameDto } from "@convocados/shared";
 import { ApiError, getGame } from "../../lib/api";
+import { priceRangeText } from "../../lib/price";
 
 export default function GameDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,8 +37,9 @@ export default function GameDetailScreen() {
       <Text>{game.location}</Text>
       <Text>{new Date(game.startsAt).toLocaleString("pt-PT")}</Text>
       <Text>
-        {game.slots} vagas · {game.subs} suplentes · {(game.priceCents / 100).toFixed(2)} € / pessoa
+        {game.slots} vagas · {game.subs} suplentes · total {formatEuros(game.totalPriceCents)}
       </Text>
+      <Text style={styles.muted}>{priceRangeText(game)}</Text>
       <Text>
         Código: <Text style={styles.bold}>{game.inviteCode}</Text>
       </Text>
@@ -51,5 +53,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 24, fontWeight: "600", marginBottom: 8 },
   bold: { fontWeight: "700" },
+  muted: { color: "#52525b" },
   error: { color: "#dc2626", padding: 16 },
 });

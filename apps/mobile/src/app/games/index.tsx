@@ -11,6 +11,7 @@ import {
 import { Link, router, useFocusEffect } from "expo-router";
 import type { GameDto } from "@convocados/shared";
 import { ApiError, createGame, listGames, logout } from "../../lib/api";
+import { priceRangeText } from "../../lib/price";
 
 export default function GamesScreen() {
   const [games, setGames] = useState<GameDto[]>([]);
@@ -42,15 +43,14 @@ export default function GamesScreen() {
     }, [load]),
   );
 
+  const s = Number(slots) || 0;
+  const b = Number(subs) || 0;
+  const totalPriceCents = Math.round((Number(totalEuros.replace(",", ".")) || 0) * 100);
+
   async function onCreate() {
     setError(null);
     setPending(true);
     try {
-      const s = Number(slots);
-      const b = Number(subs);
-      const total = Number(totalEuros);
-      const players = s + b;
-      const priceCents = Math.round((total * 100) / players);
       const iso = new Date(startsAt).toISOString();
       await createGame({
         title,
@@ -58,7 +58,7 @@ export default function GamesScreen() {
         startsAt: iso,
         slots: s,
         subs: b,
-        priceCents,
+        totalPriceCents,
       });
       setTitle("");
       setLocation("");
@@ -75,11 +75,6 @@ export default function GamesScreen() {
     await logout();
     router.replace("/login");
   }
-
-  const s = Number(slots) || 0;
-  const b = Number(subs) || 0;
-  const total = Number(totalEuros) || 0;
-  const perPerson = s + b > 0 ? total / (s + b) : 0;
 
   return (
     <FlatList
@@ -117,7 +112,7 @@ export default function GamesScreen() {
             onChangeText={setTotalEuros}
           />
           <Text style={styles.hint}>
-            Cada um paga {perPerson.toFixed(2)} € ({s + b} jogadores)
+            {priceRangeText({ totalPriceCents, slots: s, subs: b })}
           </Text>
 
           {error && <Text style={styles.error}>{error}</Text>}
