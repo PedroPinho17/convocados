@@ -2,7 +2,8 @@ import { useCallback, useState } from "react";
 import { View, Text, Pressable, StyleSheet, FlatList } from "react-native";
 import { Link, router, useFocusEffect } from "expo-router";
 import type { CreateGameInput, GameDto } from "@convocados/shared";
-import { ApiError, createGame, listGames, logout } from "../../lib/api";
+import { ApiError, createGame, listGames } from "../../lib/api";
+import { signOut } from "../../lib/session";
 import { GameForm } from "../../components/game-form";
 
 export default function GamesScreen() {
@@ -36,7 +37,7 @@ export default function GamesScreen() {
   }
 
   async function onLogout() {
-    await logout();
+    await signOut();
     router.replace("/login");
   }
 
@@ -49,9 +50,16 @@ export default function GamesScreen() {
         <View style={styles.header}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>Os meus jogos</Text>
-            <Pressable onPress={onLogout}>
-              <Text style={styles.link}>Sair</Text>
-            </Pressable>
+            <View style={styles.actions}>
+              <Link href="/settings" asChild>
+                <Pressable>
+                  <Text style={styles.link}>Lembretes</Text>
+                </Pressable>
+              </Link>
+              <Pressable onPress={onLogout}>
+                <Text style={styles.link}>Sair</Text>
+              </Pressable>
+            </View>
           </View>
 
           <Text style={styles.section}>Novo jogo</Text>
@@ -80,6 +88,7 @@ const styles = StyleSheet.create({
   header: { gap: 10, marginBottom: 16 },
   titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   title: { fontSize: 24, fontWeight: "600" },
+  actions: { flexDirection: "row", gap: 16 },
   section: { fontWeight: "600", marginTop: 8 },
   link: { textDecorationLine: "underline", color: "#52525b" },
   error: { color: "#dc2626" },

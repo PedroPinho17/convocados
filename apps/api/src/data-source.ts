@@ -1,18 +1,22 @@
 import { join } from 'node:path';
 import { DataSource } from 'typeorm';
-import { User, Game, Session, Participation } from '@convocados/db';
+import { User, Game, Session, Participation, PushToken } from '@convocados/db';
 
 import { Init1795621974591 } from './migrations/1795621974591-Init.js';
 import { AddSessions1795622437573 } from './migrations/1795622437573-AddSessions.js';
 import { GameTotalPrice1795635429286 } from './migrations/1795635429286-GameTotalPrice.js';
 import { AddParticipations1795651970417 } from './migrations/1795651970417-AddParticipations.js';
+import { AddPushTokens1795700000000 } from './migrations/1795700000000-AddPushTokens.js';
+import { UserReminders1795710000000 } from './migrations/1795710000000-UserReminders.js';
 
-export const entities = [User, Game, Session, Participation];
+export const entities = [User, Game, Session, Participation, PushToken];
 export const migrations = [
   Init1795621974591,
   AddSessions1795622437573,
   GameTotalPrice1795635429286,
   AddParticipations1795651970417,
+  AddPushTokens1795700000000,
+  UserReminders1795710000000,
 ];
 
 try {

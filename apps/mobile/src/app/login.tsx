@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { ApiError, login, register } from "../lib/api";
+import { ensurePushRegistration } from "../lib/push";
+import { syncReminders } from "../lib/reminders";
 
 export default function LoginScreen() {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -25,6 +27,8 @@ export default function LoginScreen() {
       const cleanEmail = email.trim().toLowerCase();
       if (mode === "login") await login({ email: cleanEmail, password });
       else await register({ name: name.trim(), email: cleanEmail, password });
+      await ensurePushRegistration();
+      void syncReminders();
       router.replace("/games");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Algo correu mal.");

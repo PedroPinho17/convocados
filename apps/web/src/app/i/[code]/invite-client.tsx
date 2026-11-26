@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { formatEuros, type GameDetailDto, type UserDto } from "@convocados/shared";
 import { ApiError, getInvite, getMe } from "@/lib/api";
 import { GameParticipation } from "@/components/game-participation";
+import { subscribeGame } from "@/lib/socket";
 
 export function InviteClient() {
   const { code } = useParams<{ code: string }>();
@@ -37,6 +38,13 @@ export function InviteClient() {
       cancelled = true;
     };
   }, [code]);
+
+  useEffect(() => {
+    if (!game?.id || !me) return;
+    return subscribeGame(game.id, (detail) => {
+      if (detail.id === game.id) setGame(detail);
+    });
+  }, [game?.id, me]);
 
   if (error) return <main className="p-8 text-red-600">{error}</main>;
   if (!game) return <main className="p-8">A carregar…</main>;

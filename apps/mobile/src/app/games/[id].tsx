@@ -13,6 +13,8 @@ import { formatEuros, type CreateGameInput, type GameDetailDto } from "@convocad
 import { ApiError, confirmGame, getGameDetail, getMe, leaveGame, updateGame } from "../../lib/api";
 import { priceRangeText } from "../../lib/price";
 import { GameForm } from "../../components/game-form";
+import { subscribeGame } from "../../lib/socket";
+import { syncReminders } from "../../lib/reminders";
 
 const WEB_ORIGIN = process.env.EXPO_PUBLIC_WEB_ORIGIN ?? "http://localhost:3000";
 
@@ -41,6 +43,35 @@ export default function GameDetailScreen() {
         setError(err instanceof ApiError ? err.message : "Erro");
       });
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+
+    void subscribeGame(id, (detail) => {
+      if (detail.id === id) setGame(detail);
+    })
+      .then((unsub) => {
+        if (cancelled) unsub();
+        else unsubscribe = unsub;
+      })
+      .catch(() => {
+        // Sem sessão / API offline: o ecrã já trata via HTTP.
+      });
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [id]);
+
+  // Confirmei, desisti, subi da lista de espera ou o jogo mudou de hora: reagendar lembretes.
+  const myStatus = game?.participations.find((p) => p.userId === meId)?.status;
+  const startsAt = game?.startsAt;
+  useEffect(() => {
+    if (startsAt) void syncReminders();
+  }, [myStatus, startsAt]);
 
   if (error) return <Text style={styles.error}>{error}</Text>;
   if (!game) {

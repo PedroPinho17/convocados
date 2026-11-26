@@ -23,7 +23,8 @@ const toDto = (u: Pick<User, 'id' | 'name' | 'email'>): UserDto => ({
   name: u.name,
   email: u.email,
 });
-const TOKEN_RE = /^[\w-]{43}$/;
+/** Token de sessão: 32 bytes em base64url. */
+export const TOKEN_RE = /^[\w-]{43}$/;
 
 export function isMobileClient(req: Request): boolean {
   const value = req.headers[MOBILE_CLIENT_HEADER];

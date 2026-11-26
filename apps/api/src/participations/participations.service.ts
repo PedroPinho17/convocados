@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, In, type EntityManager } from 'typeorm';
 import { Game, Participation, User } from '@convocados/db';
@@ -8,6 +13,8 @@ import type {
   ParticipationDto,
   ParticipationStatus,
 } from '@convocados/shared';
+import { GamesGateway } from '../realtime/games.gateway.js';
+import { PushService } from '../push/push.service.js';
 
 export const toGameDto = (g: Game): GameDto => ({
   id: g.id,
@@ -23,7 +30,10 @@ export const toGameDto = (g: Game): GameDto => ({
   createdAt: g.createdAt.toISOString(),
 });
 
-const toParticipationDto = (p: Participation, userName: string): ParticipationDto => ({
+const toParticipationDto = (
+  p: Participation,
+  userName: string,
+): ParticipationDto => ({
   id: p.id,
   gameId: p.gameId,
   userId: p.userId,
@@ -35,7 +45,10 @@ const toParticipationDto = (p: Participation, userName: string): ParticipationDt
 });
 
 /** Tranca a linha do jogo até ao fim da transação (SELECT … FOR UPDATE). */
-export async function lockGame(manager: EntityManager, gameId: string): Promise<Game> {
+export async function lockGame(
+  manager: EntityManager,
+  gameId: string,
+): Promise<Game> {
   const game = await manager
     .createQueryBuilder(Game, 'g')
     .setLock('pessimistic_write')
@@ -57,10 +70,13 @@ export async function countByStatus(manager: EntityManager, gameId: string) {
  * Passa os primeiros da lista de espera a confirmados enquanto houver vagas.
  * Chamar sempre com o jogo trancado (`lockGame`) na mesma transação.
  */
-export async function promoteFromWaiting(manager: EntityManager, game: Game): Promise<void> {
+export async function promoteFromWaiting(
+  manager: EntityManager,
+  game: Game,
+): Promise<string[]> {
   const { confirmed } = await countByStatus(manager, game.id);
   const free = game.slots - confirmed;
-  if (free <= 0) return;
+  if (free <= 0) return [];
   const next = await manager.find(Participation, {
     where: { gameId: game.id, status: 'waiting' },
     order: { position: 'ASC' },
@@ -68,24 +84,34 @@ export async function promoteFromWaiting(manager: EntityManager, game: Game): Pr
   });
   for (const p of next) p.status = 'confirmed';
   if (next.length > 0) await manager.save(next);
+  return next.map((p) => p.userId);
 }
 
 @Injectable()
 export class ParticipationsService {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  private readonly logger = new Logger(ParticipationsService.name);
+
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly gamesGateway: GamesGateway,
+    private readonly push: PushService,
+  ) {}
 
   getDetail(gameId: string): Promise<GameDetailDto> {
     return this.buildDetail(this.dataSource.manager, gameId);
   }
 
   async getDetailByInviteCode(code: string): Promise<GameDetailDto> {
-    const game = await this.dataSource.manager.findOneBy(Game, { inviteCode: code });
-    if (!game) throw new NotFoundException('Convite inválido ou jogo não encontrado.');
+    const game = await this.dataSource.manager.findOneBy(Game, {
+      inviteCode: code,
+    });
+    if (!game)
+      throw new NotFoundException('Convite inválido ou jogo não encontrado.');
     return this.buildDetail(this.dataSource.manager, game.id);
   }
 
   async confirm(gameId: string, userId: string): Promise<GameDetailDto> {
-    return this.dataSource.transaction(async (manager) => {
+    const detail = await this.dataSource.transaction(async (manager) => {
       const game = await lockGame(manager, gameId);
       if (game.status !== 'open') {
         throw new ConflictException('Este jogo já não aceita confirmações.');
@@ -94,8 +120,13 @@ export class ParticipationsService {
         throw new ConflictException('Este jogo já começou.');
       }
 
-      const existing = await manager.findOne(Participation, { where: { gameId, userId } });
-      if (existing && (existing.status === 'confirmed' || existing.status === 'waiting')) {
+      const existing = await manager.findOne(Participation, {
+        where: { gameId, userId },
+      });
+      if (
+        existing &&
+        (existing.status === 'confirmed' || existing.status === 'waiting')
+      ) {
         return this.buildDetail(manager, gameId);
       }
 
@@ -124,49 +155,126 @@ export class ParticipationsService {
         existing.joinedAt = new Date();
         await manager.save(existing);
       } else {
-        await manager.save(manager.create(Participation, { gameId, userId, status, position, paid: false }));
+        await manager.save(
+          manager.create(Participation, {
+            gameId,
+            userId,
+            status,
+            position,
+            paid: false,
+          }),
+        );
       }
 
       return this.buildDetail(manager, gameId);
     });
+
+    this.gamesGateway.emitGameUpdated(gameId, detail);
+    return detail;
   }
 
   async leave(gameId: string, userId: string): Promise<GameDetailDto> {
-    return this.dataSource.transaction(async (manager) => {
+    let promotedIds: string[] = [];
+    let confirmedLeft = false;
+
+    const detail = await this.dataSource.transaction(async (manager) => {
       const game = await lockGame(manager, gameId);
 
-      const existing = await manager.findOne(Participation, { where: { gameId, userId } });
+      const existing = await manager.findOne(Participation, {
+        where: { gameId, userId },
+      });
       if (!existing || existing.status === 'left') {
         return this.buildDetail(manager, gameId);
       }
 
-      const wasConfirmed = existing.status === 'confirmed';
+      confirmedLeft = existing.status === 'confirmed';
       existing.status = 'left';
       await manager.save(existing);
-      if (wasConfirmed) await promoteFromWaiting(manager, game);
+      if (confirmedLeft) promotedIds = await promoteFromWaiting(manager, game);
 
       return this.buildDetail(manager, gameId);
     });
+
+    await this.notifyChanged(detail, promotedIds);
+    if (confirmedLeft && promotedIds.length === 0)
+      await this.notifyMissingPlayers(detail, userId);
+    return detail;
   }
 
-  private async buildDetail(manager: EntityManager, gameId: string): Promise<GameDetailDto> {
+  /**
+   * Depois de uma mudança já gravada: atualiza os ecrãs abertos (socket) e avisa por push
+   * quem subiu da lista de espera. Usado ao editar o jogo (ex.: mais vagas).
+   */
+  async afterGameChanged(
+    gameId: string,
+    promotedIds: string[] = [],
+  ): Promise<void> {
+    try {
+      const detail = await this.getDetail(gameId);
+      await this.notifyChanged(detail, promotedIds);
+    } catch (err) {
+      // A edição já está gravada: um erro aqui não a pode transformar num 500.
+      this.logger.warn(
+        `Falha ao avisar alterações do jogo ${gameId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  private async notifyChanged(detail: GameDetailDto, promotedIds: string[]) {
+    this.gamesGateway.emitGameUpdated(detail.id, detail);
+    if (promotedIds.length > 0) {
+      await this.push.send(
+        promotedIds,
+        'Entraste na convocatória',
+        `Abriu uma vaga: estás confirmado em "${detail.title}".`,
+        { gameId: detail.id },
+      );
+    }
+  }
+
+  /** Um confirmado desistiu e ninguém estava à espera: avisar o organizador. */
+  private async notifyMissingPlayers(detail: GameDetailDto, leaverId: string) {
+    const missing = detail.slots - detail.confirmedCount;
+    const upcoming = new Date(detail.startsAt).getTime() > Date.now();
+    if (missing <= 0 || !upcoming || detail.organizerId === leaverId) return;
+    await this.push.send(
+      [detail.organizerId],
+      'Faltam jogadores',
+      `${missing === 1 ? 'Falta 1 jogador' : `Faltam ${missing} jogadores`} em "${detail.title}".`,
+      { gameId: detail.id },
+    );
+  }
+
+  private async buildDetail(
+    manager: EntityManager,
+    gameId: string,
+  ): Promise<GameDetailDto> {
     const game = await manager.findOneBy(Game, { id: gameId });
     if (!game) throw new NotFoundException('Jogo não encontrado.');
 
     const rows = await manager.find(Participation, {
-      where: { gameId, status: In(['confirmed', 'waiting'] satisfies ParticipationStatus[]) },
+      where: {
+        gameId,
+        status: In(['confirmed', 'waiting'] satisfies ParticipationStatus[]),
+      },
       order: { position: 'ASC' },
     });
 
     const userIds = [...new Set(rows.map((r) => r.userId))];
-    const users = userIds.length === 0 ? [] : await manager.findBy(User, { id: In(userIds) });
+    const users =
+      userIds.length === 0
+        ? []
+        : await manager.findBy(User, { id: In(userIds) });
     const nameById = new Map(users.map((u) => [u.id, u.name]));
 
-    const participations = rows.map((p) => toParticipationDto(p, nameById.get(p.userId) ?? 'Jogador'));
+    const participations = rows.map((p) =>
+      toParticipationDto(p, nameById.get(p.userId) ?? 'Jogador'),
+    );
 
     return {
       ...toGameDto(game),
-      confirmedCount: participations.filter((p) => p.status === 'confirmed').length,
+      confirmedCount: participations.filter((p) => p.status === 'confirmed')
+        .length,
       waitingCount: participations.filter((p) => p.status === 'waiting').length,
       participations,
     };

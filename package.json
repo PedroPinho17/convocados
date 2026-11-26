@@ -4,6 +4,7 @@
   "packageManager": "pnpm@12.18.0",
   "scripts": {
     "dev": "turbo dev",
+    "mobile": "turbo run build --filter=./packages/* && pnpm --filter mobile start",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",

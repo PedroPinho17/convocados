@@ -9,6 +9,8 @@ import { validateEnv, type Env } from './config.js';
 import { entities, migrations } from './data-source.js';
 import { GamesModule } from './games/games.module.js';
 import { ParticipationsModule } from './participations/participations.module.js';
+import { RealtimeModule } from './realtime/realtime.module.js';
+import { PushModule } from './push/push.module.js';
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { ParticipationsModule } from './participations/participations.module.js'
     AuthModule,
     GamesModule,
     ParticipationsModule,
+    RealtimeModule,
+    PushModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

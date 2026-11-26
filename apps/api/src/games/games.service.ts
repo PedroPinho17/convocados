@@ -8,10 +8,15 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Brackets, DataSource } from 'typeorm';
 import { Game } from '@convocados/db';
-import type { CreateGameInput, GameDto, UpdateGameInput } from '@convocados/shared';
+import type {
+  CreateGameInput,
+  GameDto,
+  UpdateGameInput,
+} from '@convocados/shared';
 import {
   countByStatus,
   lockGame,
+  ParticipationsService,
   promoteFromWaiting,
   toGameDto,
 } from '../participations/participations.service.js';
@@ -24,7 +29,10 @@ function newInviteCode() {
 
 @Injectable()
 export class GamesService {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly participations: ParticipationsService,
+  ) {}
 
   private get games() {
     return this.dataSource.getRepository(Game);
@@ -55,7 +63,9 @@ export class GamesService {
       )
       .where(
         new Brackets((qb) => {
-          qb.where('g.organizerId = :userId', { userId }).orWhere('p.id IS NOT NULL');
+          qb.where('g.organizerId = :userId', { userId }).orWhere(
+            'p.id IS NOT NULL',
+          );
         }),
       )
       .orderBy('g.startsAt', 'ASC')
@@ -69,42 +79,59 @@ export class GamesService {
     return toGameDto(game);
   }
 
-  async update(id: string, userId: string, input: UpdateGameInput): Promise<GameDto> {
-    return this.dataSource.transaction(async (manager) => {
-      // Trancado como no confirmar: mudar vagas não pode correr ao mesmo tempo que uma confirmação.
-      const game = await lockGame(manager, id);
-      if (game.organizerId !== userId) {
-        throw new ForbiddenException('Só o organizador pode editar este jogo.');
-      }
-
-      const { confirmed, waiting } = await countByStatus(manager, id);
-      if (input.slots !== undefined && input.slots < confirmed) {
-        throw new ConflictException(
-          `Já há ${confirmed} confirmados: as vagas não podem ser menos do que isso.`,
-        );
-      }
-      if (input.subs !== undefined) {
-        const slots = input.slots ?? game.slots;
-        // Quem sobe da espera para as vagas novas deixa de contar para a lista de espera.
-        const stillWaiting = Math.max(0, waiting - Math.max(0, slots - confirmed));
-        if (input.subs < stillWaiting) {
-          throw new ConflictException(
-            `Há ${stillWaiting} pessoas em lista de espera: os suplentes não podem ser menos do que isso.`,
+  async update(
+    id: string,
+    userId: string,
+    input: UpdateGameInput,
+  ): Promise<GameDto> {
+    const { dto, promotedIds } = await this.dataSource.transaction(
+      async (manager) => {
+        // Trancado como no confirmar: mudar vagas não pode correr ao mesmo tempo que uma confirmação.
+        const game = await lockGame(manager, id);
+        if (game.organizerId !== userId) {
+          throw new ForbiddenException(
+            'Só o organizador pode editar este jogo.',
           );
         }
-      }
 
-      if (input.title !== undefined) game.title = input.title;
-      if (input.location !== undefined) game.location = input.location;
-      if (input.startsAt !== undefined) game.startsAt = new Date(input.startsAt);
-      if (input.slots !== undefined) game.slots = input.slots;
-      if (input.subs !== undefined) game.subs = input.subs;
-      if (input.totalPriceCents !== undefined) game.totalPriceCents = input.totalPriceCents;
-      const saved = await manager.save(game);
+        const { confirmed, waiting } = await countByStatus(manager, id);
+        if (input.slots !== undefined && input.slots < confirmed) {
+          throw new ConflictException(
+            `Já há ${confirmed} confirmados: as vagas não podem ser menos do que isso.`,
+          );
+        }
+        if (input.subs !== undefined) {
+          const slots = input.slots ?? game.slots;
+          // Quem sobe da espera para as vagas novas deixa de contar para a lista de espera.
+          const stillWaiting = Math.max(
+            0,
+            waiting - Math.max(0, slots - confirmed),
+          );
+          if (input.subs < stillWaiting) {
+            throw new ConflictException(
+              `Há ${stillWaiting} pessoas em lista de espera: os suplentes não podem ser menos do que isso.`,
+            );
+          }
+        }
 
-      // Mais vagas → os primeiros da lista de espera entram logo.
-      await promoteFromWaiting(manager, saved);
-      return toGameDto(saved);
-    });
+        if (input.title !== undefined) game.title = input.title;
+        if (input.location !== undefined) game.location = input.location;
+        if (input.startsAt !== undefined)
+          game.startsAt = new Date(input.startsAt);
+        if (input.slots !== undefined) game.slots = input.slots;
+        if (input.subs !== undefined) game.subs = input.subs;
+        if (input.totalPriceCents !== undefined)
+          game.totalPriceCents = input.totalPriceCents;
+        const saved = await manager.save(game);
+
+        // Mais vagas → os primeiros da lista de espera entram logo.
+        const promotedIds = await promoteFromWaiting(manager, saved);
+        return { dto: toGameDto(saved), promotedIds };
+      },
+    );
+
+    // Depois do commit: ecrãs abertos atualizam (hora, vagas, listas) e os promovidos recebem push.
+    await this.participations.afterGameChanged(id, promotedIds);
+    return dto;
   }
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { formatEuros, type CreateGameInput, type GameDetailDto, type UserDto } from "@convocados/shared";
 import { ApiError, getGameDetail, getMe, updateGame } from "@/lib/api";
+import { subscribeGame } from "@/lib/socket";
 import { GameForm } from "@/components/game-form";
 import { GameParticipation } from "@/components/game-participation";
 import { InviteShare } from "@/components/invite-share";
@@ -32,6 +33,13 @@ export function GameDetailClient() {
         setError(err instanceof ApiError ? err.message : "Erro");
       });
   }, [id, router]);
+
+  useEffect(() => {
+    if (!id) return;
+    return subscribeGame(id, (detail) => {
+      if (detail.id === id) setGame(detail);
+    });
+  }, [id]);
 
   if (error) return <main className="p-8 text-red-600">{error}</main>;
   if (!game) return <main className="p-8">A carregar…</main>;

@@ -7,6 +7,10 @@ import type {
   RegisterInput,
   UpdateGameInput,
   UserDto,
+  RegisterPushTokenInput,
+  ReminderSettingsInput,
+  RemindersDto,
+  UnregisterPushTokenInput,
 } from "@convocados/shared";
 
 const API = process.env.EXPO_PUBLIC_API_URL;
@@ -109,3 +113,12 @@ export const confirmGame = (id: string) =>
   request<GameDetailDto>(`/games/${id}/confirm`, { method: "POST" });
 export const leaveGame = (id: string) =>
   request<GameDetailDto>(`/games/${id}/leave`, { method: "POST" });
+export const registerPushToken = (input: RegisterPushTokenInput) =>
+  request<void>("/push/register", json(input));
+export const unregisterPushToken = (input: UnregisterPushTokenInput) =>
+  request<void>("/push/unregister", json(input));
+
+/** Definições dos lembretes + jogos confirmados (para agendar os lembretes locais). */
+export const getReminders = () => request<RemindersDto>("/push/reminders");
+export const setReminders = (input: ReminderSettingsInput) =>
+  request<RemindersDto>("/push/reminders", json(input, "PUT"));

@@ -97,6 +97,49 @@ export function formatEuros(cents: number): string {
   return (cents / 100).toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
 }
 
+/** POST /push/register — token Expo do dispositivo */
+export const registerPushTokenSchema = z.object({
+  token: z
+    .string()
+    .min(20)
+    .max(200)
+    .regex(/^Expo(nent)?PushToken\[.+\]$/, "Token Expo inválido"),
+  platform: z.enum(["ios", "android"]).optional(),
+});
+export type RegisterPushTokenInput = z.infer<typeof registerPushTokenSchema>;
+
+/** POST /push/unregister — ao sair da conta, o dispositivo deixa de receber notificações. */
+export const unregisterPushTokenSchema = registerPushTokenSchema.pick({ token: true });
+export type UnregisterPushTokenInput = z.infer<typeof unregisterPushTokenSchema>;
+
+/** Lembretes antes do jogo, em minutos. Lista fixa para não aparecerem valores estranhos. */
+export const REMINDER_OPTIONS = [15, 30, 60, 120, 1440] as const;
+export const MAX_REMINDERS = 3;
+export const DEFAULT_REMINDERS: number[] = [120];
+
+/** PUT /push/reminders */
+export const reminderSettingsSchema = z.object({
+  reminderMinutes: z
+    .array(z.literal(REMINDER_OPTIONS))
+    .max(MAX_REMINDERS, `No máximo ${MAX_REMINDERS} lembretes.`)
+    .refine((list) => new Set(list).size === list.length, "Lembretes repetidos."),
+});
+export type ReminderSettingsInput = z.infer<typeof reminderSettingsSchema>;
+
+/** GET /push/reminders — o que o telemóvel precisa para agendar os lembretes locais. */
+export type RemindersDto = {
+  reminderMinutes: number[];
+  /** Jogos futuros e abertos em que estou confirmado. */
+  games: { gameId: string; title: string; location: string; startsAt: string }[];
+};
+
+/** 15 → "15 min", 120 → "2 h", 1440 → "1 dia" */
+export function formatReminder(minutes: number): string {
+  if (minutes % 1440 === 0) return minutes === 1440 ? "1 dia" : `${minutes / 1440} dias`;
+  if (minutes % 60 === 0) return `${minutes / 60} h`;
+  return `${minutes} min`;
+}
+
 /** POST /auth/login */
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),

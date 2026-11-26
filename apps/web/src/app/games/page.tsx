@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CreateGameInput, GameDto } from "@convocados/shared";
 import { ApiError, createGame, listGames, logout } from "@/lib/api";
+import { resetSocket } from "@/lib/socket";
 import { GameForm } from "@/components/game-form";
 
 export default function GamesPage() {
@@ -45,6 +46,7 @@ export default function GamesPage() {
 
   async function onLogout() {
     await logout().catch(() => undefined);
+    resetSocket();
     router.replace("/login");
   }
 

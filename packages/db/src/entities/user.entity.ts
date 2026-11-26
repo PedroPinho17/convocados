@@ -19,6 +19,10 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   avatarUrl!: string | null;
 
+  /** Lembretes antes de cada jogo, em minutos (por defeito, 2 horas antes). */
+  @Column({ type: 'int', array: true, default: () => "'{120}'" })
+  reminderMinutes!: number[];
+
   @CreateDateColumn()
   createdAt!: Date;
 }
