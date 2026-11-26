@@ -1,7 +1,7 @@
 import { useCallback, useLayoutEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Link, router, useFocusEffect, useNavigation } from "expo-router";
-import type { CreateGameInput, GameDto } from "@convocados/shared";
+import { sportLabel, type CreateGameInput, type GameDto } from "@convocados/shared";
 import { ApiError, createGame, listGames } from "../../lib/api";
 import { signOut } from "../../lib/session";
 import { NewGame } from "../../components/new-game";
@@ -143,6 +143,10 @@ function GameCard({ game, faded }: { game: GameDto; faded?: boolean }) {
             </Text>
             {cancelled ? <Badge label="Cancelado" tone="danger" /> : null}
           </View>
+          <Text style={s.muted} numberOfLines={1}>
+            {sportLabel(game.sport)}
+            {game.groupName ? ` · ${game.groupName}` : ""}
+          </Text>
           <Text style={s.muted} numberOfLines={1}>
             {game.location}
           </Text>

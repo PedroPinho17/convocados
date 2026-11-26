@@ -1,6 +1,26 @@
 import { z } from "zod";
 
-export const createGameSchema = z.object({
+/**
+ * Desportos da plataforma. `slots`/`subs` são os valores por defeito ao criar um jogo;
+ * `osm` são as etiquetas `sport` do OpenStreetMap que servem para os campos.
+ */
+export const SPORTS = {
+  football: { label: "Futebol", emoji: "⚽", slots: 10, subs: 2, osm: ["soccer", "futsal", "multi"] },
+  futsal: { label: "Futsal", emoji: "⚽", slots: 10, subs: 2, osm: ["futsal", "soccer", "multi"] },
+  padel: { label: "Padel", emoji: "🎾", slots: 4, subs: 1, osm: ["padel"] },
+  tennis: { label: "Ténis", emoji: "🎾", slots: 2, subs: 0, osm: ["tennis"] },
+  basketball: { label: "Basquetebol", emoji: "🏀", slots: 10, subs: 2, osm: ["basketball", "multi"] },
+  volleyball: { label: "Voleibol", emoji: "🏐", slots: 12, subs: 2, osm: ["volleyball", "multi"] },
+  other: { label: "Outro", emoji: "🏅", slots: 10, subs: 2, osm: [] as string[] },
+} as const;
+export type Sport = keyof typeof SPORTS;
+export const SPORT_KEYS = Object.keys(SPORTS) as Sport[];
+export const sportSchema = z.enum(SPORT_KEYS as [Sport, ...Sport[]]);
+export const sportLabel = (sport: string) =>
+  sport in SPORTS ? `${SPORTS[sport as Sport].emoji} ${SPORTS[sport as Sport].label}` : sport;
+
+/** Campos de um jogo, sem valores por defeito (o PATCH não pode repor nada sem querer). */
+const gameFieldsSchema = z.object({
   title: z.string().min(1).max(80),
   location: z.string().min(1).max(120),
   startsAt: z.string().datetime(),
@@ -8,16 +28,26 @@ export const createGameSchema = z.object({
   subs: z.number().int().min(0).max(10),
   /** Custo total do jogo (ex.: 3000 = 30 € do campo), não o valor por pessoa. */
   totalPriceCents: z.number().int().min(0).max(1_000_000),
+  sport: sportSchema,
+  /** Campo escolhido da lista (opcional: o "local" escrito continua a valer). */
+  venueId: z.string().uuid().nullable(),
 });
-export type CreateGameInput = z.infer<typeof createGameSchema>;
+
+/** POST /games — o grupo só se escolhe ao criar. */
+export const createGameSchema = gameFieldsSchema.extend({
+  sport: sportSchema.default("football"),
+  venueId: z.string().uuid().nullable().optional(),
+  groupId: z.string().uuid().nullable().optional(),
+});
+export type CreateGameInput = z.input<typeof createGameSchema>;
 export type UserDto = {
   id: string;
   name: string;
   email: string;
 };
 
-/** PATCH /games/:id — todos os campos opcionais */
-export const updateGameSchema = createGameSchema.partial();
+/** PATCH /games/:id — todos os campos opcionais (o grupo não muda depois de criado). */
+export const updateGameSchema = gameFieldsSchema.partial();
 export type UpdateGameInput = z.infer<typeof updateGameSchema>;
 
 export type GameDto = {
@@ -32,6 +62,10 @@ export type GameDto = {
   inviteCode: string;
   status: "open" | "cancelled" | "done";
   createdAt: string; // ISO
+  sport: Sport;
+  venueId: string | null;
+  groupId: string | null;
+  groupName: string | null;
 };
 
 /** confirmed = vaga; waiting = lista de espera; left = desistiu */
@@ -336,7 +370,7 @@ export type ParseGameMessageInput = z.infer<typeof parseGameMessageSchema>;
  * O que a IA deve devolver. Campos opcionais: se falhar parcialmente,
  * o formulário preenche o que houver e o resto fica manual.
  */
-export const parsedGameDraftSchema = createGameSchema.partial().extend({
+export const parsedGameDraftSchema = gameFieldsSchema.partial().extend({
   /** Notas da IA (ex.: "não encontrei a hora"). */
   notes: z.string().max(500).optional(),
 });
@@ -353,14 +387,97 @@ export type ParseGameResultDto = {
  * Valores iniciais do formulário de jogo (web e app): o jogo a editar, ou o rascunho
  * da IA, ou os valores por defeito. A data vem no formato do <input type="datetime-local">.
  */
-export function initialGameForm(game?: GameDto | null, draft?: ParsedGameDraft | null) {
+export function initialGameForm(
+  game?: GameDto | null,
+  draft?: ParsedGameDraft | null,
+  /** Para um jogo novo: o desporto do grupo (define as vagas por defeito). */
+  defaults: { sport?: Sport } = {},
+) {
   const src = game ?? draft ?? {};
+  const sport: Sport = src.sport ?? defaults.sport ?? "football";
   return {
     title: src.title ?? "",
     location: src.location ?? "",
     startsAt: src.startsAt ? toLocalDateTimeInput(src.startsAt) : "",
-    slots: src.slots ?? 10,
-    subs: src.subs ?? 2,
+    slots: src.slots ?? SPORTS[sport].slots,
+    subs: src.subs ?? SPORTS[sport].subs,
     totalEuros: (src.totalPriceCents ?? 3000) / 100,
+    sport,
+    venueId: src.venueId ?? null,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Grupos: cada grupo é um "tenant" (membros, um desporto principal, os seus jogos).
+// ---------------------------------------------------------------------------
+
+/** POST /groups */
+export const createGroupSchema = z.object({
+  name: z.string().trim().min(2, "O nome tem de ter pelo menos 2 letras.").max(60),
+  sport: sportSchema,
+});
+export type CreateGroupInput = z.input<typeof createGroupSchema>;
+
+export type GroupRole = "admin" | "member";
+
+export type GroupDto = {
+  id: string;
+  name: string;
+  sport: Sport;
+  /** Código do link de convite (/g/<código>). */
+  inviteCode: string;
+  /** O meu papel no grupo. */
+  role: GroupRole;
+  memberCount: number;
+  createdAt: string; // ISO
+};
+
+export type GroupMemberDto = { userId: string; name: string; role: GroupRole; joinedAt: string };
+
+export type GroupDetailDto = GroupDto & {
+  members: GroupMemberDto[];
+  /** Jogos do grupo: os próximos primeiro, depois os anteriores mais recentes. */
+  games: GameDto[];
+};
+
+/** GET /group-invites/:code — público: o que se vê antes de entrar. */
+export type GroupInviteDto = { name: string; sport: Sport; memberCount: number };
+
+// ---------------------------------------------------------------------------
+// Campos (venues): pesquisa por nome/localidade, e por distância quando há coordenadas.
+// ---------------------------------------------------------------------------
+
+/** GET /venues?q=&lat=&lng=&radiusKm=&sport= */
+export const venueSearchSchema = z.object({
+  q: z.string().trim().max(80).optional(),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  radiusKm: z.coerce.number().min(1).max(50).default(15),
+  sport: sportSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(30).default(12),
+});
+export type VenueSearchInput = z.input<typeof venueSearchSchema>;
+export type VenueSearchQuery = z.infer<typeof venueSearchSchema>;
+
+export type VenueDto = {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  lat: number;
+  lng: number;
+  sports: string[];
+  /** Só quando a pesquisa tem coordenadas. */
+  distanceKm: number | null;
+};
+
+/** "Pavilhão de Arrifana · Romariz" — o texto que fica no campo "Local". */
+export const venueLabel = (v: Pick<VenueDto, "name" | "city">) =>
+  v.city && !v.name.toLowerCase().includes(v.city.toLowerCase()) ? `${v.name} · ${v.city}` : v.name;
+
+/** Para pesquisar sem acentos nem maiúsculas ("Fiães" = "fiaes"). */
+export const foldText = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();

@@ -1,13 +1,15 @@
 import { randomBytes } from 'node:crypto';
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Brackets, DataSource } from 'typeorm';
-import { Game } from '@convocados/db';
+import { Game, Group, Venue } from '@convocados/db';
 import type {
   CreateGameInput,
   GameDetailDto,
@@ -21,6 +23,8 @@ import {
   promoteFromWaiting,
   toGameDto,
 } from '../participations/participations.service.js';
+import { GroupsService } from '../groups/groups.service.js';
+import { PushService } from '../push/push.service.js';
 
 /** 12 hex = 48 bits: curto para o link/QR e impossível de adivinhar à força. */
 export const INVITE_CODE_RE = /^[0-9a-f]{8,32}$/;
@@ -30,32 +34,93 @@ function newInviteCode() {
 
 @Injectable()
 export class GamesService {
+  private readonly logger = new Logger(GamesService.name);
+
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly participations: ParticipationsService,
+    private readonly groups: GroupsService,
+    private readonly push: PushService,
   ) {}
+
+  /** O campo escolhido tem de existir (senão a FK dava erro 500). */
+  private async assertVenue(venueId: string | null | undefined) {
+    if (!venueId) return;
+    const exists = await this.dataSource.manager.existsBy(Venue, {
+      id: venueId,
+    });
+    if (!exists) throw new BadRequestException('Esse campo não existe.');
+  }
 
   private get games() {
     return this.dataSource.getRepository(Game);
   }
 
   async create(organizerId: string, input: CreateGameInput): Promise<GameDto> {
+    // Num grupo só cria jogos quem é membro.
+    if (input.groupId)
+      await this.groups.assertMember(input.groupId, organizerId);
+    await this.assertVenue(input.venueId);
+
     const game = await this.games.save(
       this.games.create({
-        ...input,
+        title: input.title,
+        location: input.location,
         startsAt: new Date(input.startsAt),
+        slots: input.slots,
+        subs: input.subs,
+        totalPriceCents: input.totalPriceCents,
+        sport: input.sport ?? 'football',
+        venueId: input.venueId ?? null,
+        groupId: input.groupId ?? null,
         organizerId,
         inviteCode: newInviteCode(),
         status: 'open',
       }),
     );
+    if (game.groupId) {
+      game.group = await this.dataSource.manager.findOneBy(Group, {
+        id: game.groupId,
+      });
+      await this.notifyGroup(game, organizerId);
+    }
     return toGameDto(game);
   }
 
-  /** Jogos que organizo + jogos em que estou confirmado ou em espera. */
+  /** Jogo novo num grupo: aviso a todos os membros (menos a quem o criou). */
+  private async notifyGroup(game: Game, organizerId: string) {
+    try {
+      const people = (await this.groups.memberIds(game.groupId!)).filter(
+        (id) => id !== organizerId,
+      );
+      if (people.length === 0) return;
+      const when = game.startsAt.toLocaleString('pt-PT', {
+        timeZone: 'Europe/Lisbon',
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      await this.push.send(
+        people,
+        `Novo jogo em ${game.group?.name ?? 'o teu grupo'}`,
+        `${game.title} · ${when}. Confirma já a tua vaga.`,
+        { gameId: game.id },
+      );
+    } catch (err) {
+      // O jogo já está criado: um aviso que falha não o pode desfazer.
+      this.logger.warn(
+        `Falha ao avisar o grupo do jogo ${game.id}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /** Jogos que organizo, em que estou confirmado ou em espera, e os dos meus grupos. */
   async listMine(userId: string): Promise<GameDto[]> {
     const rows = await this.games
       .createQueryBuilder('g')
+      .leftJoinAndSelect('g.group', 'grp')
       .leftJoin(
         'participations',
         'p',
@@ -64,9 +129,11 @@ export class GamesService {
       )
       .where(
         new Brackets((qb) => {
-          qb.where('g.organizerId = :userId', { userId }).orWhere(
-            'p.id IS NOT NULL',
-          );
+          qb.where('g.organizerId = :userId', { userId })
+            .orWhere('p.id IS NOT NULL')
+            .orWhere(
+              `g."groupId" IN (SELECT gm."groupId" FROM "group_members" gm WHERE gm."userId" = :userId)`,
+            );
         }),
       )
       .orderBy('g.startsAt', 'ASC')
@@ -85,6 +152,7 @@ export class GamesService {
     userId: string,
     input: UpdateGameInput,
   ): Promise<GameDto> {
+    await this.assertVenue(input.venueId);
     const { dto, promotedIds } = await this.dataSource.transaction(
       async (manager) => {
         // Trancado como no confirmar: mudar vagas não pode correr ao mesmo tempo que uma confirmação.
@@ -126,6 +194,8 @@ export class GamesService {
         if (input.subs !== undefined) game.subs = input.subs;
         if (input.totalPriceCents !== undefined)
           game.totalPriceCents = input.totalPriceCents;
+        if (input.sport !== undefined) game.sport = input.sport;
+        if (input.venueId !== undefined) game.venueId = input.venueId;
         const saved = await manager.save(game);
 
         // Mais vagas → os primeiros da lista de espera entram logo.

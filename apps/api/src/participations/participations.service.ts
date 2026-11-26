@@ -13,6 +13,7 @@ import type {
   GameDto,
   ParticipationDto,
   ParticipationStatus,
+  Sport,
   TeamDto,
 } from '@convocados/shared';
 import { GamesGateway } from '../realtime/games.gateway.js';
@@ -30,6 +31,11 @@ export const toGameDto = (g: Game): GameDto => ({
   inviteCode: g.inviteCode,
   status: g.status,
   createdAt: g.createdAt.toISOString(),
+  sport: (g.sport ?? 'football') as Sport,
+  venueId: g.venueId ?? null,
+  groupId: g.groupId ?? null,
+  // Só quando a relação vem carregada (lista, detalhe); nas outras respostas fica null.
+  groupName: g.group?.name ?? null,
 });
 
 const toParticipationDto = (
@@ -324,7 +330,10 @@ export class ParticipationsService {
     manager: EntityManager,
     gameId: string,
   ): Promise<GameDetailDto> {
-    const game = await manager.findOneBy(Game, { id: gameId });
+    const game = await manager.findOne(Game, {
+      where: { id: gameId },
+      relations: { group: true },
+    });
     if (!game) throw new NotFoundException('Jogo não encontrado.');
 
     const rows = await manager.find(Participation, {

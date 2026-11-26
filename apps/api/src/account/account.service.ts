@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm';
 import { User } from '@convocados/db';
 import { AuthService } from '../auth/auth.service.js';
 import { ParticipationsService } from '../participations/participations.service.js';
+import { GroupsService } from '../groups/groups.service.js';
 
 /**
  * Apagar a conta (RGPD): apaga o utilizador e, em cascata, sessões, tokens de push,
@@ -24,6 +25,7 @@ export class AccountService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly auth: AuthService,
     private readonly participations: ParticipationsService,
+    private readonly groups: GroupsService,
   ) {}
 
   async delete(userId: string, password: string): Promise<void> {
@@ -61,5 +63,7 @@ export class AccountService {
     }
 
     await this.dataSource.manager.delete(User, { id: userId });
+    // Os grupos onde era o único admin passam a ter outro admin; os vazios desaparecem.
+    await this.groups.repairAdmins();
   }
 }

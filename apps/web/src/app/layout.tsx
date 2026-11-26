@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Convocados",
-  description: "Organiza futeboladas: convoca, confirma, faz equipas e controla quem pagou.",
+  description:
+    "Organiza jogos de futebol, padel, ténis e mais: convoca, confirma, faz equipas e controla quem pagou.",
 };
 
 /** Cor da barra do browser no telemóvel, igual ao fundo da app (claro ou escuro). */

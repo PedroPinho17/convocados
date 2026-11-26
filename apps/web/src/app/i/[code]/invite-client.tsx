@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { formatEuros, type GameDetailDto, type UserDto } from "@convocados/shared";
+import { formatEuros, sportLabel, type GameDetailDto, type UserDto } from "@convocados/shared";
 import { ApiError, getInvite, getMe } from "@/lib/api";
 import { GameParticipation } from "@/components/game-participation";
 import { subscribeGame } from "@/lib/socket";
 import { GameRatings } from "@/components/game-ratings";
 import { GameTeams } from "@/components/game-teams";
-import { AppHeader, Notice, Page, navLinkClass } from "@/components/ui";
+import { AppHeader, Badge, Notice, Page, navLinkClass } from "@/components/ui";
 import { formatGameDate } from "@/lib/format";
 import Link from "next/link";
 
@@ -86,6 +86,9 @@ export function InviteClient() {
           <p className="text-sm font-semibold uppercase tracking-wide opacity-80">Foste convocado</p>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{game.title}</h1>
           <p className="text-base font-medium">{formatGameDate(game.startsAt)}</p>
+          <p className="mt-1">
+            <Badge tone="brand">{sportLabel(game.sport)}</Badge>
+          </p>
           <p className="text-sm opacity-90">
             {game.location} · total {formatEuros(game.totalPriceCents)}
           </p>

@@ -16,6 +16,8 @@ import { RatingsModule } from './ratings/ratings.module.js';
 import { TeamsModule } from './teams/teams.module.js';
 import { AiModule } from './ai/ai.module.js';
 import { AccountModule } from './account/account.module.js';
+import { GroupsModule } from './groups/groups.module.js';
+import { VenuesModule } from './venues/venues.module.js';
 
 @Module({
   imports: [
@@ -62,6 +64,8 @@ import { AccountModule } from './account/account.module.js';
     TeamsModule,
     AiModule,
     AccountModule,
+    GroupsModule,
+    VenuesModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ClientIpThrottlerGuard }],

@@ -109,14 +109,27 @@ export function Notice({
 }
 
 /** Barra de cima: marca e navegação. Fica presa no topo e tem fundo translúcido. */
-export function AppHeader({ children }: { children?: ReactNode }) {
+/** Marca: um "C" em verde, igual para todos os desportos. */
+export function Logo({ size = "sm" }: { size?: "sm" | "lg" }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "grid place-items-center bg-brand font-black text-brand-ink shadow-sm",
+        size === "sm" ? "size-8 rounded-lg text-lg" : "size-14 rounded-2xl text-3xl",
+      )}
+    >
+      C
+    </span>
+  );
+}
+
+export function AppHeader({ children, brandHref = "/games" }: { children?: ReactNode; brandHref?: string }) {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/games" className="flex items-center gap-2 font-bold tracking-tight">
-          <span aria-hidden="true" className="grid size-8 place-items-center rounded-lg bg-brand text-brand-ink">
-            ⚽
-          </span>
+        <Link href={brandHref} className="flex items-center gap-2 font-bold tracking-tight">
+          <Logo size="sm" />
           <span className="text-lg">Convocados</span>
         </Link>
         {children ? <nav className="flex items-center gap-1 text-sm">{children}</nav> : null}
@@ -157,14 +170,32 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
     <main className="flex min-h-full flex-1 items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <span aria-hidden="true" className="grid size-14 place-items-center rounded-2xl bg-brand text-3xl text-brand-ink shadow-sm">
-            ⚽
-          </span>
+          <Link href="/" aria-label="Convocados: página inicial">
+            <Logo size="lg" />
+          </Link>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
           {subtitle ? <p className="text-muted">{subtitle}</p> : null}
         </div>
         <div className="rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-7">{children}</div>
       </div>
     </main>
+  );
+}
+
+/** Voltar: botão claro, com seta e área de toque grande (não um link perdido no canto). */
+export function BackLink({ href, label = "Voltar" }: { href: string; label?: string }) {
+  return (
+    <Link
+      href={href}
+      className="group inline-flex min-h-10 items-center gap-2 self-start rounded-full border border-line bg-surface py-1.5 pl-2 pr-4 text-sm font-semibold text-ink shadow-sm transition hover:border-brand/50 hover:text-brand-strong"
+    >
+      <span
+        aria-hidden="true"
+        className="grid size-7 place-items-center rounded-full bg-surface-2 text-base transition group-hover:-translate-x-0.5 group-hover:bg-brand-soft"
+      >
+        ←
+      </span>
+      {label}
+    </Link>
   );
 }

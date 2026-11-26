@@ -11,6 +11,8 @@ import {
   AiUsage,
   PasswordReset,
   Venue,
+  Group,
+  GroupMember,
 } from '@convocados/db';
 
 import { Init1795621974591 } from './migrations/1795621974591-Init.js';
@@ -24,6 +26,7 @@ import { AddTeams1795730000000 } from './migrations/1795730000000-AddTeams.js';
 import { AddAiUsage1795740000000 } from './migrations/1795740000000-AddAiUsage.js';
 import { AddPasswordResets1795750000000 } from './migrations/1795750000000-AddPasswordResets.js';
 import { AddVenues1795760000000 } from './migrations/1795760000000-AddVenues.js';
+import { GroupsSportsVenues1795770000000 } from './migrations/1795770000000-GroupsSportsVenues.js';
 
 export const entities = [
   User,
@@ -36,6 +39,8 @@ export const entities = [
   AiUsage,
   PasswordReset,
   Venue,
+  Group,
+  GroupMember,
 ];
 export const migrations = [
   Init1795621974591,
@@ -49,6 +54,7 @@ export const migrations = [
   AddAiUsage1795740000000,
   AddPasswordResets1795750000000,
   AddVenues1795760000000,
+  GroupsSportsVenues1795770000000,
 ];
 
 try {

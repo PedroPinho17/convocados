@@ -39,7 +39,8 @@ describe('buildVenueQuery', () => {
     const q = buildVenueQuery({ lat: 40.975, lng: -8.515, radiusKm: 10 });
     expect(q).toContain('around:10000,40.97500,-8.51500');
     expect(q).toContain('.pitches out center tags;');
-    expect(q).toContain('.places out geom tags;');
+    expect(q).toContain('.halls out center tags;');
+    expect(q).toContain('.complexes out bb tags;');
   });
 
   it('recusa coordenadas e raios inválidos', () => {
@@ -150,7 +151,7 @@ describe('toVenues', () => {
     expect(stats.skippedUnnamed).toBe(1);
   });
 
-  it('fica de fora o que só tem outros desportos; pavilhões sem sport ficam', () => {
+  it('padel, ténis, basquetebol e voleibol ficam; natação e ginásios ficam de fora', () => {
     const { venues, stats } = toVenues({
       elements: [
         way(
@@ -195,12 +196,13 @@ describe('toVenues', () => {
     });
     expect(venues.map((v) => v.name)).toEqual([
       'Complexo Desportivo de Cassufas',
+      'Padel Plus',
       'Pavilhão Municipal',
     ]);
-    expect(stats.skippedNotFootball).toBe(3);
+    expect(stats.skippedOtherSports).toBe(2);
   });
 
-  it('complexo de "padel" com um campo de futebol lá dentro fica (é de futebol também)', () => {
+  it('complexo de padel com um campo de futebol lá dentro: fica com os dois desportos', () => {
     const { venues } = toVenues({
       elements: [
         way(
@@ -262,5 +264,34 @@ describe('toVenues', () => {
       address: 'Rua Casa do Povo, 18, 4505-000',
       city: 'Fiães',
     });
+  });
+});
+
+describe('toVenues com retângulos (out bb)', () => {
+  it('um campo dentro do retângulo de um complexo junta-se a ele', () => {
+    const { venues } = toVenues({
+      elements: [
+        {
+          type: 'way',
+          id: 90,
+          tags: { leisure: 'sports_centre', name: 'Complexo do Ervedal' },
+          bounds: {
+            minlat: 40.953,
+            minlon: -8.556,
+            maxlat: 40.956,
+            maxlon: -8.553,
+          },
+        },
+        pitch(91, 40.9545, -8.5547, { surface: 'artificial_turf' }),
+      ],
+    });
+    expect(venues).toMatchObject([
+      {
+        osmId: 'way/90',
+        name: 'Complexo do Ervedal',
+        sports: ['soccer'],
+        surface: 'artificial_turf',
+      },
+    ]);
   });
 });

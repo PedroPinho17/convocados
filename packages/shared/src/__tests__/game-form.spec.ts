@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { initialGameForm, type GameDto } from '../index';
+import {
+  createGameSchema,
+  foldText,
+  initialGameForm,
+  sportLabel,
+  updateGameSchema,
+  venueLabel,
+  type GameDto,
+} from '../index';
 
 const game: GameDto = {
   id: 'g1',
@@ -13,10 +21,14 @@ const game: GameDto = {
   inviteCode: 'abcdef123456',
   status: 'open',
   createdAt: '2030-01-01T10:00:00.000Z',
+  sport: 'futsal',
+  venueId: null,
+  groupId: null,
+  groupName: null,
 };
 
 describe('initialGameForm', () => {
-  it('jogo novo: valores por defeito (10 vagas, 2 suplentes, 30 €)', () => {
+  it('jogo novo: valores por defeito do futebol (10 vagas, 2 suplentes, 30 €)', () => {
     expect(initialGameForm()).toEqual({
       title: '',
       location: '',
@@ -24,6 +36,16 @@ describe('initialGameForm', () => {
       slots: 10,
       subs: 2,
       totalEuros: 30,
+      sport: 'football',
+      venueId: null,
+    });
+  });
+
+  it('jogo novo num grupo de padel: 4 vagas e 1 suplente', () => {
+    expect(initialGameForm(null, null, { sport: 'padel' })).toMatchObject({
+      sport: 'padel',
+      slots: 4,
+      subs: 1,
     });
   });
 
@@ -35,13 +57,15 @@ describe('initialGameForm', () => {
       slots: 12,
       subs: 0,
       totalEuros: 42.5,
+      sport: 'futsal',
+      venueId: null,
     });
   });
 
   it('rascunho da IA: o que veio, e o resto por defeito', () => {
     expect(
       initialGameForm(null, { location: 'Romaniz', startsAt: '2030-07-10T20:00:00.000Z' }),
-    ).toEqual({
+    ).toMatchObject({
       title: '',
       location: 'Romaniz',
       startsAt: '2030-07-10T21:00', // verão: UTC+1
@@ -53,5 +77,44 @@ describe('initialGameForm', () => {
 
   it('a editar, o rascunho é ignorado', () => {
     expect(initialGameForm(game, { title: 'Outro' }).title).toBe('Futebolada');
+  });
+});
+
+describe('schemas do jogo', () => {
+  const base = {
+    title: 'Jogo',
+    location: 'Pavilhão',
+    startsAt: '2030-01-10T21:00:00.000Z',
+    slots: 4,
+    subs: 0,
+    totalPriceCents: 2000,
+  };
+
+  it('criar: sem desporto fica futebol; desportos desconhecidos são recusados', () => {
+    expect(createGameSchema.parse(base).sport).toBe('football');
+    expect(createGameSchema.parse({ ...base, sport: 'padel' }).sport).toBe('padel');
+    expect(createGameSchema.safeParse({ ...base, sport: 'xadrez' }).success).toBe(false);
+  });
+
+  it('editar: o desporto não volta a futebol sem querer, e o grupo não muda', () => {
+    const parsed = updateGameSchema.parse({ title: 'Novo título', groupId: 'x' });
+    expect(parsed).toEqual({ title: 'Novo título' });
+  });
+});
+
+describe('textos', () => {
+  it('sportLabel junta o emoji', () => {
+    expect(sportLabel('padel')).toBe('🎾 Padel');
+    expect(sportLabel('desconhecido')).toBe('desconhecido');
+  });
+
+  it('venueLabel junta a localidade quando não está no nome', () => {
+    expect(venueLabel({ name: 'Pavilhão Municipal', city: 'Fiães' })).toBe('Pavilhão Municipal · Fiães');
+    expect(venueLabel({ name: 'Piscinas de Lourosa', city: 'Lourosa' })).toBe('Piscinas de Lourosa');
+    expect(venueLabel({ name: 'Romariz FC', city: null })).toBe('Romariz FC');
+  });
+
+  it('foldText tira acentos e maiúsculas', () => {
+    expect(foldText('Fiães SÃO João')).toBe('fiaes sao joao');
   });
 });

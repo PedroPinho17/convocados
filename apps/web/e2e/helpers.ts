@@ -22,7 +22,8 @@ export async function register(page: Page, name: string): Promise<string> {
 export async function createGame(page: Page, title: string) {
   await page.getByPlaceholder("Título").fill(title);
   await page.getByPlaceholder("Local").fill("Pavilhão de teste");
-  await page.locator('input[type="datetime-local"]').fill("2030-01-10T21:00");
+  await page.getByLabel("Dia", { exact: true }).fill("2030-01-10");
+  await page.getByLabel("Hora", { exact: true }).fill("21:00");
   await page.getByRole("button", { name: "Criar jogo" }).click();
   await page.getByRole("link", { name: title }).click();
   await page.getByRole("heading", { name: "Confirmados" }).waitFor();

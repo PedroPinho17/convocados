@@ -23,7 +23,8 @@ test("convite por link, confirmação e desistência aparecem logo no ecrã do o
 
   await org.getByPlaceholder("Título").fill(title);
   await org.getByPlaceholder("Local").fill("Pavilhão de teste");
-  await org.locator('input[type="datetime-local"]').fill("2030-01-10T21:00");
+  await org.getByLabel("Dia", { exact: true }).fill("2030-01-10");
+  await org.getByLabel("Hora", { exact: true }).fill("21:00");
   await org.getByRole("button", { name: "Criar jogo" }).click();
   await org.getByRole("link", { name: title }).click();
   await expect(org.getByRole("heading", { name: "Confirmados" })).toBeVisible();

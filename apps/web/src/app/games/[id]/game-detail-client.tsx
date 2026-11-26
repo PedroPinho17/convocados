@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { formatEuros, type CreateGameInput, type GameDetailDto, type UserDto } from "@convocados/shared";
+import { formatEuros, sportLabel, type CreateGameInput, type GameDetailDto, type UserDto } from "@convocados/shared";
 import { ApiError, getGameDetail, getMe, updateGame } from "@/lib/api";
 import { subscribeGame } from "@/lib/socket";
 import { formatGameDate } from "@/lib/format";
@@ -13,7 +13,8 @@ import { InviteShare } from "@/components/invite-share";
 import { CancelGame } from "@/components/cancel-game";
 import { GameRatings } from "@/components/game-ratings";
 import { GameTeams } from "@/components/game-teams";
-import { AppHeader, Badge, Button, Card, CardTitle, Notice, Page, navLinkClass } from "@/components/ui";
+import { BackLink, Badge, Button, Card, CardTitle, Notice, Page } from "@/components/ui";
+import { AppNav } from "@/components/app-nav";
 
 export function GameDetailClient() {
   const { id } = useParams<{ id: string }>();
@@ -46,16 +47,7 @@ export function GameDetailClient() {
     });
   }, [id]);
 
-  const header = (
-    <AppHeader>
-      <Link href="/games" className={navLinkClass}>
-        Jogos
-      </Link>
-      <Link href="/account" className={navLinkClass}>
-        Conta
-      </Link>
-    </AppHeader>
-  );
+  const header = <AppNav />;
 
   if (error) {
     return (
@@ -94,9 +86,10 @@ export function GameDetailClient() {
     <>
       {header}
       <Page>
-        <Link href="/games" className="text-sm font-medium text-muted hover:text-ink">
-          ← Voltar
-        </Link>
+        <BackLink
+          href={game.groupId ? `/groups/${game.groupId}` : "/games"}
+          label={game.groupName ? `Voltar a ${game.groupName}` : "Voltar aos jogos"}
+        />
 
         {editing ? (
           <Card className="mx-auto w-full max-w-2xl">
@@ -115,6 +108,14 @@ export function GameDetailClient() {
                     {cancelled ? <Badge tone="danger">Cancelado</Badge> : null}
                   </div>
                   <p className="mt-2 text-base font-medium text-brand-strong">{formatGameDate(game.startsAt)}</p>
+                  <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
+                    <Badge tone="brand">{sportLabel(game.sport)}</Badge>
+                    {game.groupId && game.groupName ? (
+                      <Link href={`/groups/${game.groupId}`} className="font-medium text-brand-strong hover:underline">
+                        {game.groupName}
+                      </Link>
+                    ) : null}
+                  </p>
                 </div>
                 {isOrganizer && !cancelled && (
                   <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
@@ -123,9 +124,12 @@ export function GameDetailClient() {
                 )}
               </div>
               <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-                <div className="flex gap-2">
-                  <dt className="text-muted">Local</dt>
-                  <dd className="font-medium">{game.location}</dd>
+                <div className="flex min-w-0 gap-2">
+                  <dt className="shrink-0 text-muted">Local</dt>
+                  <dd className="min-w-0 font-medium">
+                    {game.location}
+                    {game.venueId ? <span className="ml-1 text-xs text-ok">✓</span> : null}
+                  </dd>
                 </div>
                 <div className="flex gap-2">
                   <dt className="text-muted">Total</dt>

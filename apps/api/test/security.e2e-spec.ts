@@ -97,6 +97,13 @@ describe('segurança (e2e)', () => {
         ['post', `/games/${id}/cancel`],
         ['delete', '/account'],
         ['get', '/auth/socket-token'],
+        ['get', '/groups'],
+        ['post', '/groups'],
+        ['get', `/groups/${id}`],
+        ['post', `/groups/${id}/leave`],
+        ['delete', `/groups/${id}/members/${id}`],
+        ['post', '/group-invites/000000000000/join'],
+        ['get', '/venues'],
       ];
       for (const [method, path] of routes) {
         const res = await (

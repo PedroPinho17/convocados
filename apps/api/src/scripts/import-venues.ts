@@ -77,7 +77,7 @@ async function main() {
     console.log(`Elementos do OSM:              ${stats.elements}`);
     console.log(`Juntados ao complexo onde estão: ${stats.mergedIntoComplex}`);
     console.log(`De fora (sem nome):             ${stats.skippedUnnamed}`);
-    console.log(`De fora (só outros desportos):  ${stats.skippedNotFootball}`);
+    console.log(`De fora (outros desportos):     ${stats.skippedOtherSports}`);
     console.log(`Locais nesta área:              ${stats.venues}`);
     console.log(
       `Na base de dados (osm):         ${before} → ${after} (${after - before} novos)`,

@@ -18,6 +18,8 @@ import type {
   ParseGameResultDto,
   ForgotPasswordInput,
   DeleteAccountInput,
+  VenueDto,
+  VenueSearchInput,
 } from "@convocados/shared";
 
 const API = process.env.EXPO_PUBLIC_API_URL;
@@ -155,3 +157,12 @@ export const deleteAccount = (input: DeleteAccountInput) =>
 /** Só o organizador. */
 export const cancelGame = (gameId: string) =>
   request<GameDetailDto>(`/games/${gameId}/cancel`, { method: "POST" });
+
+/** Pesquisa de campos (OpenStreetMap importados + acrescentados). */
+export function searchVenues(input: VenueSearchInput, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(input)) {
+    if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
+  }
+  return request<VenueDto[]>(`/venues?${params}`, { signal });
+}

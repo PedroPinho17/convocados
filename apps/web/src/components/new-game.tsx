@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { CreateGameInput, ParsedGameDraft } from "@convocados/shared";
+import type { CreateGameInput, GroupDto, ParsedGameDraft } from "@convocados/shared";
 import { ApiError, parseGameMessage } from "@/lib/api";
 import { GameForm } from "@/components/game-form";
 import { Button, Notice, cn, inputClass, labelClass } from "@/components/ui";
@@ -10,13 +10,17 @@ type Mode = "manual" | "paste";
 
 type Props = {
   onCreate: (input: CreateGameInput) => Promise<void>;
+  /** Grupos onde posso criar jogos. */
+  groups?: GroupDto[];
+  /** Grupo já escolhido (página do grupo). */
+  groupId?: string | null;
 };
 
 /**
  * Criar um jogo de uma de duas formas: preencher à mão, ou colar a mensagem do grupo
  * e a IA preenche. Depois da IA, volta ao formulário já preenchido, para rever e criar.
  */
-export function NewGame({ onCreate }: Props) {
+export function NewGame({ onCreate, groups, groupId }: Props) {
   const [mode, setMode] = useState<Mode>("manual");
   const [paste, setPaste] = useState("");
   const [draft, setDraft] = useState<ParsedGameDraft | null>(null);
@@ -122,7 +126,14 @@ export function NewGame({ onCreate }: Props) {
               {aiInfo.text}
             </Notice>
           ) : null}
-          <GameForm key={formKey} draft={draft} submitLabel="Criar jogo" onSubmit={create} />
+          <GameForm
+            key={formKey}
+            draft={draft}
+            groups={groups}
+            groupId={groupId}
+            submitLabel="Criar jogo"
+            onSubmit={create}
+          />
         </div>
       )}
     </div>

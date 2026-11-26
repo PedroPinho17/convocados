@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import {
   formatEuros,
   sharePerPlayerCents,
+  sportLabel,
   type CreateGameInput,
   type GameDetailDto,
   type RatingDto,
@@ -276,6 +277,7 @@ export default function GameDetailScreen() {
           </Text>
           {cancelled ? <Badge label="Cancelado" tone="danger" /> : null}
           <Text style={s.when}>{formatWhen(game.startsAt)}</Text>
+          <Text style={s.meta}>{sportLabel(game.sport)}</Text>
         </View>
         {isOrganizer && !cancelled ? (
           <Button label="Editar" size="sm" variant="secondary" onPress={() => setEditing(true)} />

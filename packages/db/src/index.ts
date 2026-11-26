@@ -8,3 +8,4 @@ export * from './entities/team-assignment.entity.js';
 export * from './entities/ai-usage.entity.js';
 export * from './entities/password-reset.entity.js';
 export * from './entities/venue.entity.js';
+export * from './entities/group.entity.js';

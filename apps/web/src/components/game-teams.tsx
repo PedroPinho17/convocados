@@ -72,13 +72,15 @@ export function GameTeams({ game, me, onChange }: Props) {
           </Notice>
         ) : null}
         {hasTeams ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {game.teams.map((team, i) => (
               <div key={team.name} className="rounded-xl border border-line bg-surface-2 p-3">
-                <p className="flex items-center gap-2 font-semibold">
-                  <span aria-hidden="true" className={cn("size-3 rounded-full", TEAM_COLORS[i % TEAM_COLORS.length])} />
+                <p className="flex flex-wrap items-center gap-x-2 font-semibold">
+                  <span aria-hidden="true" className={cn("size-3 shrink-0 rounded-full", TEAM_COLORS[i % TEAM_COLORS.length])} />
                   Equipa {team.name}{" "}
-                  <span className="text-sm font-normal text-muted">· {team.players.length} jogadores</span>
+                  <span className="whitespace-nowrap text-sm font-normal text-muted">
+                    · {team.players.length} {team.players.length === 1 ? "jogador" : "jogadores"}
+                  </span>
                 </p>
                 <ol className="mt-2 flex flex-col gap-1 text-sm">
                   {team.players.map((p) => (

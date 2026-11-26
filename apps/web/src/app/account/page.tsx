@@ -7,7 +7,8 @@ import type { UserDto } from "@convocados/shared";
 import { ApiError, deleteAccount, getMe } from "@/lib/api";
 import { leaveToLogin, resetSocket } from "@/lib/socket";
 import { PasswordInput } from "@/components/password-input";
-import { AppHeader, Button, Card, Notice, Page, navLinkClass } from "@/components/ui";
+import { Button, Card, Notice, Page } from "@/components/ui";
+import { AppNav } from "@/components/app-nav";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -38,13 +39,7 @@ export default function AccountPage() {
     }
   }
 
-  const header = (
-    <AppHeader>
-      <Link href="/games" className={navLinkClass}>
-        Jogos
-      </Link>
-    </AppHeader>
-  );
+  const header = <AppNav />;
 
   if (!me) {
     return (

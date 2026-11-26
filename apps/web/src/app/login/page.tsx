@@ -25,7 +25,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = safeNext(searchParams.get("next"));
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(searchParams.get("mode") === "register" ? "register" : "login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

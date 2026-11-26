@@ -8,7 +8,7 @@
  *   campos não têm nome. Fica o maior complexo que o contém.
  * - O que, depois de juntar, continua sem nome, fica de fora (pode ser acrescentado
  *   à mão pelos utilizadores).
- * - Fica de fora o que só tem outros desportos (natação, padel, ténis, atletismo...).
+ * - Fica de fora o que só tem desportos que a app não tem (natação, atletismo, ginásio...).
  */
 
 export type LatLng = { lat: number; lon: number };
@@ -47,15 +47,18 @@ export type ImportStats = {
   mergedIntoComplex: number;
   /** Ficaram sem nome mesmo depois de juntar. */
   skippedUnnamed: number;
-  /** Só têm outros desportos (natação, padel, ténis...). */
-  skippedNotFootball: number;
+  /** Só têm desportos que a app não tem (natação, atletismo...). */
+  skippedOtherSports: number;
 };
 
 export type Area = { lat: number; lng: number; radiusKm: number };
 
 export const MAX_RADIUS_KM = 50;
 
-/** Uma única consulta: campos com o centro, complexos com o contorno (para ver o que contêm). */
+/**
+ * Uma única consulta, leve: campos e pavilhões trazem o centro; complexos e estádios
+ * trazem o retângulo que os envolve ("out bb"), que chega para ver que campos contêm.
+ */
 export function buildVenueQuery({ lat, lng, radiusKm }: Area): string {
   if (!Number.isFinite(lat) || lat < -90 || lat > 90)
     throw new Error('Latitude inválida.');
@@ -65,18 +68,31 @@ export function buildVenueQuery({ lat, lng, radiusKm }: Area): string {
     throw new Error(`O raio tem de estar entre 0 e ${MAX_RADIUS_KM} km.`);
   }
   const around = `around:${Math.round(radiusKm * 1000)},${lat.toFixed(5)},${lng.toFixed(5)}`;
-  return `[out:json][timeout:90];
+  return `[out:json][timeout:50];
 (
-  nwr(${around})["leisure"="pitch"]["sport"~"soccer|futsal|multi"];
+  nwr(${around})["leisure"="pitch"]["sport"~"soccer|futsal|multi|padel|tennis|basketball|volleyball"];
 )->.pitches;
 (
-  nwr(${around})["leisure"~"^(sports_centre|sports_hall|stadium)$"];
-)->.places;
+  nwr(${around})["leisure"="sports_hall"];
+)->.halls;
+(
+  nwr(${around})["leisure"~"^(sports_centre|stadium)$"];
+)->.complexes;
 .pitches out center tags;
-.places out geom tags;`;
+.halls out center tags;
+.complexes out bb tags;`;
 }
 
-const FOOTBALL = new Set(['soccer', 'futsal', 'multi']);
+/** Desportos da app (etiquetas sport do OSM): ver SPORTS no shared. */
+const SUPPORTED = new Set([
+  'soccer',
+  'futsal',
+  'multi',
+  'padel',
+  'tennis',
+  'basketball',
+  'volleyball',
+]);
 const SPORT_ALIASES: Record<string, string> = {
   futebol: 'soccer',
   andebol: 'handball',
@@ -84,9 +100,9 @@ const SPORT_ALIASES: Record<string, string> = {
   voleibol: 'volleyball',
 };
 /** Sem etiqueta sport, decide-se pelo nome. */
-const FOOTBALL_NAME =
-  /campo|est[áa]dio|polidesportivo|pavilh|futebol|futsal|gimnodesportivo|complexo desportivo|parque de jogos/i;
-const OTHER_SPORT_NAME = /piscina|gin[áa]sio|padel|t[ée]nis|atletismo/i;
+const SPORT_NAME =
+  /campo|est[áa]dio|polidesportivo|pavilh|futebol|futsal|gimnodesportivo|complexo desportivo|parque de jogos|padel|t[ée]nis|basquet|volei/i;
+const OTHER_SPORT_NAME = /piscina|gin[áa]sio|atletismo/i;
 
 export function normalizeSports(raw: string | undefined): string[] {
   if (!raw) return [];
@@ -147,6 +163,19 @@ function ringsOf(el: OverpassElement): LatLng[][] {
     const joined = outers.flatMap((m) => m.geometry!);
     if (joined.length >= 3) return [[...joined, joined[0]!]];
   }
+  // Sem contorno, mas com o retângulo que o envolve ("out bb"): chega para "está cá dentro?".
+  if (el.type !== 'node' && el.bounds) {
+    const { minlat, minlon, maxlat, maxlon } = el.bounds;
+    return [
+      [
+        { lat: minlat, lon: minlon },
+        { lat: minlat, lon: maxlon },
+        { lat: maxlat, lon: maxlon },
+        { lat: maxlat, lon: minlon },
+        { lat: minlat, lon: minlon },
+      ],
+    ];
+  }
   return [];
 }
 
@@ -204,14 +233,14 @@ function addressOf(tags: Record<string, string>): {
   return { address: address || null, city: city?.trim() || null };
 }
 
-function isFootball(root: Item, sports: string[], name: string): boolean {
-  if (sports.some((s) => FOOTBALL.has(s))) return true;
-  if (sports.length > 0) return false; // só outros desportos
+function isSupported(root: Item, sports: string[], name: string): boolean {
+  if (sports.some((s) => SUPPORTED.has(s))) return true;
+  if (sports.length > 0) return false; // só desportos que a app não tem
   if (OTHER_SPORT_NAME.test(name)) return false;
   return (
     root.leisure === 'stadium' ||
     root.leisure === 'sports_hall' ||
-    FOOTBALL_NAME.test(name)
+    SPORT_NAME.test(name)
   );
 }
 
@@ -258,7 +287,7 @@ export function toVenues(data: OverpassResponse): {
     venues: 0,
     mergedIntoComplex: items.length - groups.size,
     skippedUnnamed: 0,
-    skippedNotFootball: 0,
+    skippedOtherSports: 0,
   };
   const venues: VenueInput[] = [];
   for (const [root, members] of groups) {
@@ -271,8 +300,8 @@ export function toVenues(data: OverpassResponse): {
       continue;
     }
     const sports = [...new Set(members.flatMap((m) => m.sports))].sort();
-    if (!isFootball(root, sports, name)) {
-      stats.skippedNotFootball++;
+    if (!isSupported(root, sports, name)) {
+      stats.skippedOtherSports++;
       continue;
     }
     const withAddress = [root, ...children].map((m) =>
