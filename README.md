@@ -6,17 +6,41 @@ Organise weekly pickup games with your group: football, futsal, padel, tennis, b
 Create a game, share one link, and everyone confirms. Convocados handles the slots, the waiting list, balanced
 teams and who has paid.
 
-**Live demo:** [convocados-web.onrender.com](https://convocados-web.onrender.com)
-(free hosting: the first request after a while can take about a minute while the server wakes up)
+[![CI](https://github.com/PedroPinho17/convocados/actions/workflows/ci.yml/badge.svg)](https://github.com/PedroPinho17/convocados/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/TypeScript-monorepo-3178C6?logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-API-E0234E?logo=nestjs&logoColor=white)
+![Expo](https://img.shields.io/badge/Expo-React%20Native-000020?logo=expo&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-real%20time-010101?logo=socketdotio&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-browser%20tests-2EAD33?logo=playwright&logoColor=white)
 
-<p>
-  <img src="docs/screenshots/home.png" alt="Convocados homepage" width="100%">
+<p align="center">
+  <img src="docs/media/demo.gif" alt="Demo: on the right, a player opens the invite on a phone and confirms; on the left, the organiser's list updates by itself, the organiser makes balanced teams and marks the player as paid, and the phone shows 'paid' straight away" width="900">
 </p>
+<p align="center"><sub>Organiser on a computer (left) and a player on a phone (right), updating in real time ·
+<a href="docs/media/demo.mp4">full-quality video (.mp4)</a> · all names are fictional; the interface is in Portuguese</sub></p>
 
-<p>
-  <img src="docs/screenshots/game-desktop.png" alt="A game with confirmed players, payments, invite QR code and teams" width="64%">
-  <img src="docs/screenshots/game-mobile.png" alt="The same game on a phone" width="32%">
-</p>
+## Try it
+
+**[convocados-web.onrender.com](https://convocados-web.onrender.com)**
+
+1. Create an account and a game.
+2. Open the game's invite link in another browser (or on your phone) and confirm with a second account.
+3. Watch both screens: the list, the teams and the payments update without refreshing.
+
+API: [convocados-api.onrender.com/health](https://convocados-api.onrender.com/health).
+Both run on Render's free plan, so the first request after a quiet period can take about a minute while the
+servers wake up.
+
+## Screenshots
+
+| Light | Dark |
+|---|---|
+| ![A game with confirmed players, payments, invite QR code and teams](docs/media/game-desktop.png) | ![The same game in dark mode](docs/media/game-desktop-dark.png) |
+| <img src="docs/media/game-mobile.png" alt="The game on a phone" width="300"> | <img src="docs/media/game-mobile-dark.png" alt="The game on a phone, dark mode" width="300"> |
+
+![Homepage](docs/media/home.png)
 
 ## What it does
 

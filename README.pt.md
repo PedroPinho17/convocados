@@ -6,18 +6,41 @@ Organiza os jogos da semana com o teu grupo: futebol, futsal, padel, ténis, bas
 Crias o jogo, partilhas um link e cada um confirma. O Convocados trata das vagas, da lista de espera, das
 equipas equilibradas e de quem já pagou.
 
-**Demo:** [convocados-web.onrender.com](https://convocados-web.onrender.com)
-(alojamento gratuito: o primeiro pedido depois de algum tempo pode demorar cerca de um minuto, enquanto o
-servidor acorda)
+[![CI](https://github.com/PedroPinho17/convocados/actions/workflows/ci.yml/badge.svg)](https://github.com/PedroPinho17/convocados/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/TypeScript-monorepo-3178C6?logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-API-E0234E?logo=nestjs&logoColor=white)
+![Expo](https://img.shields.io/badge/Expo-React%20Native-000020?logo=expo&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-tempo%20real-010101?logo=socketdotio&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-testes%20no%20browser-2EAD33?logo=playwright&logoColor=white)
 
-<p>
-  <img src="docs/screenshots/home.png" alt="Página inicial do Convocados" width="100%">
+<p align="center">
+  <img src="docs/media/demo.gif" alt="Demo: à direita, um jogador abre o convite no telemóvel e confirma; à esquerda, a lista do organizador atualiza sozinha, o organizador faz equipas equilibradas e marca o jogador como pago, e o telemóvel mostra 'pago' logo a seguir" width="900">
 </p>
+<p align="center"><sub>Organizador no computador (esquerda) e jogador no telemóvel (direita), em tempo real ·
+<a href="docs/media/demo.mp4">vídeo em melhor qualidade (.mp4)</a> · todos os nomes são fictícios</sub></p>
 
-<p>
-  <img src="docs/screenshots/game-desktop.png" alt="Um jogo com confirmados, pagamentos, QR do convite e equipas" width="64%">
-  <img src="docs/screenshots/game-mobile.png" alt="O mesmo jogo no telemóvel" width="32%">
-</p>
+## Experimenta
+
+**[convocados-web.onrender.com](https://convocados-web.onrender.com)**
+
+1. Cria uma conta e um jogo.
+2. Abre o link de convite do jogo noutro browser (ou no telemóvel) e confirma com uma segunda conta.
+3. Repara nos dois ecrãs: a lista, as equipas e os pagamentos atualizam sem recarregar a página.
+
+API: [convocados-api.onrender.com/health](https://convocados-api.onrender.com/health).
+Os dois estão no plano gratuito do Render, por isso o primeiro pedido depois de algum tempo parado pode demorar
+cerca de um minuto, enquanto os servidores acordam.
+
+## Screenshots
+
+| Claro | Escuro |
+|---|---|
+| ![Um jogo com confirmados, pagamentos, QR do convite e equipas](docs/media/game-desktop.png) | ![O mesmo jogo em modo escuro](docs/media/game-desktop-dark.png) |
+| <img src="docs/media/game-mobile.png" alt="O jogo no telemóvel" width="300"> | <img src="docs/media/game-mobile-dark.png" alt="O jogo no telemóvel, modo escuro" width="300"> |
+
+![Página inicial](docs/media/home.png)
 
 ## O que faz
 
