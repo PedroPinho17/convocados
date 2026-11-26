@@ -3,8 +3,8 @@ import { register, unique } from "./helpers";
 
 test("página inicial: apresenta a plataforma e leva ao registo", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Organiza os teus jogos");
-  await expect(page.getByRole("list", { name: "Desportos" })).toContainText("Padel");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("convocatória da semana");
+  await expect(page.getByText(/padel, ténis/)).toBeVisible();
   await page.getByRole("link", { name: "Criar conta grátis" }).first().click();
   await expect(page.getByPlaceholder("Nome")).toBeVisible();
 });
