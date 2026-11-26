@@ -1,6 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import type {
   CreateGameInput,
+  GameDetailDto,
   GameDto,
   LoginInput,
   RegisterInput,
@@ -101,3 +102,10 @@ export const createGame = (input: CreateGameInput) =>
   request<GameDto>("/games", json(input));
 export const updateGame = (id: string, input: UpdateGameInput) =>
   request<GameDto>(`/games/${id}`, json(input, "PATCH"));
+
+/** Jogo + confirmados + lista de espera. */
+export const getGameDetail = (id: string) => request<GameDetailDto>(`/games/${id}/detail`);
+export const confirmGame = (id: string) =>
+  request<GameDetailDto>(`/games/${id}/confirm`, { method: "POST" });
+export const leaveGame = (id: string) =>
+  request<GameDetailDto>(`/games/${id}/leave`, { method: "POST" });

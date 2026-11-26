@@ -3,29 +3,30 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { formatEuros, type CreateGameInput, type GameDto } from "@convocados/shared";
-import { ApiError, getGame, getMe, updateGame } from "@/lib/api";
-import { PriceRangeText } from "@/components/price-range-text";
+import { formatEuros, type CreateGameInput, type GameDetailDto, type UserDto } from "@convocados/shared";
+import { ApiError, getGameDetail, getMe, updateGame } from "@/lib/api";
 import { GameForm } from "@/components/game-form";
+import { GameParticipation } from "@/components/game-participation";
+import { InviteShare } from "@/components/invite-share";
 
 export function GameDetailClient() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [game, setGame] = useState<GameDto | null>(null);
-  const [meId, setMeId] = useState<string | null>(null);
+  const [game, setGame] = useState<GameDetailDto | null>(null);
+  const [me, setMe] = useState<UserDto | null>(null);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([getGame(id), getMe()])
-      .then(([g, me]) => {
+    Promise.all([getGameDetail(id), getMe()])
+      .then(([g, user]) => {
         setGame(g);
-        setMeId(me.id);
+        setMe(user);
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
-          router.replace("/login");
+          router.replace(`/login?next=${encodeURIComponent(`/games/${id}`)}`);
           return;
         }
         setError(err instanceof ApiError ? err.message : "Erro");
@@ -35,10 +36,12 @@ export function GameDetailClient() {
   if (error) return <main className="p-8 text-red-600">{error}</main>;
   if (!game) return <main className="p-8">A carregar…</main>;
 
-  const isOrganizer = meId === game.organizerId;
+  const isOrganizer = me?.id === game.organizerId;
 
   async function onSave(input: CreateGameInput) {
-    setGame(await updateGame(id, input));
+    await updateGame(id, input);
+    // Mudar vagas pode promover quem está em espera: recarregar as listas.
+    setGame(await getGameDetail(id));
     setEditing(false);
   }
 
@@ -63,18 +66,13 @@ export function GameDetailClient() {
               </button>
             )}
           </div>
-          <p>{game.location}</p>
-          <p>{new Date(game.startsAt).toLocaleString("pt-PT")}</p>
           <p>
-            {game.slots} vagas · {game.subs} suplentes · total {formatEuros(game.totalPriceCents)}
+            {game.location} · {new Date(game.startsAt).toLocaleString("pt-PT")} · total{" "}
+            {formatEuros(game.totalPriceCents)}
           </p>
-          <p className="text-zinc-600">
-            <PriceRangeText {...game} />
-          </p>
-          <p>
-            Código de convite: <strong>{game.inviteCode}</strong>
-          </p>
-          <p>Estado: {game.status}</p>
+          {game.status !== "open" ? <p>Estado: {game.status}</p> : null}
+          <GameParticipation game={game} me={me} loginNext={`/games/${id}`} onChange={setGame} />
+          {isOrganizer ? <InviteShare inviteCode={game.inviteCode} /> : null}
         </>
       )}
     </main>

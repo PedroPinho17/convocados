@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import {
   loginSchema,
@@ -10,11 +11,15 @@ import {
 import { AuthService } from './auth.service.js';
 import { CurrentUser, Public, type AuthedRequest } from './auth.decorators.js';
 
+/** Login e registo: 10 tentativas por minuto e por IP (contra adivinhar passwords). */
+const AUTH_LIMIT = { default: { limit: 10, ttl: 60_000 } };
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
+  @Throttle(AUTH_LIMIT)
   @Post('register')
   async register(
     @Body({ schema: registerSchema }) body: RegisterInput,
@@ -24,6 +29,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle(AUTH_LIMIT)
   @Post('login')
   @HttpCode(200)
   async login(
@@ -34,12 +40,14 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle(AUTH_LIMIT)
   @Post('mobile/register')
   async mobileRegister(@Body({ schema: registerSchema }) body: RegisterInput) {
     return this.auth.startTokenSession(await this.auth.register(body));
   }
 
   @Public()
+  @Throttle(AUTH_LIMIT)
   @Post('mobile/login')
   @HttpCode(200)
   async mobileLogin(@Body({ schema: loginSchema }) body: LoginInput) {

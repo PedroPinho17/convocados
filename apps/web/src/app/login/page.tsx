@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError, login, register } from "@/lib/api";
 
-export default function LoginPage() {
+function safeNext(raw: string | null): string {
+  // Só caminhos deste site: "//x" e "/\x" levariam o browser para outro domínio.
+  if (raw && raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("\\")) return raw;
+  return "/games";
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = safeNext(searchParams.get("next"));
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,7 +31,7 @@ export default function LoginPage() {
       } else {
         await register({ name, email, password });
       }
-      router.push("/games");
+      router.push(next);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Algo correu mal.");
     } finally {
@@ -83,5 +91,13 @@ export default function LoginPage() {
         {mode === "login" ? "Criar conta" : "Já tenho conta"}
       </button>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="p-8">A carregar…</main>}>
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -1,4 +1,7 @@
-import { priceRangeCents, sharePerPlayerCents } from '@convocados/shared';
+import { shareSummary, sharePerPlayerCents } from '@convocados/shared';
+
+// Intl põe um espaço inquebrável antes do €; normalizar para comparar.
+const text = (s: string) => s.replace(/\s/g, ' ');
 
 describe('sharePerPlayerCents', () => {
   it('divide o total pelos jogadores', () => {
@@ -20,11 +23,22 @@ describe('sharePerPlayerCents', () => {
   });
 });
 
-describe('priceRangeCents', () => {
-  it('min com vagas + suplentes, max só com vagas', () => {
-    expect(priceRangeCents({ totalPriceCents: 3000, slots: 10, subs: 2 })).toEqual({
-      min: 250,
-      max: 300,
-    });
+describe('shareSummary', () => {
+  const game = { totalPriceCents: 3000, slots: 10 };
+
+  it('sem confirmados: o valor se as vagas encherem', () => {
+    expect(text(shareSummary(game))).toBe('Cada um paga 3,00 € se as 10 vagas encherem.');
+  });
+
+  it('com confirmados: o valor agora (só pagam os confirmados) e se encher', () => {
+    expect(text(shareSummary(game, 7))).toBe('Com 7 confirmados, cada um paga 4,29 €; se encher, 3,00 €.');
+  });
+
+  it('cheio', () => {
+    expect(text(shareSummary(game, 10))).toBe('Cada um paga 3,00 € (10 confirmados).');
+  });
+
+  it('grátis', () => {
+    expect(shareSummary({ totalPriceCents: 0, slots: 10 }, 3)).toBe('Jogo grátis.');
   });
 });

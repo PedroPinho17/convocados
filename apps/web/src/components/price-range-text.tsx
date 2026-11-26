@@ -1,22 +1,8 @@
-import { formatEuros, priceRangeCents, type GameDto } from "@convocados/shared";
+import { shareSummary, type GameDto } from "@convocados/shared";
 
-type Props = Pick<GameDto, "totalPriceCents" | "slots" | "subs">;
+type Props = Pick<GameDto, "totalPriceCents" | "slots"> & { confirmedCount?: number };
 
-/** "Cada um paga entre 2,50 € (se vierem 12) e 3,00 € (se vierem 10)". */
-export function PriceRangeText({ totalPriceCents, slots, subs }: Props) {
-  if (totalPriceCents <= 0) return <>Jogo grátis.</>;
-  const { min, max } = priceRangeCents({ totalPriceCents, slots, subs });
-  if (subs <= 0 || min === max) {
-    return (
-      <>
-        Cada um paga {formatEuros(max)} (se vierem {slots}).
-      </>
-    );
-  }
-  return (
-    <>
-      Cada um paga entre {formatEuros(min)} (se vierem {slots + subs}) e {formatEuros(max)} (se
-      vierem {slots}).
-    </>
-  );
+/** "Com 7 confirmados, cada um paga 4,29 €; se encher, 3,00 €." */
+export function PriceRangeText({ totalPriceCents, slots, confirmedCount }: Props) {
+  return <>{shareSummary({ totalPriceCents, slots }, confirmedCount)}</>;
 }

@@ -64,7 +64,7 @@ export function GameForm({ game, submitLabel, onSubmit, onCancel }: Props) {
       />
       <View style={styles.row}>
         <TextInput style={[styles.input, styles.half]} placeholder="Vagas" keyboardType="number-pad" value={slots} onChangeText={setSlots} />
-        <TextInput style={[styles.input, styles.half]} placeholder="Suplentes" keyboardType="number-pad" value={subs} onChangeText={setSubs} />
+        <TextInput style={[styles.input, styles.half]} placeholder="Lista de espera (máx.)" keyboardType="number-pad" value={subs} onChangeText={setSubs} />
       </View>
       <TextInput
         style={styles.input}
@@ -73,7 +73,7 @@ export function GameForm({ game, submitLabel, onSubmit, onCancel }: Props) {
         value={totalEuros}
         onChangeText={setTotalEuros}
       />
-      <Text style={styles.hint}>{priceRangeText({ totalPriceCents, slots: s, subs: b })}</Text>
+      <Text style={styles.hint}>{priceRangeText({ totalPriceCents, slots: s })}</Text>
 
       {error && <Text style={styles.error}>{error}</Text>}
 

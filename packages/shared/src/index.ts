@@ -34,6 +34,27 @@ export type GameDto = {
   createdAt: string; // ISO
 };
 
+/** confirmed = vaga; waiting = lista de espera; left = desistiu */
+export type ParticipationStatus = "confirmed" | "waiting" | "left";
+
+export type ParticipationDto = {
+  id: string;
+  gameId: string;
+  userId: string;
+  userName: string;
+  status: ParticipationStatus;
+  position: number;
+  paid: boolean;
+  joinedAt: string; // ISO
+};
+
+/** Jogo + listas (detalhe e página de convite). */
+export type GameDetailDto = GameDto & {
+  confirmedCount: number;
+  waitingCount: number;
+  participations: ParticipationDto[];
+};
+
 /**
  * Quanto paga cada jogador: total ÷ jogadores, arredondado para cima ao cêntimo,
  * para o organizador nunca ficar a pagar a diferença (30 € ÷ 7 = 4,29 €).
@@ -43,14 +64,23 @@ export function sharePerPlayerCents(totalCents: number, players: number): number
 }
 
 /**
- * Intervalo do valor por pessoa antes de haver confirmações:
- * `min` se vierem todos (vagas + suplentes), `max` se vierem só as vagas.
+ * Frase com quanto paga cada um. Pagam só os confirmados (a lista de espera não joga):
+ * - sem confirmados → o valor se as vagas encherem;
+ * - com confirmados → o valor agora e, se ainda há vagas, o valor se encher.
  */
-export function priceRangeCents(game: Pick<GameDto, "totalPriceCents" | "slots" | "subs">) {
-  return {
-    min: sharePerPlayerCents(game.totalPriceCents, game.slots + game.subs),
-    max: sharePerPlayerCents(game.totalPriceCents, game.slots),
-  };
+export function shareSummary(
+  game: Pick<GameDto, "totalPriceCents" | "slots">,
+  confirmedCount?: number,
+): string {
+  const { totalPriceCents: total, slots } = game;
+  if (total <= 0) return "Jogo grátis.";
+  const full = formatEuros(sharePerPlayerCents(total, slots));
+  if (!confirmedCount || confirmedCount <= 0) {
+    return `Cada um paga ${full} se as ${slots} vagas encherem.`;
+  }
+  if (confirmedCount >= slots) return `Cada um paga ${full} (${slots} confirmados).`;
+  const now = formatEuros(sharePerPlayerCents(total, confirmedCount));
+  return `Com ${confirmedCount} confirmados, cada um paga ${now}; se encher, ${full}.`;
 }
 
 /**

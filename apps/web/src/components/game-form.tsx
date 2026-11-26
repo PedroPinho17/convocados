@@ -65,7 +65,7 @@ export function GameForm({ game, submitLabel, onSubmit, onCancel }: Props) {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Suplentes
+          Lista de espera (máx.)
           <input
             className="rounded border px-3 py-2"
             type="number"
@@ -88,7 +88,7 @@ export function GameForm({ game, submitLabel, onSubmit, onCancel }: Props) {
         </label>
       </div>
       <p className="text-xs text-zinc-500">
-        <PriceRangeText totalPriceCents={totalPriceCents} slots={slots} subs={subs} />
+        <PriceRangeText totalPriceCents={totalPriceCents} slots={slots} />
       </p>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
