@@ -3,15 +3,17 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, In, type EntityManager } from 'typeorm';
-import { Game, Participation, User } from '@convocados/db';
+import { Game, Participation, TeamAssignment, User } from '@convocados/db';
 import type {
   GameDetailDto,
   GameDto,
   ParticipationDto,
   ParticipationStatus,
+  TeamDto,
 } from '@convocados/shared';
 import { GamesGateway } from '../realtime/games.gateway.js';
 import { PushService } from '../push/push.service.js';
@@ -99,6 +101,13 @@ export class ParticipationsService {
 
   getDetail(gameId: string): Promise<GameDetailDto> {
     return this.buildDetail(this.dataSource.manager, gameId);
+  }
+
+  /** Lê o jogo já gravado e envia-o a quem o tem aberto. Ex.: equipas novas. */
+  async publish(gameId: string): Promise<GameDetailDto> {
+    const detail = await this.getDetail(gameId);
+    this.gamesGateway.emitGameUpdated(gameId, detail);
+    return detail;
   }
 
   async getDetailByInviteCode(code: string): Promise<GameDetailDto> {
@@ -190,6 +199,8 @@ export class ParticipationsService {
       confirmedLeft = existing.status === 'confirmed';
       existing.status = 'left';
       await manager.save(existing);
+      // Quem desiste sai da equipa; se voltar, fica sem equipa até o organizador as atualizar.
+      await manager.delete(TeamAssignment, { gameId, userId });
       if (confirmedLeft) promotedIds = await promoteFromWaiting(manager, game);
 
       return this.buildDetail(manager, gameId);
@@ -198,6 +209,41 @@ export class ParticipationsService {
     await this.notifyChanged(detail, promotedIds);
     if (confirmedLeft && promotedIds.length === 0)
       await this.notifyMissingPlayers(detail, userId);
+    return detail;
+  }
+
+  async setPaid(
+    gameId: string,
+    targetUserId: string,
+    organizerId: string,
+    paid: boolean,
+  ): Promise<GameDetailDto> {
+    const detail = await this.dataSource.transaction(async (manager) => {
+      const game = await lockGame(manager, gameId);
+      if (game.organizerId !== organizerId) {
+        throw new ForbiddenException(
+          'Só o organizador pode marcar pagamentos.',
+        );
+      }
+
+      const row = await manager.findOne(Participation, {
+        where: { gameId, userId: targetUserId },
+      });
+      if (!row || row.status === 'left') {
+        throw new NotFoundException('Participação não encontrada.');
+      }
+      if (row.status !== 'confirmed') {
+        throw new ConflictException(
+          'Só podes marcar pagamento de jogadores confirmados.',
+        );
+      }
+
+      row.paid = paid;
+      await manager.save(row);
+      return this.buildDetail(manager, gameId);
+    });
+
+    this.gamesGateway.emitGameUpdated(gameId, detail);
     return detail;
   }
 
@@ -270,13 +316,36 @@ export class ParticipationsService {
     const participations = rows.map((p) =>
       toParticipationDto(p, nameById.get(p.userId) ?? 'Jogador'),
     );
+    const confirmed = participations.filter((p) => p.status === 'confirmed');
 
     return {
       ...toGameDto(game),
-      confirmedCount: participations.filter((p) => p.status === 'confirmed')
-        .length,
+      confirmedCount: confirmed.length,
       waitingCount: participations.filter((p) => p.status === 'waiting').length,
       participations,
+      teams: await this.loadTeams(manager, gameId, confirmed),
     };
+  }
+
+  /** Equipas guardadas, só com quem ainda está confirmado, pela ordem da convocatória. */
+  private async loadTeams(
+    manager: EntityManager,
+    gameId: string,
+    confirmed: ParticipationDto[],
+  ): Promise<TeamDto[]> {
+    const assignments = await manager.findBy(TeamAssignment, { gameId });
+    if (assignments.length === 0) return [];
+
+    const teamByUser = new Map(assignments.map((a) => [a.userId, a.team]));
+    const teams = new Map<string, TeamDto>();
+    for (const name of [...new Set(assignments.map((a) => a.team))].sort()) {
+      teams.set(name, { name, players: [] });
+    }
+    for (const p of confirmed) {
+      const team = teamByUser.get(p.userId);
+      if (team)
+        teams.get(team)!.players.push({ userId: p.userId, name: p.userName });
+    }
+    return [...teams.values()];
   }
 }

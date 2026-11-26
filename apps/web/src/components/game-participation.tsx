@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { GameDetailDto, UserDto } from "@convocados/shared";
-import { ApiError, confirmGame, leaveGame } from "@/lib/api";
+import {
+  formatEuros,
+  sharePerPlayerCents,
+  type GameDetailDto,
+  type UserDto,
+} from "@convocados/shared";
+import { ApiError, confirmGame, leaveGame, setPaid } from "@/lib/api";
 import { PriceRangeText } from "@/components/price-range-text";
 
 type Props = {
@@ -28,6 +33,14 @@ export function GameParticipation({ game, me, loginNext, onChange }: Props) {
   const slotsFull = game.confirmedCount >= game.slots;
   const full = slotsFull && game.waitingCount >= game.subs;
   const started = new Date(game.startsAt).getTime() <= openedAt;
+  const isOrganizer = me?.id === game.organizerId;
+
+  const shareCents =
+    game.totalPriceCents > 0 && confirmed.length > 0
+      ? sharePerPlayerCents(game.totalPriceCents, confirmed.length)
+      : 0;
+  const unpaidCount = confirmed.filter((p) => !p.paid).length;
+  const outstandingCents = shareCents * unpaidCount;
 
   async function run(action: (id: string) => Promise<GameDetailDto>, fallback: string) {
     setError(null);
@@ -36,6 +49,18 @@ export function GameParticipation({ game, me, loginNext, onChange }: Props) {
       onChange(await action(game.id));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : fallback);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function togglePaid(userId: string, paid: boolean) {
+    setError(null);
+    setPending(true);
+    try {
+      onChange(await setPaid(game.id, userId, paid));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Não foi possível atualizar o pagamento.");
     } finally {
       setPending(false);
     }
@@ -54,6 +79,12 @@ export function GameParticipation({ game, me, loginNext, onChange }: Props) {
         <p className="text-zinc-600">
           <PriceRangeText {...game} confirmedCount={game.confirmedCount} />
         </p>
+        {game.totalPriceCents > 0 && confirmed.length > 0 ? (
+          <p className="text-sm text-zinc-600">
+            Pagamentos: {confirmed.length - unpaidCount}/{confirmed.length} · falta{" "}
+            <strong>{formatEuros(outstandingCents)}</strong>
+          </p>
+        ) : null}
       </div>
 
       {!me ? (
@@ -68,7 +99,10 @@ export function GameParticipation({ game, me, loginNext, onChange }: Props) {
           {mine ? (
             <p className="text-sm">
               {mine.status === "confirmed" ? (
-                <>Estás <strong>confirmado</strong>.</>
+                <>
+                  Estás <strong>confirmado</strong>
+                  {game.totalPriceCents > 0 ? (mine.paid ? " · pago." : " · pagamento em falta.") : "."}
+                </>
               ) : (
                 <>
                   Estás em <strong>lista de espera</strong> ({myQueuePlace}.º). Entras se alguém desistir.
@@ -106,11 +140,32 @@ export function GameParticipation({ game, me, loginNext, onChange }: Props) {
         {confirmed.length === 0 ? (
           <p className="text-sm text-zinc-500">Ainda ninguém.</p>
         ) : (
-          <ol className="list-decimal pl-5">
-            {confirmed.map((p) => (
-              <li key={p.id}>{p.userName}</li>
+          <ul className="flex flex-col gap-2">
+            {confirmed.map((p, i) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  {i + 1}. {p.userName}
+                  {game.totalPriceCents > 0 ? (
+                    <span className="text-sm text-zinc-500">
+                      {" "}
+                      · {p.paid ? "pago" : "em falta"}
+                      {shareCents > 0 ? ` (${formatEuros(shareCents)})` : null}
+                    </span>
+                  ) : null}
+                </span>
+                {isOrganizer && game.totalPriceCents > 0 ? (
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => togglePaid(p.userId, !p.paid)}
+                    className="rounded border border-zinc-300 px-2 py-1 text-sm disabled:opacity-50"
+                  >
+                    {p.paid ? "Marcar em falta" : "Marcar pago"}
+                  </button>
+                ) : null}
+              </li>
             ))}
-          </ol>
+          </ul>
         )}
       </div>
 

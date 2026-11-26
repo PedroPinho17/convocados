@@ -6,6 +6,9 @@ import type {
   RegisterInput,
   UpdateGameInput,
   UserDto,
+  RatingDto,
+  UpsertRatingInput,
+  GenerateTeamsInput,
 } from "@convocados/shared";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -79,3 +82,20 @@ export const confirmGame = (gameId: string) =>
 
 export const leaveGame = (gameId: string) =>
   request<GameDetailDto>(`/games/${gameId}/leave`, { method: "POST" });
+
+export const setPaid = (gameId: string, userId: string, paid: boolean) =>
+  request<GameDetailDto>(
+    `/games/${gameId}/participations/${userId}/paid`,
+    json({ paid }, "PATCH"),
+  );
+
+/** Só as avaliações que eu dei (são privadas). */
+export const listMyRatings = (gameId: string) =>
+  request<RatingDto[]>(`/games/${gameId}/ratings`);
+
+export const upsertRating = (gameId: string, input: UpsertRatingInput) =>
+  request<RatingDto>(`/games/${gameId}/ratings`, json(input));
+
+/** Só o organizador: gera e guarda as equipas; devolve o jogo com elas. */
+export const generateTeams = (gameId: string, input: GenerateTeamsInput = {}) =>
+  request<GameDetailDto>(`/games/${gameId}/teams`, json(input));

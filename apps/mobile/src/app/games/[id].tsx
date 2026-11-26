@@ -9,8 +9,25 @@ import {
   Share,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { formatEuros, type CreateGameInput, type GameDetailDto } from "@convocados/shared";
-import { ApiError, confirmGame, getGameDetail, getMe, leaveGame, updateGame } from "../../lib/api";
+import {
+  formatEuros,
+  sharePerPlayerCents,
+  type CreateGameInput,
+  type GameDetailDto,
+  type RatingDto,
+} from "@convocados/shared";
+import {
+  ApiError,
+  confirmGame,
+  getGameDetail,
+  getMe,
+  generateTeams,
+  leaveGame,
+  listMyRatings,
+  setPaid,
+  updateGame,
+  upsertRating,
+} from "../../lib/api";
 import { priceRangeText } from "../../lib/price";
 import { GameForm } from "../../components/game-form";
 import { subscribeGame } from "../../lib/socket";
@@ -26,6 +43,7 @@ export default function GameDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [myRatings, setMyRatings] = useState<RatingDto[]>([]);
   // Hora fixada ao abrir o ecrã (o render tem de ser puro); a API valida de novo ao confirmar.
   const [openedAt] = useState(() => Date.now());
 
@@ -73,6 +91,22 @@ export default function GameDetailScreen() {
     if (startsAt) void syncReminders();
   }, [myStatus, startsAt]);
 
+  useEffect(() => {
+    // Sem poder avaliar a secção não aparece, por isso não é preciso limpar a lista.
+    if (!id || !meId || myStatus !== "confirmed") return;
+    let cancelled = false;
+    listMyRatings(id)
+      .then((rows) => {
+        if (!cancelled) setMyRatings(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setMyRatings([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, meId, myStatus, game?.confirmedCount]);
+
   if (error) return <Text style={styles.error}>{error}</Text>;
   if (!game) {
     return (
@@ -92,6 +126,18 @@ export default function GameDetailScreen() {
   const full = slotsFull && game.waitingCount >= game.subs;
   const started = new Date(game.startsAt).getTime() <= openedAt;
 
+  const shareCents =
+    game.totalPriceCents > 0 && confirmed.length > 0
+      ? sharePerPlayerCents(game.totalPriceCents, confirmed.length)
+      : 0;
+  const unpaidCount = confirmed.filter((p) => !p.paid).length;
+  const outstandingCents = shareCents * unpaidCount;
+
+  // Equipas guardadas pelo organizador (chegam pelo socket); sem avaliações à vista.
+  const hasTeams = game.teams.length > 0;
+  const inTeams = new Set(game.teams.flatMap((t) => t.players.map((p) => p.userId)));
+  const withoutTeam = confirmed.filter((p) => !inTeams.has(p.userId));
+
   async function onSave(input: CreateGameInput) {
     await updateGame(id, input);
     // Mudar vagas pode promover quem está em espera: recarregar as listas.
@@ -106,6 +152,48 @@ export default function GameDetailScreen() {
       setGame(await action(id));
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : fallback);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function togglePaid(userId: string, paid: boolean) {
+    setActionError(null);
+    setPending(true);
+    try {
+      setGame(await setPaid(id, userId, paid));
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError ? err.message : "Não foi possível atualizar o pagamento.",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function rate(toUserId: string, score: number) {
+    setActionError(null);
+    setPending(true);
+    try {
+      const saved = await upsertRating(id, { toUserId, score });
+      setMyRatings((prev) => {
+        const rest = prev.filter((r) => r.toUserId !== toUserId);
+        return [...rest, saved];
+      });
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : "Não foi possível avaliar.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onGenerateTeams() {
+    setActionError(null);
+    setPending(true);
+    try {
+      setGame(await generateTeams(id, { teamCount: 2 }));
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : "Não foi possível fazer as equipas.");
     } finally {
       setPending(false);
     }
@@ -151,11 +239,19 @@ export default function GameDetailScreen() {
         {game.subs > 0 ? ` · ${game.waitingCount}/${game.subs} em espera` : ""}
       </Text>
       <Text style={styles.muted}>{priceRangeText(game, game.confirmedCount)}</Text>
+      {game.totalPriceCents > 0 && confirmed.length > 0 ? (
+        <Text style={styles.muted}>
+          Pagamentos: {confirmed.length - unpaidCount}/{confirmed.length} · falta{" "}
+          {formatEuros(outstandingCents)}
+        </Text>
+      ) : null}
 
       {mine ? (
         <Text>
           {mine.status === "confirmed"
-            ? "Estás confirmado."
+            ? `Estás confirmado${
+                game.totalPriceCents > 0 ? (mine.paid ? " · pago." : " · pagamento em falta.") : "."
+              }`
             : `Estás em lista de espera (${myQueuePlace}.º). Entras se alguém desistir.`}
         </Text>
       ) : null}
@@ -183,7 +279,27 @@ export default function GameDetailScreen() {
       {confirmed.length === 0 ? (
         <Text style={styles.muted}>Ainda ninguém.</Text>
       ) : (
-        confirmed.map((p, i) => <Text key={p.id}>{`${i + 1}. ${p.userName}`}</Text>)
+        confirmed.map((p, i) => (
+          <View key={p.id} style={styles.row}>
+            <Text style={{ flex: 1 }}>
+              {`${i + 1}. ${p.userName}`}
+              {game.totalPriceCents > 0
+                ? ` · ${p.paid ? "pago" : "em falta"}${
+                    shareCents > 0 ? ` (${formatEuros(shareCents)})` : ""
+                  }`
+                : ""}
+            </Text>
+            {isOrganizer && game.totalPriceCents > 0 ? (
+              <Pressable
+                style={styles.secondaryButton}
+                disabled={pending}
+                onPress={() => togglePaid(p.userId, !p.paid)}
+              >
+                <Text>{p.paid ? "Em falta" : "Pago"}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ))
       )}
 
       {game.subs > 0 ? (
@@ -195,6 +311,65 @@ export default function GameDetailScreen() {
             waiting.map((p, i) => <Text key={p.id}>{`${i + 1}. ${p.userName}`}</Text>)
           )}
         </>
+      ) : null}
+
+      {mine?.status === "confirmed" && confirmed.some((p) => p.userId !== meId) ? (
+        <>
+          <Text style={styles.section}>Avaliar jogadores (1–5)</Text>
+          <Text style={styles.muted}>Ajuda a equilibrar as equipas.</Text>
+          {confirmed
+            .filter((p) => p.userId !== meId)
+            .map((p) => {
+              const current = myRatings.find((r) => r.toUserId === p.userId)?.score;
+              return (
+                <View key={p.userId} style={{ gap: 6 }}>
+                  <Text>{p.userName}</Text>
+                  <View style={styles.row}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Pressable
+                        key={n}
+                        disabled={pending}
+                        onPress={() => rate(p.userId, n)}
+                        style={[styles.scoreBtn, current === n && styles.scoreBtnActive]}
+                      >
+                        <Text style={current === n ? styles.scoreBtnTextActive : undefined}>{n}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              );
+            })}
+        </>
+      ) : null}
+
+      {hasTeams || isOrganizer ? <Text style={styles.section}>Equipas</Text> : null}
+      {isOrganizer ? (
+        <Pressable
+          style={[styles.secondaryButton, (pending || game.confirmedCount < 2) && styles.disabled]}
+          disabled={pending || game.confirmedCount < 2}
+          onPress={() => void onGenerateTeams()}
+        >
+          <Text>{hasTeams ? "Atualizar equipas" : "Fazer equipas"}</Text>
+        </Pressable>
+      ) : null}
+      {isOrganizer && game.confirmedCount < 2 ? (
+        <Text style={styles.muted}>Precisas de pelo menos 2 confirmados.</Text>
+      ) : null}
+      {game.teams.map((team) => (
+        <View key={team.name} style={{ gap: 4, marginTop: 4 }}>
+          <Text style={styles.bold}>
+            Equipa {team.name} · {team.players.length} jogadores
+          </Text>
+          {team.players.map((p) => (
+            <Text key={p.userId}>{p.name}</Text>
+          ))}
+        </View>
+      ))}
+      {hasTeams && withoutTeam.length > 0 ? (
+        <Text style={styles.warning}>
+          Sem equipa: {withoutTeam.map((p) => p.userName).join(", ")}.
+          {isOrganizer ? " Atualiza as equipas para os incluir." : ""}
+        </Text>
       ) : null}
 
       {isOrganizer ? (
@@ -240,6 +415,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     alignItems: "center",
   },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  scoreBtn: {
+    borderWidth: 1,
+    borderColor: "#d4d4d8",
+    borderRadius: 8,
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scoreBtnActive: {
+    backgroundColor: "#18181b",
+    borderColor: "#18181b",
+  },
+  scoreBtnTextActive: {
+    color: "#fff",
+    fontWeight: "600",
+  },
   muted: { color: "#52525b" },
+  warning: { color: "#b45309" },
   error: { color: "#dc2626", padding: 16 },
 });

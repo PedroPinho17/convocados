@@ -11,6 +11,8 @@ import { GamesModule } from './games/games.module.js';
 import { ParticipationsModule } from './participations/participations.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
 import { PushModule } from './push/push.module.js';
+import { RatingsModule } from './ratings/ratings.module.js';
+import { TeamsModule } from './teams/teams.module.js';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { PushModule } from './push/push.module.js';
     ParticipationsModule,
     RealtimeModule,
     PushModule,
+    RatingsModule,
+    TeamsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

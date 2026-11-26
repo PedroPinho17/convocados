@@ -6,6 +6,8 @@ import { formatEuros, type GameDetailDto, type UserDto } from "@convocados/share
 import { ApiError, getInvite, getMe } from "@/lib/api";
 import { GameParticipation } from "@/components/game-participation";
 import { subscribeGame } from "@/lib/socket";
+import { GameRatings } from "@/components/game-ratings";
+import { GameTeams } from "@/components/game-teams";
 
 export function InviteClient() {
   const { code } = useParams<{ code: string }>();
@@ -59,6 +61,8 @@ export function InviteClient() {
       </p>
       {me ? <p className="text-sm text-zinc-600">Olá, {me.name}.</p> : null}
       <GameParticipation game={game} me={me} loginNext={`/i/${code}`} onChange={setGame} />
+      <GameRatings game={game} me={me} />
+      <GameTeams game={game} me={me} onChange={setGame} />
     </main>
   );
 }

@@ -11,6 +11,9 @@ import type {
   ReminderSettingsInput,
   RemindersDto,
   UnregisterPushTokenInput,
+  RatingDto,
+  UpsertRatingInput,
+  GenerateTeamsInput,
 } from "@convocados/shared";
 
 const API = process.env.EXPO_PUBLIC_API_URL;
@@ -113,6 +116,11 @@ export const confirmGame = (id: string) =>
   request<GameDetailDto>(`/games/${id}/confirm`, { method: "POST" });
 export const leaveGame = (id: string) =>
   request<GameDetailDto>(`/games/${id}/leave`, { method: "POST" });
+export const setPaid = (gameId: string, userId: string, paid: boolean) =>
+  request<GameDetailDto>(
+    `/games/${gameId}/participations/${userId}/paid`,
+    json({ paid }, "PATCH"),
+  );
 export const registerPushToken = (input: RegisterPushTokenInput) =>
   request<void>("/push/register", json(input));
 export const unregisterPushToken = (input: UnregisterPushTokenInput) =>
@@ -122,3 +130,13 @@ export const unregisterPushToken = (input: UnregisterPushTokenInput) =>
 export const getReminders = () => request<RemindersDto>("/push/reminders");
 export const setReminders = (input: ReminderSettingsInput) =>
   request<RemindersDto>("/push/reminders", json(input, "PUT"));
+
+/** Só as avaliações que eu dei (são privadas). */
+export const listMyRatings = (gameId: string) =>
+  request<RatingDto[]>(`/games/${gameId}/ratings`);
+export const upsertRating = (gameId: string, input: UpsertRatingInput) =>
+  request<RatingDto>(`/games/${gameId}/ratings`, json(input));
+
+/** Só o organizador: gera e guarda as equipas; devolve o jogo com elas. */
+export const generateTeams = (gameId: string, input: GenerateTeamsInput = {}) =>
+  request<GameDetailDto>(`/games/${gameId}/teams`, json(input));

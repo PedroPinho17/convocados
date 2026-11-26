@@ -1,6 +1,14 @@
 import { join } from 'node:path';
 import { DataSource } from 'typeorm';
-import { User, Game, Session, Participation, PushToken } from '@convocados/db';
+import {
+  User,
+  Game,
+  Session,
+  Participation,
+  PushToken,
+  Rating,
+  TeamAssignment,
+} from '@convocados/db';
 
 import { Init1795621974591 } from './migrations/1795621974591-Init.js';
 import { AddSessions1795622437573 } from './migrations/1795622437573-AddSessions.js';
@@ -8,8 +16,18 @@ import { GameTotalPrice1795635429286 } from './migrations/1795635429286-GameTota
 import { AddParticipations1795651970417 } from './migrations/1795651970417-AddParticipations.js';
 import { AddPushTokens1795700000000 } from './migrations/1795700000000-AddPushTokens.js';
 import { UserReminders1795710000000 } from './migrations/1795710000000-UserReminders.js';
+import { AddRatings1795720000000 } from './migrations/1795720000000-AddRatings.js';
+import { AddTeams1795730000000 } from './migrations/1795730000000-AddTeams.js';
 
-export const entities = [User, Game, Session, Participation, PushToken];
+export const entities = [
+  User,
+  Game,
+  Session,
+  Participation,
+  PushToken,
+  Rating,
+  TeamAssignment,
+];
 export const migrations = [
   Init1795621974591,
   AddSessions1795622437573,
@@ -17,6 +35,8 @@ export const migrations = [
   AddParticipations1795651970417,
   AddPushTokens1795700000000,
   UserReminders1795710000000,
+  AddRatings1795720000000,
+  AddTeams1795730000000,
 ];
 
 try {

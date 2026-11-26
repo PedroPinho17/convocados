@@ -53,6 +53,17 @@ export type GameDetailDto = GameDto & {
   confirmedCount: number;
   waitingCount: number;
   participations: ParticipationDto[];
+  /**
+   * Equipas guardadas pelo organizador (vazio se ainda não houver). Só com confirmados:
+   * quem confirmou depois aparece fora das equipas até o organizador as atualizar.
+   * Sem avaliações: são privadas de quem as deu.
+   */
+  teams: TeamDto[];
+};
+
+export type TeamDto = {
+  name: string;
+  players: { userId: string; name: string }[];
 };
 
 /**
@@ -158,3 +169,100 @@ export const registerSchema = loginSchema.extend({
   password: newPasswordSchema,
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
+
+/** PATCH /games/:gameId/participations/:userId/paid — só o organizador */
+export const setPaidSchema = z.object({
+  paid: z.boolean(),
+});
+export type SetPaidInput = z.infer<typeof setPaidSchema>;
+
+/** POST /games/:gameId/ratings — avaliar outro jogador confirmado */
+export const upsertRatingSchema = z.object({
+  toUserId: z.string().uuid(),
+  score: z.number().int().min(1).max(5),
+});
+export type UpsertRatingInput = z.infer<typeof upsertRatingSchema>;
+
+/** Uma avaliação que EU dei (as avaliações são privadas de quem as dá). */
+export type RatingDto = {
+  id: string;
+  gameId: string;
+  fromUserId: string;
+  toUserId: string;
+  toUserName: string;
+  score: number;
+  createdAt: string; // ISO
+};
+
+/** POST /games/:gameId/teams — só o organizador; gera e guarda as equipas. */
+export const generateTeamsSchema = z.object({
+  teamCount: z.number().int().min(2).max(4).default(2),
+});
+export type GenerateTeamsInput = z.input<typeof generateTeamsSchema>;
+
+/** Entrada do algoritmo (só na API: a skill nunca vai para os clientes). */
+export type PlayerSkill = {
+  userId: string;
+  name: string;
+  /** Média das avaliações recebidas (1–5). Sem avaliações → 3. */
+  skill: number;
+};
+
+export type BalancedTeam = {
+  name: string;
+  players: PlayerSkill[];
+  totalSkill: number;
+};
+
+/**
+ * Divide os jogadores em N equipas equilibradas.
+ *
+ * Tamanhos: todas as equipas ficam com ⌊n ÷ N⌋ ou ⌈n ÷ N⌉ jogadores (no máximo 1 de
+ * diferença). Força: do mais forte para o mais fraco, cada jogador vai para a equipa
+ * com menos skill que ainda tem lugar (empate → menos jogadores → primeira equipa).
+ * Sem aleatoriedade: os mesmos jogadores e avaliações dão sempre as mesmas equipas.
+ */
+export function balanceTeams(players: PlayerSkill[], teamCount = 2): BalancedTeam[] {
+  if (teamCount < 2) throw new Error("teamCount deve ser >= 2");
+  if (players.length < teamCount) {
+    throw new Error("São precisos pelo menos tantos jogadores quantas equipas.");
+  }
+
+  const teams: BalancedTeam[] = Array.from({ length: teamCount }, (_, i) => ({
+    name: String.fromCharCode(65 + i), // A, B, C, D
+    players: [],
+    totalSkill: 0,
+  }));
+
+  const minSize = Math.floor(players.length / teamCount);
+  // Quantas equipas podem ter 1 jogador a mais (quando a divisão não é exata).
+  let extraSlots = players.length % teamCount;
+
+  const sorted = [...players].sort(
+    (a, b) => b.skill - a.skill || a.name.localeCompare(b.name, "pt"),
+  );
+
+  for (const player of sorted) {
+    const hasRoom = (t: BalancedTeam) =>
+      t.players.length < minSize || (t.players.length === minSize && extraSlots > 0);
+
+    let best: BalancedTeam | undefined;
+    for (const t of teams) {
+      if (!hasRoom(t)) continue;
+      if (
+        !best ||
+        t.totalSkill < best.totalSkill ||
+        (t.totalSkill === best.totalSkill && t.players.length < best.players.length)
+      ) {
+        best = t;
+      }
+    }
+    // Há sempre lugar: a soma das capacidades é exatamente o número de jogadores.
+    const team = best!;
+    if (team.players.length === minSize) extraSlots--;
+    team.players.push(player);
+    team.totalSkill += player.skill;
+  }
+
+  return teams;
+}

@@ -9,6 +9,8 @@ import { subscribeGame } from "@/lib/socket";
 import { GameForm } from "@/components/game-form";
 import { GameParticipation } from "@/components/game-participation";
 import { InviteShare } from "@/components/invite-share";
+import { GameRatings } from "@/components/game-ratings";
+import { GameTeams } from "@/components/game-teams";
 
 export function GameDetailClient() {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +82,8 @@ export function GameDetailClient() {
           </p>
           {game.status !== "open" ? <p>Estado: {game.status}</p> : null}
           <GameParticipation game={game} me={me} loginNext={`/games/${id}`} onChange={setGame} />
+          <GameRatings game={game} me={me} />
+          <GameTeams game={game} me={me} onChange={setGame} />
           {isOrganizer ? <InviteShare inviteCode={game.inviteCode} /> : null}
         </>
       )}
