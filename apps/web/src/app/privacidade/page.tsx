@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AppHeader, navLinkClass } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Privacidade · Convocados",
@@ -11,19 +12,25 @@ const CONTACT = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10 text-zinc-800">
+    <>
+      <AppHeader>
+        <Link href="/games" className={navLinkClass}>
+          Jogos
+        </Link>
+      </AppHeader>
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 leading-relaxed sm:px-6 sm:py-12">
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold">Política de privacidade</h1>
-        <p className="text-sm text-zinc-500">Última atualização: 26 de novembro de 2026</p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Política de privacidade</h1>
+        <p className="text-sm text-muted">Última atualização: 26 de novembro de 2026</p>
         <p>
           O Convocados é uma app para organizar jogos de futebol entre amigos. Guarda só o que
           precisa para isso, não mostra publicidade e não vende nem partilha dados para outros fins.
         </p>
       </header>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-medium">O que guardamos e para quê</h2>
-        <ul className="list-disc space-y-1 pl-5">
+      <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold">O que guardamos e para quê</h2>
+        <ul className="list-disc space-y-2 pl-5 marker:text-brand">
           <li>
             <strong>Nome e email</strong>: para entrares na conta, os outros jogadores verem quem vai
             e para te enviarmos o link de recuperar a password. O email nunca é mostrado a outros.
@@ -50,9 +57,9 @@ export default function PrivacyPage() {
         </ul>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-medium">Quem mais trata os dados</h2>
-        <ul className="list-disc space-y-1 pl-5">
+      <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold">Quem mais trata os dados</h2>
+        <ul className="list-disc space-y-2 pl-5 marker:text-brand">
           <li>
             <strong>Render</strong> e <strong>Neon</strong>: onde a app e a base de dados estão alojadas.
           </li>
@@ -68,11 +75,11 @@ export default function PrivacyPage() {
         </ul>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-medium">Durante quanto tempo e como apagar</h2>
+      <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold">Durante quanto tempo e como apagar</h2>
         <p>
           Os dados ficam enquanto tiveres conta. Podes apagá-la a qualquer momento em{" "}
-          <Link href="/account" className="underline">
+          <Link href="/account" className="font-medium text-brand-strong underline">
             Conta
           </Link>{" "}
           (na web) ou em Definições → Apagar conta (na app). Isso apaga o teu nome, email, avaliações,
@@ -81,8 +88,8 @@ export default function PrivacyPage() {
         </p>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-medium">Os teus direitos</h2>
+      <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6">
+        <h2 className="text-lg font-semibold">Os teus direitos</h2>
         <p>
           Pelo RGPD, podes pedir acesso, correção ou eliminação dos teus dados, e reclamar à CNPD
           (Comissão Nacional de Proteção de Dados).
@@ -90,7 +97,7 @@ export default function PrivacyPage() {
             <>
               {" "}
               Para qualquer pedido:{" "}
-              <a href={`mailto:${CONTACT}`} className="underline">
+              <a href={`mailto:${CONTACT}`} className="font-medium text-brand-strong underline">
                 {CONTACT}
               </a>
               .
@@ -100,10 +107,11 @@ export default function PrivacyPage() {
       </section>
 
       <p>
-        <Link href="/games" className="underline">
+        <Link href="/games" className="font-medium text-brand-strong underline">
           Voltar aos jogos
         </Link>
       </p>
     </main>
+    </>
   );
 }

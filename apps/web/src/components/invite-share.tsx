@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { Button, Card, CardTitle } from "@/components/ui";
 
 type Props = {
   inviteCode: string;
 };
 
-/** Link + QR do convite (organizador). */
+/** Link + QR do convite (organizador). No telemóvel, "Partilhar" abre o WhatsApp e afins. */
 export function InviteShare({ inviteCode }: Props) {
   const [copied, setCopied] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const url = `${origin}/i/${inviteCode}`;
+  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   async function copy() {
     await navigator.clipboard.writeText(url);
@@ -19,25 +21,39 @@ export function InviteShare({ inviteCode }: Props) {
     window.setTimeout(() => setCopied(false), 2000);
   }
 
+  async function share() {
+    try {
+      await navigator.share({ title: "Convocados", text: "Entra no jogo:", url });
+    } catch {
+      // Cancelado pelo utilizador: nada a fazer.
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-3 rounded border border-zinc-200 p-4">
-      <p className="text-sm font-medium">Convite</p>
-      <p className="break-all text-sm">
-        <a href={url} className="underline">
-          {url}
-        </a>
-      </p>
-      <div className="flex flex-wrap items-center gap-4">
-        <QRCodeSVG value={url} size={128} />
-        <button
-          type="button"
-          onClick={copy}
-          className="rounded border border-zinc-300 px-3 py-1 text-sm"
-        >
-          {copied ? "Copiado!" : "Copiar link"}
-        </button>
+    <Card>
+      <CardTitle>Convite</CardTitle>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center lg:flex-col lg:items-stretch xl:flex-row xl:items-center">
+        {/* O QR precisa de fundo claro para ser lido, também no modo escuro. */}
+        <div className="self-center rounded-xl bg-white p-3 shadow-sm ring-1 ring-line">
+          <QRCodeSVG value={url} size={132} />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <a href={url} className="break-all text-sm font-medium text-brand-strong underline">
+            {url}
+          </a>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={copy}>
+              {copied ? "Copiado!" : "Copiar link"}
+            </Button>
+            {canShare ? (
+              <Button size="sm" variant="secondary" onClick={() => void share()}>
+                Partilhar
+              </Button>
+            ) : null}
+          </div>
+          <p className="text-xs text-muted">Código: {inviteCode}</p>
+        </div>
       </div>
-      <p className="text-xs text-zinc-500">Código: {inviteCode}</p>
-    </div>
+    </Card>
   );
 }

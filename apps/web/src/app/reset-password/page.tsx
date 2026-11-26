@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ApiError, resetPassword } from "@/lib/api";
 import { PasswordInput } from "@/components/password-input";
+import { AuthShell, Button, Notice } from "@/components/ui";
 
 function ResetForm() {
   const token = useSearchParams().get("token") ?? "";
@@ -34,31 +35,34 @@ function ResetForm() {
 
   if (done) {
     return (
-      <>
-        <p className="text-green-700">
+      <div className="flex flex-col gap-4">
+        <Notice tone="ok" role="status">
           Password alterada. Por segurança, terminámos as sessões abertas noutros dispositivos.
-        </p>
-        <Link href="/login" className="rounded bg-zinc-900 px-3 py-2 text-center text-white">
+        </Notice>
+        <Link
+          href="/login"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand px-4 font-semibold text-brand-ink hover:bg-brand-strong"
+        >
           Entrar
         </Link>
-      </>
+      </div>
     );
   }
 
   if (!token) {
     return (
-      <p className="text-red-600">
+      <Notice tone="danger" role="alert">
         Este link está incompleto. Pede um novo em{" "}
-        <Link href="/login" className="underline">
+        <Link href="/login" className="font-semibold underline">
           Esqueci-me da password
         </Link>
         .
-      </p>
+      </Notice>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-3">
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <PasswordInput
         placeholder="Password nova"
         autoComplete="new-password"
@@ -75,26 +79,25 @@ function ResetForm() {
         required
         minLength={10}
       />
-      <p className="text-xs text-zinc-500">Pelo menos 10 caracteres.</p>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50"
-      >
+      <p className="text-xs text-muted">Pelo menos 10 caracteres.</p>
+      {error && (
+        <Notice tone="danger" role="alert">
+          {error}
+        </Notice>
+      )}
+      <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Aguarde…" : "Guardar password"}
-      </button>
+      </Button>
     </form>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <main className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center gap-6 px-4 py-16">
-      <h1 className="text-2xl font-semibold">Password nova</h1>
-      <Suspense fallback={<p>A carregar…</p>}>
+    <AuthShell title="Password nova" subtitle="Escolhe uma password que não uses noutros sítios.">
+      <Suspense fallback={<p className="text-muted">A carregar…</p>}>
         <ResetForm />
       </Suspense>
-    </main>
+    </AuthShell>
   );
 }

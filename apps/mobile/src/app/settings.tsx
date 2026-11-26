@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { formatReminder, MAX_REMINDERS, REMINDER_OPTIONS } from "@convocados/shared";
 import { ApiError, getReminders, setReminders } from "../lib/api";
 import { ensureNotificationPermission } from "../lib/push";
 import { syncReminders } from "../lib/reminders";
 import { DeleteAccount } from "../components/delete-account";
+import { Button, Card, Muted, Notice, Screen } from "../components/ui";
+import { radius, usePalette, useThemedStyles, type Palette } from "../lib/theme";
 
 type Option = (typeof REMINDER_OPTIONS)[number];
 
 export default function SettingsScreen() {
+  const s = useThemedStyles(styles);
+  const c = usePalette();
   const [selected, setSelected] = useState<Option[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -29,10 +33,12 @@ export default function SettingsScreen() {
 
   if (!selected) {
     return error ? (
-      <Text style={styles.error}>{error}</Text>
+      <Screen>
+        <Notice tone="danger" text={error} />
+      </Screen>
     ) : (
-      <View style={styles.center}>
-        <ActivityIndicator />
+      <View style={[s.center, { backgroundColor: c.canvas }]}>
+        <ActivityIndicator color={c.brand} />
       </View>
     );
   }
@@ -65,67 +71,66 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Lembretes antes do jogo</Text>
-      <Text style={styles.hint}>
-        Escolhe até {MAX_REMINDERS}. Valem para todos os jogos em que estás confirmado.
-      </Text>
+    <Screen>
+      <View style={s.narrow}>
+        <Card>
+          <Text style={s.title} accessibilityRole="header">
+            Lembretes antes do jogo
+          </Text>
+          <Muted>Escolhe até {MAX_REMINDERS}. Valem para todos os jogos em que estás confirmado.</Muted>
 
-      {REMINDER_OPTIONS.map((option) => {
-        const on = selected.includes(option);
-        const disabled = !on && full;
-        return (
-          <Pressable
-            key={option}
-            style={[styles.option, on && styles.optionOn, disabled && styles.optionDisabled]}
-            onPress={() => toggle(option)}
-            disabled={disabled}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: on, disabled }}
-          >
-            <Text style={on ? styles.optionTextOn : undefined}>
-              {formatReminder(option)} antes
-            </Text>
-            <Text style={on ? styles.optionTextOn : styles.hint}>{on ? "✓" : ""}</Text>
-          </Pressable>
-        );
-      })}
+          <View style={s.options}>
+            {REMINDER_OPTIONS.map((option) => {
+              const on = selected.includes(option);
+              const disabled = !on && full;
+              return (
+                <Pressable
+                  key={option}
+                  style={[s.option, on && s.optionOn, disabled && s.optionDisabled]}
+                  onPress={() => toggle(option)}
+                  disabled={disabled}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: on, disabled }}
+                >
+                  <Text style={on ? s.optionTextOn : s.optionText}>{formatReminder(option)} antes</Text>
+                  <Text style={on ? s.optionTextOn : s.optionText}>{on ? "✓" : ""}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
-      {selected.length === 0 && <Text style={styles.hint}>Sem lembretes.</Text>}
-      {error && <Text style={styles.error}>{error}</Text>}
+          {selected.length === 0 && <Muted>Sem lembretes.</Muted>}
+          {error && <Notice tone="danger" text={error} />}
 
-      <Pressable style={styles.button} onPress={onSave} disabled={saving}>
-        <Text style={styles.buttonText}>{saving ? "A guardar…" : saved ? "Guardado" : "Guardar"}</Text>
-      </Pressable>
+          <Button label={saving ? "A guardar…" : saved ? "Guardado" : "Guardar"} onPress={onSave} disabled={saving} />
+        </Card>
 
-      <DeleteAccount />
-    </ScrollView>
+        <Card>
+          <DeleteAccount />
+        </Card>
+      </View>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: 16, gap: 10 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 20, fontWeight: "600" },
-  hint: { color: "#71717a" },
-  error: { color: "#dc2626", padding: 16 },
+const styles = (c: Palette) => ({
+  center: { flex: 1, alignItems: "center" as const, justifyContent: "center" as const },
+  narrow: { width: "100%" as const, maxWidth: 640, alignSelf: "center" as const, gap: 16 },
+  title: { fontSize: 20, fontWeight: "800" as const, color: c.ink },
+  options: { gap: 8 },
   option: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    minHeight: 50,
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
     borderWidth: 1,
-    borderColor: "#e4e4e7",
-    borderRadius: 8,
-    padding: 14,
+    borderColor: c.line,
+    borderRadius: radius.md,
+    paddingHorizontal: 16,
+    backgroundColor: c.surface,
   },
-  optionOn: { backgroundColor: "#18181b", borderColor: "#18181b" },
+  optionOn: { backgroundColor: c.brand, borderColor: c.brand },
   optionDisabled: { opacity: 0.4 },
-  optionTextOn: { color: "#fff", fontWeight: "600" },
-  button: {
-    backgroundColor: "#18181b",
-    borderRadius: 8,
-    padding: 14,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonText: { color: "#fff", fontWeight: "600" },
+  optionText: { color: c.ink, fontSize: 15 },
+  optionTextOn: { color: c.brandInk, fontWeight: "700" as const, fontSize: 15 },
 });

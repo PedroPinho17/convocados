@@ -6,12 +6,14 @@ import { useParams, useRouter } from "next/navigation";
 import { formatEuros, type CreateGameInput, type GameDetailDto, type UserDto } from "@convocados/shared";
 import { ApiError, getGameDetail, getMe, updateGame } from "@/lib/api";
 import { subscribeGame } from "@/lib/socket";
+import { formatGameDate } from "@/lib/format";
 import { GameForm } from "@/components/game-form";
 import { GameParticipation } from "@/components/game-participation";
 import { InviteShare } from "@/components/invite-share";
 import { CancelGame } from "@/components/cancel-game";
 import { GameRatings } from "@/components/game-ratings";
 import { GameTeams } from "@/components/game-teams";
+import { AppHeader, Badge, Button, Card, CardTitle, Notice, Page, navLinkClass } from "@/components/ui";
 
 export function GameDetailClient() {
   const { id } = useParams<{ id: string }>();
@@ -44,8 +46,39 @@ export function GameDetailClient() {
     });
   }, [id]);
 
-  if (error) return <main className="p-8 text-red-600">{error}</main>;
-  if (!game) return <main className="p-8">A carregar…</main>;
+  const header = (
+    <AppHeader>
+      <Link href="/games" className={navLinkClass}>
+        Jogos
+      </Link>
+      <Link href="/account" className={navLinkClass}>
+        Conta
+      </Link>
+    </AppHeader>
+  );
+
+  if (error) {
+    return (
+      <>
+        {header}
+        <Page>
+          <Notice tone="danger" role="alert">
+            {error}
+          </Notice>
+        </Page>
+      </>
+    );
+  }
+  if (!game) {
+    return (
+      <>
+        {header}
+        <Page>
+          <p className="text-muted">A carregar…</p>
+        </Page>
+      </>
+    );
+  }
 
   const isOrganizer = me?.id === game.organizerId;
   const cancelled = game.status === "cancelled";
@@ -58,42 +91,66 @@ export function GameDetailClient() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-10">
-      <Link href="/games" className="text-sm underline">
-        ← Voltar
-      </Link>
+    <>
+      {header}
+      <Page>
+        <Link href="/games" className="text-sm font-medium text-muted hover:text-ink">
+          ← Voltar
+        </Link>
 
-      {editing ? (
-        <>
-          <h1 className="text-2xl font-semibold">Editar jogo</h1>
-          <GameForm game={game} submitLabel="Guardar" onSubmit={onSave} onCancel={() => setEditing(false)} />
-        </>
-      ) : (
-        <>
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-2xl font-semibold">{game.title}</h1>
-            {isOrganizer && !cancelled && (
-              <button type="button" onClick={() => setEditing(true)} className="rounded border px-3 py-1 text-sm">
-                Editar
-              </button>
-            )}
-          </div>
-          <p>
-            {game.location} · {new Date(game.startsAt).toLocaleString("pt-PT")} · total{" "}
-            {formatEuros(game.totalPriceCents)}
-          </p>
-          {cancelled ? (
-            <p role="status" className="rounded border border-red-200 bg-red-50 p-3 text-red-800">
-              Este jogo foi cancelado pelo organizador.
-            </p>
-          ) : null}
-          <GameParticipation game={game} me={me} loginNext={`/games/${id}`} onChange={setGame} />
-          {!cancelled ? <GameRatings game={game} me={me} /> : null}
-          {!cancelled ? <GameTeams game={game} me={me} onChange={setGame} /> : null}
-          {isOrganizer && !cancelled ? <InviteShare inviteCode={game.inviteCode} /> : null}
-          {isOrganizer && game.status === "open" ? <CancelGame game={game} onChange={setGame} /> : null}
-        </>
-      )}
-    </main>
+        {editing ? (
+          <Card className="mx-auto w-full max-w-2xl">
+            <CardTitle>
+              <span>Editar jogo</span>
+            </CardTitle>
+            <GameForm game={game} submitLabel="Guardar" onSubmit={onSave} onCancel={() => setEditing(false)} />
+          </Card>
+        ) : (
+          <>
+            <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{game.title}</h1>
+                    {cancelled ? <Badge tone="danger">Cancelado</Badge> : null}
+                  </div>
+                  <p className="mt-2 text-base font-medium text-brand-strong">{formatGameDate(game.startsAt)}</p>
+                </div>
+                {isOrganizer && !cancelled && (
+                  <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                    Editar
+                  </Button>
+                )}
+              </div>
+              <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                <div className="flex gap-2">
+                  <dt className="text-muted">Local</dt>
+                  <dd className="font-medium">{game.location}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="text-muted">Total</dt>
+                  <dd className="font-medium">{formatEuros(game.totalPriceCents)}</dd>
+                </div>
+              </dl>
+              {cancelled ? (
+                <p role="status" className="rounded-xl bg-danger-soft px-4 py-3 text-danger">
+                  Este jogo foi cancelado pelo organizador.
+                </p>
+              ) : null}
+            </section>
+
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+              <GameParticipation game={game} me={me} loginNext={`/games/${id}`} onChange={setGame} />
+              <div className="flex flex-col gap-6">
+                {isOrganizer && !cancelled ? <InviteShare inviteCode={game.inviteCode} /> : null}
+                {!cancelled ? <GameTeams game={game} me={me} onChange={setGame} /> : null}
+                {!cancelled ? <GameRatings game={game} me={me} /> : null}
+                {isOrganizer && game.status === "open" ? <CancelGame game={game} onChange={setGame} /> : null}
+              </div>
+            </div>
+          </>
+        )}
+      </Page>
+    </>
   );
 }

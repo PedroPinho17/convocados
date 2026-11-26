@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type InputHTMLAttributes } from "react";
+import { cn, inputClass } from "@/components/ui";
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "type">;
 
@@ -12,7 +13,7 @@ export function PasswordInput({ className, ...props }: Props) {
       <input
         {...props}
         type={visible ? "text" : "password"}
-        className={`w-full rounded border border-zinc-300 py-2 pl-3 pr-11 ${className ?? ""}`}
+        className={cn(inputClass, "pr-12", className)}
       />
       <button
         type="button"
@@ -20,7 +21,7 @@ export function PasswordInput({ className, ...props }: Props) {
         aria-label={visible ? "Esconder password" : "Mostrar password"}
         aria-pressed={visible}
         title={visible ? "Esconder password" : "Mostrar password"}
-        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-zinc-500 hover:text-zinc-900"
+        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-muted hover:text-ink"
       >
         {visible ? <EyeOff /> : <Eye />}
       </button>

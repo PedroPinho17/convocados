@@ -1,21 +1,37 @@
 import { useEffect } from "react";
 import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { ensurePushRegistration } from "../lib/push";
 import { syncReminders } from "../lib/reminders";
+import { usePalette } from "../lib/theme";
 
 export default function RootLayout() {
+  const c = usePalette();
+
   useEffect(() => {
     // Ao abrir a app: regista o push e volta a agendar os lembretes de todos os jogos.
     void ensurePushRegistration().then(syncReminders);
   }, []);
 
   return (
-    <Stack screenOptions={{ headerShown: true }}>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="login" options={{ title: "Entrar" }} />
-      <Stack.Screen name="games/index" options={{ title: "Jogos" }} />
-      <Stack.Screen name="games/[id]" options={{ title: "Jogo" }} />
-      <Stack.Screen name="settings" options={{ title: "Definições" }} />
-    </Stack>
+    <>
+      <StatusBar style="auto" />
+      <Stack
+        screenOptions={{
+          headerShown: true,
+          headerStyle: { backgroundColor: c.canvas },
+          headerTintColor: c.brandStrong,
+          headerTitleStyle: { color: c.ink, fontWeight: "700" },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: c.canvas },
+        }}
+      >
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="games/index" options={{ title: "Convocados" }} />
+        <Stack.Screen name="games/[id]" options={{ title: "Jogo" }} />
+        <Stack.Screen name="settings" options={{ title: "Definições" }} />
+      </Stack>
+    </>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { GameDetailDto } from "@convocados/shared";
 import { ApiError, cancelGame } from "@/lib/api";
+import { Button, Card, Notice } from "@/components/ui";
 
 type Props = {
   game: GameDetailDto;
@@ -33,16 +34,21 @@ export function CancelGame({ game, onChange }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <button
-        type="button"
-        onClick={() => void onCancel()}
-        disabled={pending}
-        className="self-start rounded border border-red-300 px-3 py-1 text-sm text-red-700 disabled:opacity-50"
-      >
-        {pending ? "A cancelar…" : "Cancelar jogo"}
-      </button>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-    </div>
+    <Card className="border-danger/30">
+      <h2 className="text-base font-semibold">Zona de perigo</h2>
+      <p className="mt-1 text-sm text-muted">
+        Cancela o jogo (ex.: chuva). Quem está inscrito recebe uma notificação.
+      </p>
+      <div className="mt-3 flex flex-col gap-2">
+        <Button variant="danger" onClick={() => void onCancel()} disabled={pending} className="self-start">
+          {pending ? "A cancelar…" : "Cancelar jogo"}
+        </Button>
+        {error ? (
+          <Notice tone="danger" role="alert">
+            {error}
+          </Notice>
+        ) : null}
+      </div>
+    </Card>
   );
 }

@@ -1,26 +1,91 @@
 @import "tailwindcss";
 
+/*
+ * Cores do Convocados: desportivo e limpo, verde relvado como cor principal.
+ * Tudo em variáveis, para o modo escuro (automático, pelo sistema) trocar só aqui.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --canvas: #f4f7f3;
+  --surface: #ffffff;
+  --surface-2: #f8faf7;
+  --ink: #101814;
+  --muted: #5d6b63;
+  --line: #e1e8e0;
+  --brand: #15803d;
+  --brand-strong: #116632;
+  --brand-ink: #ffffff;
+  --brand-soft: #e3f5e8;
+  --warn: #a15c07;
+  --warn-soft: #fdf3e2;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --ok: #157f3c;
+  --ok-soft: #e6f6ec;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --canvas: #0b1210;
+    --surface: #121c18;
+    --surface-2: #0f1814;
+    --ink: #e7efe9;
+    --muted: #97a69d;
+    --line: #23322b;
+    --brand: #2fbf62;
+    --brand-strong: #4fd57c;
+    --brand-ink: #06140c;
+    --brand-soft: #143322;
+    --warn: #f0b45a;
+    --warn-soft: #2e230f;
+    --danger: #f2877d;
+    --danger-soft: #331715;
+    --ok: #57d488;
+    --ok-soft: #12301f;
+    color-scheme: dark;
   }
 }
 
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Foco visível para quem usa teclado, em todos os elementos interativos. */
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

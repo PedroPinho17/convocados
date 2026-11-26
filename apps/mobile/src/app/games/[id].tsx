@@ -1,14 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Share,
-  Alert,
-} from "react-native";
+import { ActivityIndicator, Alert, Pressable, Share, Text, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import {
   formatEuros,
@@ -34,10 +25,30 @@ import { priceRangeText } from "../../lib/price";
 import { GameForm } from "../../components/game-form";
 import { subscribeGame } from "../../lib/socket";
 import { syncReminders } from "../../lib/reminders";
-
 import { WEB_ORIGIN } from "../../lib/links";
+import { Badge, Button, Card, CardTitle, Columns, Muted, Notice, Screen } from "../../components/ui";
+import { radius, usePalette, useThemedStyles, type Palette } from "../../lib/theme";
+
+const TEAM_COLORS = ["#16a34a", "#0ea5e9", "#f59e0b", "#d946ef"];
+
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+
+function formatWhen(iso: string) {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" });
+  const time = d.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+  return `${day} · ${time}`;
+}
 
 export default function GameDetailScreen() {
+  const s = useThemedStyles(styles);
+  const c = usePalette();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [game, setGame] = useState<GameDetailDto | null>(null);
   const [meId, setMeId] = useState<string | null>(null);
@@ -111,11 +122,17 @@ export default function GameDetailScreen() {
     };
   }, [id, meId, myStatus, game?.confirmedCount]);
 
-  if (error) return <Text style={styles.error}>{error}</Text>;
+  if (error) {
+    return (
+      <Screen>
+        <Notice tone="danger" text={error} />
+      </Screen>
+    );
+  }
   if (!game) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator />
+      <View style={[s.center, { backgroundColor: c.canvas }]}>
+        <ActivityIndicator color={c.brand} />
       </View>
     );
   }
@@ -130,6 +147,7 @@ export default function GameDetailScreen() {
   const full = slotsFull && game.waitingCount >= game.subs;
   const started = new Date(game.startsAt).getTime() <= openedAt;
   const cancelled = game.status === "cancelled";
+  const fill = Math.min(1, game.confirmedCount / Math.max(1, game.slots));
 
   const shareCents =
     game.totalPriceCents > 0 && confirmed.length > 0
@@ -228,257 +246,354 @@ export default function GameDetailScreen() {
 
   if (editing) {
     return (
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Editar jogo</Text>
-        <GameForm game={game} submitLabel="Guardar" onSubmit={onSave} onCancel={() => setEditing(false)} />
-      </ScrollView>
+      <Screen>
+        <View style={{ width: "100%", maxWidth: 640, alignSelf: "center" }}>
+          <Card>
+            <CardTitle>Editar jogo</CardTitle>
+            <GameForm game={game} submitLabel="Guardar" onSubmit={onSave} onCancel={() => setEditing(false)} />
+          </Card>
+        </View>
+      </Screen>
     );
   }
 
   const confirmLabel = cancelled
     ? "Jogo cancelado"
     : started
-    ? "Jogo já começou"
-    : full
-      ? "Jogo cheio"
-      : slotsFull
-        ? "Entrar na lista de espera"
-        : "Confirmar";
+      ? "Jogo já começou"
+      : full
+        ? "Jogo cheio"
+        : slotsFull
+          ? "Entrar na lista de espera"
+          : "Confirmar";
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>{game.title}</Text>
-        {isOrganizer && !cancelled && (
-          <Pressable style={styles.secondaryButton} onPress={() => setEditing(true)}>
-            <Text>Editar</Text>
-          </Pressable>
-        )}
+  const header = (
+    <Card>
+      <View style={s.titleRow}>
+        <View style={{ flex: 1, gap: 6 }}>
+          <Text style={s.title} accessibilityRole="header">
+            {game.title}
+          </Text>
+          {cancelled ? <Badge label="Cancelado" tone="danger" /> : null}
+          <Text style={s.when}>{formatWhen(game.startsAt)}</Text>
+        </View>
+        {isOrganizer && !cancelled ? (
+          <Button label="Editar" size="sm" variant="secondary" onPress={() => setEditing(true)} />
+        ) : null}
       </View>
-      <Text>{game.location}</Text>
-      <Text>
-        {new Date(game.startsAt).toLocaleString("pt-PT")} · total {formatEuros(game.totalPriceCents)}
-      </Text>
-      {cancelled ? (
-        <Text style={styles.cancelled}>Este jogo foi cancelado pelo organizador.</Text>
-      ) : null}
-      <Text style={styles.bold}>
-        {game.confirmedCount}/{game.slots} confirmados
-        {game.subs > 0 ? ` · ${game.waitingCount}/${game.subs} em espera` : ""}
-      </Text>
-      <Text style={styles.muted}>{priceRangeText(game, game.confirmedCount)}</Text>
+      <Text style={s.meta}>📍 {game.location}</Text>
+      <Text style={s.meta}>💶 total {formatEuros(game.totalPriceCents)}</Text>
+      {cancelled ? <Notice tone="danger" text="Este jogo foi cancelado pelo organizador." /> : null}
+    </Card>
+  );
+
+  const participation = (
+    <Card>
+      <View style={s.countRow}>
+        <Text style={s.count}>
+          <Text style={s.countBig}>
+            {game.confirmedCount}/{game.slots}
+          </Text>{" "}
+          confirmados
+        </Text>
+        {game.subs > 0 ? (
+          <Muted>
+            {game.waitingCount}/{game.subs} em espera
+          </Muted>
+        ) : null}
+      </View>
+      <View
+        style={s.progress}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Vagas preenchidas"
+        accessibilityValue={{ min: 0, max: game.slots, now: game.confirmedCount }}
+      >
+        <View style={[s.progressFill, { width: `${Math.round(fill * 100)}%` }]} />
+      </View>
+      <Muted>{priceRangeText(game, game.confirmedCount)}</Muted>
       {game.totalPriceCents > 0 && confirmed.length > 0 ? (
-        <Text style={styles.muted}>
-          Pagamentos: {confirmed.length - unpaidCount}/{confirmed.length} · falta{" "}
-          {formatEuros(outstandingCents)}
-        </Text>
+        <Muted>
+          Pagamentos: {confirmed.length - unpaidCount}/{confirmed.length} · falta {formatEuros(outstandingCents)}
+        </Muted>
       ) : null}
 
       {mine ? (
-        <Text>
-          {mine.status === "confirmed"
-            ? `Estás confirmado${
-                game.totalPriceCents > 0 ? (mine.paid ? " · pago." : " · pagamento em falta.") : "."
-              }`
-            : `Estás em lista de espera (${myQueuePlace}.º). Entras se alguém desistir.`}
-        </Text>
+        <View style={s.mine}>
+          <Text style={s.mineText}>
+            {mine.status === "confirmed"
+              ? `Estás confirmado${
+                  game.totalPriceCents > 0 ? (mine.paid ? " · pago." : " · pagamento em falta.") : "."
+                }`
+              : `Estás em lista de espera (${myQueuePlace}.º). Entras se alguém desistir.`}
+          </Text>
+        </View>
       ) : null}
 
       {mine ? (
-        <Pressable
-          style={styles.secondaryButton}
+        <Button
+          key="leave"
+          label="Desistir"
+          variant="secondary"
           disabled={pending}
           onPress={() => run(leaveGame, "Não foi possível desistir.")}
-        >
-          <Text style={styles.center}>Desistir</Text>
-        </Pressable>
+        />
       ) : (
-        <Pressable
-          style={[styles.button, (pending || full || started || cancelled) && styles.disabled]}
-          disabled={pending || full || started || cancelled}
+        <Button
+          key="confirm"
+          label={confirmLabel}
+          loading={pending}
+          disabled={full || started || cancelled}
           onPress={() => run(confirmGame, "Não foi possível confirmar.")}
-        >
-          {pending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{confirmLabel}</Text>}
-        </Pressable>
+        />
       )}
-      {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+      {actionError ? <Notice tone="danger" text={actionError} /> : null}
+    </Card>
+  );
 
-      <Text style={styles.section}>Confirmados</Text>
+  const lists = (
+    <Card>
+      <CardTitle>Confirmados</CardTitle>
       {confirmed.length === 0 ? (
-        <Text style={styles.muted}>Ainda ninguém.</Text>
+        <Muted>Ainda ninguém.</Muted>
       ) : (
         confirmed.map((p, i) => (
-          <View key={p.id} style={styles.row}>
-            <Text style={{ flex: 1 }}>
-              {`${i + 1}. ${p.userName}`}
-              {game.totalPriceCents > 0
-                ? ` · ${p.paid ? "pago" : "em falta"}${
-                    shareCents > 0 ? ` (${formatEuros(shareCents)})` : ""
-                  }`
-                : ""}
-            </Text>
+          <View key={p.id} style={[s.person, i > 0 ? s.personBorder : null]}>
+            <View style={s.avatar}>
+              <Text style={s.avatarText}>{initials(p.userName)}</Text>
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={s.personName} numberOfLines={1}>
+                {`${i + 1}. ${p.userName}`}
+              </Text>
+              {game.totalPriceCents > 0 ? (
+                <Badge
+                  tone={p.paid ? "ok" : "warn"}
+                  label={`${p.paid ? "pago" : "em falta"}${shareCents > 0 ? ` (${formatEuros(shareCents)})` : ""}`}
+                />
+              ) : null}
+            </View>
             {isOrganizer && game.totalPriceCents > 0 ? (
-              <Pressable
-                style={styles.secondaryButton}
+              <Button
+                size="sm"
+                variant={p.paid ? "ghost" : "secondary"}
+                label={p.paid ? "Em falta" : "Pago"}
+                accessibilityLabel={p.paid ? `Marcar ${p.userName} em falta` : `Marcar ${p.userName} como pago`}
                 disabled={pending}
                 onPress={() => togglePaid(p.userId, !p.paid)}
-              >
-                <Text>{p.paid ? "Em falta" : "Pago"}</Text>
-              </Pressable>
+              />
             ) : null}
           </View>
         ))
       )}
 
       {game.subs > 0 ? (
-        <>
-          <Text style={styles.section}>Lista de espera</Text>
+        <View style={s.waitingBlock}>
+          <Text style={s.subTitle}>Lista de espera</Text>
           {waiting.length === 0 ? (
-            <Text style={styles.muted}>Vazia.</Text>
+            <Muted>Vazia.</Muted>
           ) : (
-            waiting.map((p, i) => <Text key={p.id}>{`${i + 1}. ${p.userName}`}</Text>)
-          )}
-        </>
-      ) : null}
-
-      {mine?.status === "confirmed" && confirmed.some((p) => p.userId !== meId) ? (
-        <>
-          <Text style={styles.section}>Avaliar jogadores (1–5)</Text>
-          <Text style={styles.muted}>Ajuda a equilibrar as equipas.</Text>
-          {confirmed
-            .filter((p) => p.userId !== meId)
-            .map((p) => {
-              const current = myRatings.find((r) => r.toUserId === p.userId)?.score;
-              return (
-                <View key={p.userId} style={{ gap: 6 }}>
-                  <Text>{p.userName}</Text>
-                  <View style={styles.row}>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <Pressable
-                        key={n}
-                        disabled={pending}
-                        onPress={() => rate(p.userId, n)}
-                        style={[styles.scoreBtn, current === n && styles.scoreBtnActive]}
-                      >
-                        <Text style={current === n ? styles.scoreBtnTextActive : undefined}>{n}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
+            waiting.map((p, i) => (
+              <View key={p.id} style={s.waitingRow}>
+                <View style={s.waitingNumber}>
+                  <Text style={s.waitingNumberText}>{i + 1}</Text>
                 </View>
-              );
-            })}
-        </>
-      ) : null}
-
-      {hasTeams || isOrganizer ? <Text style={styles.section}>Equipas</Text> : null}
-      {isOrganizer ? (
-        <Pressable
-          style={[styles.secondaryButton, (pending || game.confirmedCount < 2) && styles.disabled]}
-          disabled={pending || game.confirmedCount < 2}
-          onPress={() => void onGenerateTeams()}
-        >
-          <Text>{hasTeams ? "Atualizar equipas" : "Fazer equipas"}</Text>
-        </Pressable>
-      ) : null}
-      {isOrganizer && game.confirmedCount < 2 ? (
-        <Text style={styles.muted}>Precisas de pelo menos 2 confirmados.</Text>
-      ) : null}
-      {game.teams.map((team) => (
-        <View key={team.name} style={{ gap: 4, marginTop: 4 }}>
-          <Text style={styles.bold}>
-            Equipa {team.name} · {team.players.length} jogadores
-          </Text>
-          {team.players.map((p) => (
-            <Text key={p.userId}>{p.name}</Text>
-          ))}
+                <Text style={s.personName}>{p.userName}</Text>
+              </View>
+            ))
+          )}
         </View>
-      ))}
-      {hasTeams && withoutTeam.length > 0 ? (
-        <Text style={styles.warning}>
-          Sem equipa: {withoutTeam.map((p) => p.userName).join(", ")}.
-          {isOrganizer ? " Atualiza as equipas para os incluir." : ""}
-        </Text>
       ) : null}
+    </Card>
+  );
 
-      {isOrganizer && game.status === "open" ? (
-        <>
-          <Text style={styles.section}>Convite</Text>
-          <Text style={styles.muted}>{inviteUrl}</Text>
-          <Pressable style={styles.button} onPress={onShare}>
-            <Text style={styles.buttonText}>Partilhar convite</Text>
-          </Pressable>
-          <Pressable style={styles.dangerButton} disabled={pending} onPress={onCancelGame}>
-            <Text style={styles.dangerText}>Cancelar jogo</Text>
-          </Pressable>
-        </>
-      ) : null}
-    </ScrollView>
+  const invite =
+    isOrganizer && game.status === "open" ? (
+      <Card>
+        <CardTitle>Convite</CardTitle>
+        <Text style={s.link} selectable>
+          {inviteUrl}
+        </Text>
+        <Button label="Partilhar convite" onPress={onShare} />
+      </Card>
+    ) : null;
+
+  const teams =
+    !cancelled && (hasTeams || isOrganizer) ? (
+      <Card>
+        <CardTitle
+          aside={
+            isOrganizer ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                label={hasTeams ? "Atualizar equipas" : "Fazer equipas"}
+                disabled={pending || game.confirmedCount < 2}
+                onPress={() => void onGenerateTeams()}
+              />
+            ) : null
+          }
+        >
+          Equipas
+        </CardTitle>
+        {isOrganizer && game.confirmedCount < 2 ? <Muted>Precisas de pelo menos 2 confirmados.</Muted> : null}
+        {game.teams.map((team, i) => (
+          <View key={team.name} style={s.team}>
+            <View style={s.teamTitleRow}>
+              <View style={[s.teamDot, { backgroundColor: TEAM_COLORS[i % TEAM_COLORS.length] }]} />
+              <Text style={s.subTitle}>
+                Equipa {team.name} · {team.players.length} jogadores
+              </Text>
+            </View>
+            {team.players.map((p) => (
+              <Text key={p.userId} style={s.teamPlayer}>
+                {p.name}
+              </Text>
+            ))}
+          </View>
+        ))}
+        {hasTeams && withoutTeam.length > 0 ? (
+          <Notice
+            tone="warn"
+            text={`Sem equipa: ${withoutTeam.map((p) => p.userName).join(", ")}.${isOrganizer ? " Atualiza as equipas para os incluir." : ""}`}
+          />
+        ) : null}
+      </Card>
+    ) : null;
+
+  const ratings =
+    !cancelled && mine?.status === "confirmed" && confirmed.some((p) => p.userId !== meId) ? (
+      <Card>
+        <CardTitle>Avaliar jogadores (1–5)</CardTitle>
+        <Muted>Ajuda a equilibrar as equipas. Só tu vês as notas que dás.</Muted>
+        {confirmed
+          .filter((p) => p.userId !== meId)
+          .map((p) => {
+            const current = myRatings.find((r) => r.toUserId === p.userId)?.score;
+            return (
+              <View key={p.userId} style={{ gap: 8 }}>
+                <Text style={s.personName}>{p.userName}</Text>
+                <View style={s.scores} accessibilityLabel={`Nota para ${p.userName}`}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Pressable
+                      key={n}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${n}`}
+                      accessibilityState={{ selected: current === n, disabled: pending }}
+                      disabled={pending}
+                      onPress={() => rate(p.userId, n)}
+                      style={[s.scoreBtn, current === n ? s.scoreBtnActive : null]}
+                    >
+                      <Text style={current === n ? s.scoreTextActive : s.scoreText}>{n}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            );
+          })}
+      </Card>
+    ) : null;
+
+  const danger =
+    isOrganizer && game.status === "open" ? (
+      <Card style={{ borderColor: c.danger }}>
+        <Text style={s.subTitle}>Zona de perigo</Text>
+        <Muted>Cancela o jogo (ex.: chuva). Quem está inscrito recebe uma notificação.</Muted>
+        <Button label="Cancelar jogo" variant="danger" disabled={pending} onPress={onCancelGame} />
+      </Card>
+    ) : null;
+
+  return (
+    <Screen>
+      {header}
+      <Columns
+        main={
+          <>
+            {participation}
+            {lists}
+          </>
+        }
+        side={
+          <>
+            {invite}
+            {teams}
+            {ratings}
+            {danger}
+          </>
+        }
+      />
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, gap: 8 },
-  cancelled: { color: "#991b1b", backgroundColor: "#fef2f2", borderRadius: 8, padding: 10 },
-  dangerButton: {
-    borderWidth: 1,
-    borderColor: "#fca5a5",
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  dangerText: { color: "#b91c1c", fontWeight: "600" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", textAlign: "center" },
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+const styles = (c: Palette) => ({
+  center: { flex: 1, alignItems: "center" as const, justifyContent: "center" as const },
+  titleRow: { flexDirection: "row" as const, gap: 12, alignItems: "flex-start" as const },
+  title: { fontSize: 24, fontWeight: "800" as const, color: c.ink },
+  when: { fontSize: 15, fontWeight: "600" as const, color: c.brandStrong },
+  meta: { fontSize: 15, color: c.ink },
+  countRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "baseline" as const,
+    flexWrap: "wrap" as const,
     gap: 8,
   },
-  title: { fontSize: 24, fontWeight: "600", flexShrink: 1 },
-  section: { fontWeight: "600", marginTop: 12 },
-  bold: { fontWeight: "600" },
-  button: {
-    marginTop: 4,
-    backgroundColor: "#18181b",
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  disabled: { opacity: 0.5 },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  secondaryButton: {
+  count: { fontSize: 16, color: c.ink },
+  countBig: { fontSize: 26, fontWeight: "800" as const },
+  progress: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: c.surface2,
     borderWidth: 1,
-    borderColor: "#d4d4d8",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignItems: "center",
+    borderColor: c.line,
+    overflow: "hidden" as const,
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  progressFill: { height: "100%" as const, backgroundColor: c.brand, borderRadius: 999 },
+  mine: { backgroundColor: c.surface2, borderRadius: radius.md, padding: 12 },
+  mineText: { color: c.ink, fontSize: 15 },
+  person: { flexDirection: "row" as const, alignItems: "center" as const, gap: 12, paddingVertical: 10 },
+  personBorder: { borderTopWidth: 1, borderTopColor: c.line },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: c.brandSoft,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
+  avatarText: { color: c.brandStrong, fontWeight: "800" as const },
+  personName: { color: c.ink, fontSize: 15, fontWeight: "600" as const },
+  waitingBlock: { borderTopWidth: 1, borderTopColor: c.line, paddingTop: 12, gap: 8 },
+  subTitle: { color: c.ink, fontSize: 16, fontWeight: "700" as const },
+  waitingRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 10 },
+  waitingNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: c.surface2,
+    borderWidth: 1,
+    borderColor: c.line,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  waitingNumberText: { color: c.muted, fontSize: 12, fontWeight: "700" as const },
+  link: { color: c.brandStrong, textDecorationLine: "underline" as const },
+  team: { backgroundColor: c.surface2, borderRadius: radius.md, padding: 12, gap: 4, borderWidth: 1, borderColor: c.line },
+  teamTitleRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8 },
+  teamDot: { width: 12, height: 12, borderRadius: 6 },
+  teamPlayer: { color: c.ink, fontSize: 15 },
+  scores: { flexDirection: "row" as const, gap: 8, flexWrap: "wrap" as const },
   scoreBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: "#d4d4d8",
-    borderRadius: 8,
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
+    borderColor: c.line,
+    backgroundColor: c.surface,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
-  scoreBtnActive: {
-    backgroundColor: "#18181b",
-    borderColor: "#18181b",
-  },
-  scoreBtnTextActive: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  muted: { color: "#52525b" },
-  warning: { color: "#b45309" },
-  error: { color: "#dc2626", padding: 16 },
+  scoreBtnActive: { backgroundColor: c.brand, borderColor: c.brand },
+  scoreText: { color: c.ink, fontWeight: "700" as const },
+  scoreTextActive: { color: c.brandInk, fontWeight: "800" as const },
 });

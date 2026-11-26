@@ -1,31 +1,33 @@
-import { useCallback, useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  ActivityIndicator,
-} from "react-native";
-import { Link, router, useFocusEffect } from "expo-router";
-import type { CreateGameInput, GameDto, ParsedGameDraft } from "@convocados/shared";
-import { ApiError, createGame, listGames, parseGameMessage } from "../../lib/api";
+import { useCallback, useLayoutEffect, useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import { Link, router, useFocusEffect, useNavigation } from "expo-router";
+import type { CreateGameInput, GameDto } from "@convocados/shared";
+import { ApiError, createGame, listGames } from "../../lib/api";
 import { signOut } from "../../lib/session";
-import { GameForm } from "../../components/game-form";
+import { NewGame } from "../../components/new-game";
+import { Badge, Card, CardTitle, Columns, Notice, Screen } from "../../components/ui";
+import { radius, usePalette, useThemedStyles, type Palette } from "../../lib/theme";
+
+function dateParts(iso: string) {
+  const d = new Date(iso);
+  return {
+    weekday: d.toLocaleDateString("pt-PT", { weekday: "short" }),
+    day: d.toLocaleDateString("pt-PT", { day: "numeric" }),
+    month: d.toLocaleDateString("pt-PT", { month: "short" }),
+    time: d.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }),
+  };
+}
 
 export default function GamesScreen() {
-  const [games, setGames] = useState<GameDto[]>([]);
+  const s = useThemedStyles(styles);
+  const navigation = useNavigation();
+  // A lista e a hora a que chegou (separa próximos e anteriores sem ler a hora no render).
+  const [loaded, setLoaded] = useState<{ games: GameDto[]; at: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [formKey, setFormKey] = useState(0);
-  const [paste, setPaste] = useState("");
-  const [draft, setDraft] = useState<ParsedGameDraft | null>(null);
-  const [aiPending, setAiPending] = useState(false);
-  const [aiInfo, setAiInfo] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setGames(await listGames());
+      setLoaded({ games: await listGames(), at: Date.now() });
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         router.replace("/login");
@@ -41,139 +43,143 @@ export default function GamesScreen() {
     }, [load]),
   );
 
+  // Ações no cabeçalho do ecrã (como uma app nativa).
+  useLayoutEffect(() => {
+    async function onLogout() {
+      await signOut();
+      router.replace("/login");
+    }
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={s.headerActions}>
+          <Link href="/settings" asChild>
+            <Pressable hitSlop={8} accessibilityRole="link">
+              <Text style={s.headerLink}>Definições</Text>
+            </Pressable>
+          </Link>
+          <Pressable onPress={() => void onLogout()} hitSlop={8} accessibilityRole="button">
+            <Text style={s.headerLink}>Sair</Text>
+          </Pressable>
+        </View>
+      ),
+    });
+  }, [navigation, s]);
+
   async function onCreate(input: CreateGameInput) {
     await createGame(input);
-    setFormKey((k) => k + 1);
-    setDraft(null);
-    setPaste("");
-    setAiInfo(null);
     await load();
   }
 
-  async function onParse() {
-    setAiInfo(null);
-    setError(null);
-    setAiPending(true);
-    try {
-      const result = await parseGameMessage({ message: paste });
-      setDraft(result.draft);
-      setFormKey((k) => k + 1);
-      if (result.ok) {
-        setAiInfo(`Campos preenchidos. Restam ${result.remainingToday} pedidos IA hoje.`);
-      } else {
-        setAiInfo(
-          result.draft.notes ??
-            `A IA não conseguiu extrair bem os dados — completa o formulário. Restam ${result.remainingToday} pedidos hoje.`,
-        );
-      }
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 429) {
-        setAiInfo(err.message);
-      } else {
-        setError(err instanceof ApiError ? err.message : "Erro ao analisar a mensagem.");
-      }
-    } finally {
-      setAiPending(false);
-    }
-  }
+  const games = loaded?.games ?? [];
+  const now = loaded?.at ?? 0;
+  const upcoming = games.filter((g) => new Date(g.startsAt).getTime() >= now);
+  const past = games.filter((g) => new Date(g.startsAt).getTime() < now).reverse();
 
-  async function onLogout() {
-    await signOut();
-    router.replace("/login");
-  }
+  const list = (
+    <View style={{ gap: 12 }}>
+      <Text style={s.section}>PRÓXIMOS</Text>
+      {loaded === null ? (
+        <Text style={s.muted}>A carregar…</Text>
+      ) : upcoming.length === 0 ? (
+        <Card style={{ alignItems: "center" }}>
+          <Text style={s.emptyTitle}>Ainda não tens jogos.</Text>
+          <Text style={s.muted}>Cria um jogo e partilha o convite no grupo.</Text>
+        </Card>
+      ) : (
+        upcoming.map((g) => <GameCard key={g.id} game={g} />)
+      )}
+      {past.length > 0 ? (
+        <>
+          <Text style={[s.section, { marginTop: 8 }]}>ANTERIORES</Text>
+          {past.map((g) => (
+            <GameCard key={g.id} game={g} faded />
+          ))}
+        </>
+      ) : null}
+    </View>
+  );
 
   return (
-    <FlatList
-      contentContainerStyle={styles.container}
-      data={games}
-      keyExtractor={(g) => g.id}
-      ListHeaderComponent={
-        <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>Os meus jogos</Text>
-            <View style={styles.actions}>
-              <Link href="/settings" asChild>
-                <Pressable>
-                  <Text style={styles.link}>Definições</Text>
-                </Pressable>
-              </Link>
-              <Pressable onPress={onLogout}>
-                <Text style={styles.link}>Sair</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <Text style={styles.section}>Novo jogo</Text>
-          <Text style={styles.hint}>Cola uma mensagem ou preenche o formulário à mão.</Text>
-          <TextInput
-            style={styles.paste}
-            multiline
-            placeholder="Ex.: Jogo quinta 27/11/2026 21h no Romaniz, 10 jogadores, campo 30€"
-            value={paste}
-            onChangeText={setPaste}
-          />
-          <Pressable
-            style={[styles.aiButton, (aiPending || paste.trim().length < 10) && styles.disabled]}
-            disabled={aiPending || paste.trim().length < 10}
-            onPress={() => void onParse()}
-          >
-            {aiPending ? (
-              <ActivityIndicator />
-            ) : (
-              <Text style={styles.aiButtonText}>Preencher com IA</Text>
-            )}
-          </Pressable>
-          {aiInfo ? <Text style={styles.hint}>{aiInfo}</Text> : null}
-          <GameForm key={formKey} draft={draft} submitLabel="Criar jogo" onSubmit={onCreate} />
-
-          {error && <Text style={styles.error}>{error}</Text>}
-        </View>
-      }
-      ListEmptyComponent={<Text style={styles.empty}>Ainda não tens jogos.</Text>}
-      renderItem={({ item }) => (
-        <Link href={`/games/${item.id}`} asChild>
-          <Pressable style={styles.card}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardMeta}>
-              {item.location} · {new Date(item.startsAt).toLocaleString("pt-PT")} · código {item.inviteCode}
-            </Text>
-          </Pressable>
-        </Link>
-      )}
-    />
+    <Screen>
+      <Text style={s.title} accessibilityRole="header">
+        Os meus jogos
+      </Text>
+      {error ? <Notice tone="danger" text={error} /> : null}
+      <Columns
+        main={list}
+        side={
+          <Card>
+            <CardTitle>Novo jogo</CardTitle>
+            <NewGame onCreate={onCreate} />
+          </Card>
+        }
+      />
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: 16, gap: 12 },
-  header: { gap: 10, marginBottom: 16 },
-  titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  title: { fontSize: 24, fontWeight: "600" },
-  actions: { flexDirection: "row", gap: 16 },
-  section: { fontWeight: "600", marginTop: 8 },
-  hint: { color: "#52525b", fontSize: 13 },
-  paste: {
-    minHeight: 80,
+function GameCard({ game, faded }: { game: GameDto; faded?: boolean }) {
+  const s = useThemedStyles(styles);
+  const c = usePalette();
+  const { weekday, day, month, time } = dateParts(game.startsAt);
+  const cancelled = game.status === "cancelled";
+  const dim = cancelled ? { color: c.muted } : null;
+  return (
+    <Link href={`/games/${game.id}`} asChild>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`${game.title}, ${weekday} ${day} ${month} às ${time}, ${game.location}${cancelled ? ", cancelado" : ""}`}
+        style={({ pressed }) => [s.card, faded ? { opacity: 0.75 } : null, pressed ? { borderColor: c.brand } : null]}
+      >
+        <View style={[s.dateBox, cancelled ? { backgroundColor: c.surface2 } : null]}>
+          <Text style={[s.dateSmall, dim]}>{weekday.toUpperCase()}</Text>
+          <Text style={[s.dateDay, dim]}>{day}</Text>
+          <Text style={[s.dateSmall, dim]}>{month.toUpperCase()}</Text>
+        </View>
+        <View style={{ flex: 1, gap: 3 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Text style={s.cardTitle} numberOfLines={1}>
+              {game.title}
+            </Text>
+            {cancelled ? <Badge label="Cancelado" tone="danger" /> : null}
+          </View>
+          <Text style={s.muted} numberOfLines={1}>
+            {game.location}
+          </Text>
+          <Text style={s.muted}>
+            {time} · {game.slots} vagas
+          </Text>
+        </View>
+      </Pressable>
+    </Link>
+  );
+}
+
+const styles = (c: Palette) => ({
+  title: { fontSize: 28, fontWeight: "800" as const, color: c.ink },
+  section: { fontSize: 12, fontWeight: "700" as const, letterSpacing: 0.8, color: c.muted },
+  muted: { color: c.muted, fontSize: 14 },
+  emptyTitle: { fontWeight: "700" as const, color: c.ink, fontSize: 16 },
+  headerActions: { flexDirection: "row" as const, gap: 18 },
+  headerLink: { color: c.brandStrong, fontWeight: "700" as const, fontSize: 15 },
+  card: {
+    flexDirection: "row" as const,
+    gap: 14,
+    alignItems: "center" as const,
+    backgroundColor: c.surface,
+    borderColor: c.line,
     borderWidth: 1,
-    borderColor: "#d4d4d8",
-    borderRadius: 8,
-    padding: 12,
-    textAlignVertical: "top",
+    borderRadius: radius.lg,
+    padding: 14,
   },
-  aiButton: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "#d4d4d8",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+  dateBox: {
+    width: 58,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    backgroundColor: c.brandSoft,
+    alignItems: "center" as const,
   },
-  aiButtonText: { fontWeight: "500" },
-  disabled: { opacity: 0.5 },
-  link: { textDecorationLine: "underline", color: "#52525b" },
-  error: { color: "#dc2626" },
-  empty: { color: "#71717a" },
-  card: { borderWidth: 1, borderColor: "#e4e4e7", borderRadius: 8, padding: 14, marginBottom: 8 },
-  cardTitle: { fontWeight: "600", marginBottom: 4 },
-  cardMeta: { color: "#52525b", fontSize: 13 },
+  dateSmall: { fontSize: 11, fontWeight: "700" as const, color: c.brandStrong },
+  dateDay: { fontSize: 22, fontWeight: "800" as const, color: c.brandStrong, lineHeight: 26 },
+  cardTitle: { fontSize: 16, fontWeight: "700" as const, color: c.ink, flexShrink: 1 },
 });

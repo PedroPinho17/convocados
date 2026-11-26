@@ -1,44 +1,42 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { Pressable, Text, TextInput, View, type TextInputProps } from "react-native";
+import { useInputStyle } from "./ui";
+import { usePalette } from "../lib/theme";
 
 type Props = Omit<TextInputProps, "secureTextEntry">;
 
 /** Campo de password com o "olhinho" para mostrar ou esconder o que se escreveu. */
 export function PasswordInput({ style, ...props }: Props) {
   const [visible, setVisible] = useState(false);
+  const input = useInputStyle();
+  const c = usePalette();
   return (
-    <View style={styles.wrap}>
+    <View style={{ justifyContent: "center" }}>
       <TextInput
+        placeholderTextColor={c.muted}
         {...props}
-        style={[styles.input, style]}
+        style={[input, { paddingRight: 52 }, style]}
         secureTextEntry={!visible}
         autoCapitalize="none"
         autoCorrect={false}
       />
       <Pressable
-        style={styles.eye}
+        style={{
+          position: "absolute",
+          right: 0,
+          width: 52,
+          height: "100%",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
         onPress={() => setVisible((v) => !v)}
         accessibilityRole="button"
         accessibilityLabel={visible ? "Esconder password" : "Mostrar password"}
         accessibilityState={{ selected: visible }}
         hitSlop={8}
       >
-        <Text style={styles.eyeText}>{visible ? "🙈" : "👁"}</Text>
+        <Text style={{ fontSize: 18, color: c.muted }}>{visible ? "🙈" : "👁"}</Text>
       </Pressable>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { justifyContent: "center" },
-  input: {
-    borderWidth: 1,
-    borderColor: "#d4d4d8",
-    borderRadius: 8,
-    paddingLeft: 12,
-    paddingRight: 44,
-    paddingVertical: 10,
-  },
-  eye: { position: "absolute", right: 0, width: 44, height: "100%", alignItems: "center", justifyContent: "center" },
-  eyeText: { fontSize: 18 },
-});

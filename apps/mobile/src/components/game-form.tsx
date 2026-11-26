@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Text, View } from "react-native";
 import {
   initialGameForm,
   type CreateGameInput,
@@ -8,6 +8,8 @@ import {
 } from "@convocados/shared";
 import { ApiError } from "../lib/api";
 import { priceRangeText } from "../lib/price";
+import { useLayout } from "../lib/theme";
+import { Button, Field, Muted, Notice } from "./ui";
 
 type Props = {
   /** Jogo a editar; sem ele, o formulário cria um jogo novo. */
@@ -21,12 +23,16 @@ type Props = {
 
 /** Formulário de criar e de editar um jogo. */
 export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props) {
+  const { width } = useLayout();
+  const roomy = width >= 480;
   // Um rascunho novo da IA chega com uma `key` nova (o ecrã recria o formulário),
   // por isso os valores iniciais chegam: não é preciso copiá-lo num efeito.
   const [initial] = useState(() => initialGameForm(game, draft));
   const [title, setTitle] = useState(initial.title);
   const [location, setLocation] = useState(initial.location);
-  const [startsAt, setStartsAt] = useState(initial.startsAt); // ex.: 2026-11-27T21:00
+  // "2026-11-27T21:00" separado em dia e hora: mais fácil de escrever no telemóvel.
+  const [day, setDay] = useState(initial.startsAt.slice(0, 10));
+  const [time, setTime] = useState(initial.startsAt.slice(11, 16));
   const [slots, setSlots] = useState(String(initial.slots));
   const [subs, setSubs] = useState(String(initial.subs));
   const [totalEuros, setTotalEuros] = useState(String(initial.totalEuros));
@@ -39,9 +45,9 @@ export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props
 
   async function handleSubmit() {
     setError(null);
-    const date = new Date(startsAt);
-    if (Number.isNaN(date.getTime())) {
-      setError("Data inválida. Usa o formato 2026-11-27T21:00.");
+    const date = new Date(`${day.trim()}T${time.trim().padStart(5, "0")}`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day.trim()) || !/^\d{1,2}:\d{2}$/.test(time.trim()) || Number.isNaN(date.getTime())) {
+      setError("Data inválida. Dia como 2026-11-27 e hora como 21:00.");
       return;
     }
     setPending(true);
@@ -61,86 +67,70 @@ export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props
     }
   }
 
+  const row = { flexDirection: roomy ? ("row" as const) : ("column" as const), gap: 12 };
+  const cell = roomy ? { flex: 1 } : undefined;
+
   return (
-    <View style={styles.form}>
-      {draft?.notes ? <Text style={styles.notes}>{draft.notes}</Text> : null}
-      <TextInput style={styles.input} placeholder="Título" value={title} onChangeText={setTitle} />
-      <TextInput style={styles.input} placeholder="Local" value={location} onChangeText={setLocation} />
-      <TextInput
-        style={styles.input}
-        placeholder="Data (2026-11-27T21:00)"
-        value={startsAt}
-        onChangeText={setStartsAt}
-        autoCapitalize="none"
-      />
-      <View style={styles.row}>
-        <TextInput
-          style={[styles.input, styles.half]}
-          placeholder="Vagas"
-          keyboardType="number-pad"
-          value={slots}
-          onChangeText={setSlots}
-        />
-        <TextInput
-          style={[styles.input, styles.half]}
-          placeholder="Lista de espera (máx.)"
-          keyboardType="number-pad"
-          value={subs}
-          onChangeText={setSubs}
-        />
+    <View style={{ gap: 14 }}>
+      {draft?.notes ? <Notice tone="warn" text={draft.notes} /> : null}
+      <Field label="Título" placeholder="Título" value={title} onChangeText={setTitle} />
+      <Field label="Local" placeholder="Local" value={location} onChangeText={setLocation} />
+      <View style={{ flexDirection: "row", gap: 12 }}>
+        <View style={{ flex: 3 }}>
+          <Field
+            label="Dia"
+            placeholder="2026-11-27"
+            value={day}
+            onChangeText={setDay}
+            autoCapitalize="none"
+            keyboardType="numbers-and-punctuation"
+          />
+        </View>
+        <View style={{ flex: 2 }}>
+          <Field
+            label="Hora"
+            placeholder="21:00"
+            value={time}
+            onChangeText={setTime}
+            autoCapitalize="none"
+            keyboardType="numbers-and-punctuation"
+          />
+        </View>
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Custo total (€)"
-        keyboardType="decimal-pad"
-        value={totalEuros}
-        onChangeText={setTotalEuros}
-      />
-      <Text style={styles.hint}>{priceRangeText({ totalPriceCents, slots: s })}</Text>
-
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      <View style={styles.row}>
-        <Pressable style={[styles.button, styles.half]} onPress={handleSubmit} disabled={pending}>
-          {pending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{submitLabel}</Text>}
-        </Pressable>
-        {onCancel && (
-          <Pressable style={styles.secondary} onPress={onCancel} disabled={pending}>
-            <Text>Cancelar</Text>
-          </Pressable>
-        )}
+      <View style={row}>
+        <View style={cell}>
+          <Field label="Vagas" placeholder="Vagas" keyboardType="number-pad" value={slots} onChangeText={setSlots} />
+        </View>
+        <View style={cell}>
+          <Field
+            label="Lista de espera (máx.)"
+            placeholder="Lista de espera (máx.)"
+            keyboardType="number-pad"
+            value={subs}
+            onChangeText={setSubs}
+          />
+        </View>
+        <View style={cell}>
+          <Field
+            label="Custo total (€)"
+            placeholder="Custo total (€)"
+            keyboardType="decimal-pad"
+            value={totalEuros}
+            onChangeText={setTotalEuros}
+          />
+        </View>
       </View>
+      <Muted>{priceRangeText({ totalPriceCents, slots: s })}</Muted>
+
+      {error ? <Notice tone="danger" text={error} /> : null}
+
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        {onCancel ? (
+          <Button label="Cancelar" variant="secondary" onPress={onCancel} disabled={pending} />
+        ) : null}
+        <Button label={submitLabel} onPress={handleSubmit} loading={pending} style={{ flex: 1 }} />
+      </View>
+      <Text style={{ height: 0 }} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  form: { gap: 10 },
-  notes: { color: "#b45309", fontSize: 13 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#d4d4d8",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  row: { flexDirection: "row", gap: 8 },
-  half: { flex: 1 },
-  hint: { color: "#71717a", fontSize: 12 },
-  button: {
-    backgroundColor: "#18181b",
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  secondary: {
-    borderWidth: 1,
-    borderColor: "#d4d4d8",
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: "center",
-  },
-  error: { color: "#dc2626" },
-});

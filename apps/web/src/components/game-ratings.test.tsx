@@ -43,7 +43,7 @@ describe("GameRatings", () => {
     expect(rows[0]).toHaveTextContent("Rui");
     // A nota já dada fica destacada.
     const four = await within(rows[0]!).findByRole("button", { name: "4" });
-    await vi.waitFor(() => expect(four.className).toMatch(/bg-zinc-900/));
+    await vi.waitFor(() => expect(four).toHaveAttribute("aria-pressed", "true"));
   });
 
   it("dar uma nota chama a API com o jogador e a nota", async () => {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError, forgotPassword, login, register } from "@/lib/api";
 import { PasswordInput } from "@/components/password-input";
+import { AuthShell, Button, Notice, inputClass, labelClass } from "@/components/ui";
 
 function safeNext(raw: string | null): string {
   // Só caminhos deste site: "//x" e "/\x" levariam o browser para outro domínio.
@@ -66,66 +67,88 @@ function LoginForm() {
     mode === "login" ? "Entrar" : mode === "register" ? "Registar" : "Enviar link";
 
   return (
-    <main className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center gap-6 px-4 py-16">
-      <h1 className="text-2xl font-semibold">Convocados</h1>
-      <p className="text-zinc-600">{SUBTITLE[mode]}</p>
-
-      <form onSubmit={onSubmit} className="flex flex-col gap-3">
+    <AuthShell title="Convocados" subtitle={SUBTITLE[mode]}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
         {mode === "register" && (
+          <label className={labelClass}>
+            Nome
+            <input
+              className={inputClass}
+              placeholder="Nome"
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </label>
+        )}
+        <label className={labelClass}>
+          Email
           <input
-            className="rounded border border-zinc-300 px-3 py-2"
-            placeholder="Nome"
-            autoComplete="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            className={inputClass}
+            type="email"
+            inputMode="email"
+            placeholder="Email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
-        )}
-        <input
-          className="rounded border border-zinc-300 px-3 py-2"
-          type="email"
-          placeholder="Email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        </label>
         {mode !== "forgot" && (
-          <PasswordInput
-            placeholder="Password"
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={mode === "register" ? 10 : 1}
-          />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Password</span>
+              {mode === "login" && (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-brand-strong hover:underline"
+                  onClick={() => switchTo("forgot")}
+                >
+                  Esqueci-me da password
+                </button>
+              )}
+            </div>
+            <PasswordInput
+              placeholder="Password"
+              aria-label="Password"
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={mode === "register" ? 10 : 1}
+            />
+            {mode === "register" && <p className="text-xs text-muted">Pelo menos 10 caracteres.</p>}
+          </div>
         )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {info && <p className="text-sm text-green-700">{info}</p>}
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50"
-        >
+        {error && (
+          <Notice tone="danger" role="alert">
+            {error}
+          </Notice>
+        )}
+        {info && (
+          <Notice tone="ok" role="status">
+            {info}
+          </Notice>
+        )}
+        <Button type="submit" disabled={pending} className="w-full">
           {pending ? "Aguarde…" : submitLabel}
-        </button>
+        </Button>
       </form>
 
-      <div className="flex flex-col items-center gap-2 text-sm text-zinc-600">
-        {mode === "login" && (
-          <button type="button" className="underline" onClick={() => switchTo("forgot")}>
-            Esqueci-me da password
+      <div className="mt-5 flex flex-col items-center gap-3 border-t border-line pt-5 text-sm text-muted">
+        <p>
+          {mode === "login" ? "Ainda não tens conta? " : mode === "register" ? "Já estás registado? " : null}
+          <button
+            type="button"
+            className="font-semibold text-brand-strong hover:underline"
+            onClick={() => switchTo(mode === "register" ? "login" : mode === "forgot" ? "login" : "register")}
+          >
+            {mode === "login" ? "Criar conta" : mode === "register" ? "Já tenho conta" : "Voltar ao login"}
           </button>
-        )}
-        <button
-          type="button"
-          className="underline"
-          onClick={() => switchTo(mode === "register" ? "login" : mode === "forgot" ? "login" : "register")}
-        >
-          {mode === "login" ? "Criar conta" : mode === "register" ? "Já tenho conta" : "Voltar ao login"}
-        </button>
+        </p>
         {mode === "register" && (
-          <p className="text-center text-xs text-zinc-500">
+          <p className="text-center text-xs">
             Ao criar conta aceitas a{" "}
             <Link href="/privacidade" className="underline">
               política de privacidade
@@ -134,13 +157,13 @@ function LoginForm() {
           </p>
         )}
       </div>
-    </main>
+    </AuthShell>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="p-8">A carregar…</main>}>
+    <Suspense fallback={<main className="p-8 text-muted">A carregar…</main>}>
       <LoginForm />
     </Suspense>
   );

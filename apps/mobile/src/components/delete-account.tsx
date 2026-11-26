@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { ApiError, deleteAccount } from "../lib/api";
 import { PRIVACY_URL } from "../lib/links";
 import { forgetThisDevice } from "../lib/session";
+import { usePalette } from "../lib/theme";
 import { PasswordInput } from "./password-input";
+import { Button, Muted, Notice } from "./ui";
 
 /** Conta: política de privacidade e apagar a conta (pede a password outra vez). */
 export function DeleteAccount() {
+  const c = usePalette();
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -28,76 +31,51 @@ export function DeleteAccount() {
   }
 
   return (
-    <View style={styles.box}>
-      <Text style={styles.title}>Conta</Text>
-      <Text style={styles.link} onPress={() => void Linking.openURL(PRIVACY_URL)}>
+    <View style={{ gap: 12 }}>
+      <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink }} accessibilityRole="header">
+        Conta
+      </Text>
+      <Text
+        style={{ color: c.brandStrong, fontWeight: "600", textDecorationLine: "underline" }}
+        accessibilityRole="link"
+        onPress={() => void Linking.openURL(PRIVACY_URL)}
+      >
         Política de privacidade
       </Text>
 
       {!open ? (
-        <Pressable onPress={() => setOpen(true)} accessibilityRole="button">
-          <Text style={styles.danger}>Apagar conta</Text>
+        <Pressable onPress={() => setOpen(true)} accessibilityRole="button" hitSlop={8} style={{ alignSelf: "flex-start" }}>
+          <Text style={{ color: c.danger, fontWeight: "700", paddingVertical: 8 }}>Apagar conta</Text>
         </Pressable>
       ) : (
-        <View style={styles.confirm}>
-          <Text style={styles.hint}>
-            Apaga o teu nome, email, avaliações e os jogos que organizaste. Nos jogos dos outros sais
-            como numa desistência normal. Não dá para desfazer.
-          </Text>
+        <View style={{ gap: 12 }}>
+          <Muted>
+            Apaga o teu nome, email, avaliações e os jogos que organizaste. Nos jogos dos outros sais como
+            numa desistência normal. Não dá para desfazer.
+          </Muted>
           <PasswordInput placeholder="A tua password" value={password} onChangeText={setPassword} />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <View style={styles.row}>
-            <Pressable
-              style={styles.secondary}
+          {error ? <Notice tone="danger" text={error} /> : null}
+          <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
+            <Button
+              label="Não apagar"
+              variant="secondary"
               onPress={() => {
                 setOpen(false);
                 setPassword("");
                 setError(null);
               }}
-            >
-              <Text>Não apagar</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.dangerButton, (pending || !password) && styles.disabled]}
-              disabled={pending || !password}
+            />
+            <Button
+              label="Apagar a minha conta"
+              variant="danger"
+              loading={pending}
+              disabled={!password}
               onPress={() => void onDelete()}
-            >
-              {pending ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.dangerButtonText}>Apagar a minha conta</Text>
-              )}
-            </Pressable>
+              style={{ flex: 1 }}
+            />
           </View>
         </View>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  box: { gap: 10, marginTop: 24, borderTopWidth: 1, borderTopColor: "#e4e4e7", paddingTop: 16 },
-  title: { fontSize: 18, fontWeight: "600" },
-  link: { color: "#52525b", textDecorationLine: "underline" },
-  danger: { color: "#b91c1c", textDecorationLine: "underline" },
-  confirm: { gap: 10 },
-  hint: { color: "#71717a" },
-  error: { color: "#dc2626" },
-  row: { flexDirection: "row", gap: 8 },
-  secondary: {
-    borderWidth: 1,
-    borderColor: "#d4d4d8",
-    borderRadius: 8,
-    padding: 12,
-    alignItems: "center",
-  },
-  dangerButton: {
-    flex: 1,
-    backgroundColor: "#b91c1c",
-    borderRadius: 8,
-    padding: 12,
-    alignItems: "center",
-  },
-  dangerButtonText: { color: "#fff", fontWeight: "600" },
-  disabled: { opacity: 0.5 },
-});

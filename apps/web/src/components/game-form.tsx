@@ -9,6 +9,7 @@ import {
 } from "@convocados/shared";
 import { ApiError } from "@/lib/api";
 import { PriceRangeText } from "@/components/price-range-text";
+import { Button, Notice, inputClass, labelClass } from "@/components/ui";
 
 type Props = {
   /** Jogo a editar; sem ele, o formulário cria um jogo novo. */
@@ -58,39 +59,71 @@ export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 rounded border border-zinc-200 p-4">
-      {draft?.notes ? <p className="text-sm text-amber-700">{draft.notes}</p> : null}
-      <input className="rounded border px-3 py-2" placeholder="Título" value={title} onChange={(e) => setTitle(e.target.value)} required />
-      <input className="rounded border px-3 py-2" placeholder="Local" value={location} onChange={(e) => setLocation(e.target.value)} required />
-      <input className="rounded border px-3 py-2" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
-      <div className="grid grid-cols-3 gap-2">
-        <label className="flex flex-col gap-1 text-sm">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {draft?.notes ? <Notice tone="warn">{draft.notes}</Notice> : null}
+      <label className={labelClass}>
+        Título
+        <input
+          className={inputClass}
+          placeholder="Título"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+        />
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className={labelClass}>
+          Local
+          <input
+            className={inputClass}
+            placeholder="Local"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            required
+          />
+        </label>
+        <label className={labelClass}>
+          Dia e hora
+          <input
+            className={inputClass}
+            type="datetime-local"
+            value={startsAt}
+            onChange={(e) => setStartsAt(e.target.value)}
+            required
+          />
+        </label>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <label className={labelClass}>
           Vagas
           <input
-            className="rounded border px-3 py-2"
+            className={inputClass}
             type="number"
+            inputMode="numeric"
             min={2}
             max={30}
             value={slots}
             onChange={(e) => setSlots(Number(e.target.value))}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className={labelClass}>
           Lista de espera (máx.)
           <input
-            className="rounded border px-3 py-2"
+            className={inputClass}
             type="number"
+            inputMode="numeric"
             min={0}
             max={10}
             value={subs}
             onChange={(e) => setSubs(Number(e.target.value))}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className={labelClass}>
           Custo total (€)
           <input
-            className="rounded border px-3 py-2"
+            className={inputClass}
             type="number"
+            inputMode="decimal"
             min={0}
             step="0.01"
             value={totalEuros}
@@ -98,19 +131,23 @@ export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props
           />
         </label>
       </div>
-      <p className="text-xs text-zinc-500">
+      <p className="text-sm text-muted">
         <PriceRangeText totalPriceCents={totalPriceCents} slots={slots} />
       </p>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex gap-2">
-        <button type="submit" disabled={pending} className="flex-1 rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50">
-          {pending ? "A guardar…" : submitLabel}
-        </button>
+      {error && (
+        <Notice tone="danger" role="alert">
+          {error}
+        </Notice>
+      )}
+      <div className="flex flex-col-reverse gap-2 sm:flex-row">
         {onCancel && (
-          <button type="button" onClick={onCancel} disabled={pending} className="rounded border px-3 py-2">
+          <Button variant="secondary" onClick={onCancel} disabled={pending}>
             Cancelar
-          </button>
+          </Button>
         )}
+        <Button type="submit" disabled={pending} className="sm:flex-1">
+          {pending ? "A guardar…" : submitLabel}
+        </Button>
       </div>
     </form>
   );

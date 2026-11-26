@@ -1,19 +1,21 @@
 import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  StyleSheet,
-  ActivityIndicator,
+  KeyboardAvoidingView,
   Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
 } from "react-native";
 import { router } from "expo-router";
 import { ApiError, forgotPassword, login, register } from "../lib/api";
 import { ensurePushRegistration } from "../lib/push";
 import { syncReminders } from "../lib/reminders";
 import { PasswordInput } from "../components/password-input";
+import { Button, Card, Field, Notice } from "../components/ui";
 import { PRIVACY_URL } from "../lib/links";
+import { useLayout, usePalette, useThemedStyles, type Palette } from "../lib/theme";
 
 type Mode = "login" | "register" | "forgot";
 
@@ -24,6 +26,9 @@ const SUBTITLE: Record<Mode, string> = {
 };
 
 export default function LoginScreen() {
+  const s = useThemedStyles(styles);
+  const c = usePalette();
+  const { gutter } = useLayout();
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -67,93 +72,113 @@ export default function LoginScreen() {
   const submitLabel = mode === "login" ? "Entrar" : mode === "register" ? "Registar" : "Enviar link";
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Convocados</Text>
-      <Text style={styles.subtitle}>{SUBTITLE[mode]}</Text>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.canvas }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScrollView
+        contentContainerStyle={[s.scroll, { padding: gutter }]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={s.wrap}>
+          <View style={s.brand}>
+            <View style={s.logo}>
+              <Text style={s.logoText}>⚽</Text>
+            </View>
+            <Text style={s.title} accessibilityRole="header">
+              Convocados
+            </Text>
+            <Text style={s.subtitle}>{SUBTITLE[mode]}</Text>
+          </View>
 
-      {mode === "register" && (
-        <TextInput
-          style={styles.input}
-          placeholder="Nome"
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
-        />
-      )}
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      {mode !== "forgot" && (
-        <PasswordInput placeholder="Password" value={password} onChangeText={setPassword} />
-      )}
+          <Card>
+            {mode === "register" && (
+              <Field label="Nome" placeholder="Nome" value={name} onChangeText={setName} autoCapitalize="words" autoComplete="name" />
+            )}
+            <Field
+              label="Email"
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
+            {mode !== "forgot" && (
+              <View style={{ gap: 6 }}>
+                <View style={s.passwordRow}>
+                  <Text style={s.label}>Password</Text>
+                  {mode === "login" && (
+                    <Pressable onPress={() => switchTo("forgot")} hitSlop={8}>
+                      <Text style={s.linkStrong}>Esqueci-me da password</Text>
+                    </Pressable>
+                  )}
+                </View>
+                <PasswordInput placeholder="Password" value={password} onChangeText={setPassword} />
+                {mode === "register" && <Text style={s.small}>Pelo menos 10 caracteres.</Text>}
+              </View>
+            )}
 
-      {error && <Text style={styles.error}>{error}</Text>}
-      {info && <Text style={styles.info}>{info}</Text>}
+            {error && <Notice tone="danger" text={error} />}
+            {info && <Notice tone="ok" text={info} />}
 
-      <Pressable style={styles.button} onPress={onSubmit} disabled={pending}>
-        {pending ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>{submitLabel}</Text>
-        )}
-      </Pressable>
+            <Button label={submitLabel} onPress={onSubmit} loading={pending} />
 
-      {mode === "login" && (
-        <Pressable onPress={() => switchTo("forgot")}>
-          <Text style={styles.link}>Esqueci-me da password</Text>
-        </Pressable>
-      )}
-      <Pressable onPress={() => switchTo(mode === "login" ? "register" : "login")}>
-        <Text style={styles.link}>
-          {mode === "login" ? "Criar conta" : mode === "register" ? "Já tenho conta" : "Voltar ao login"}
-        </Text>
-      </Pressable>
-      {mode === "register" && (
-        <Text style={styles.small}>
-          Ao criar conta aceitas a{" "}
-          <Text style={styles.inlineLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
-            política de privacidade
-          </Text>
-          .
-        </Text>
-      )}
+            <View style={s.switchRow}>
+              <Text style={s.small}>
+                {mode === "login" ? "Ainda não tens conta? " : mode === "register" ? "Já estás registado? " : ""}
+              </Text>
+              <Pressable onPress={() => switchTo(mode === "login" ? "register" : "login")} hitSlop={8}>
+                <Text style={s.linkStrong}>
+                  {mode === "login" ? "Criar conta" : mode === "register" ? "Já tenho conta" : "Voltar ao login"}
+                </Text>
+              </Pressable>
+            </View>
+            {mode === "register" && (
+              <Text style={[s.small, { textAlign: "center" }]}>
+                Ao criar conta aceitas a{" "}
+                <Text style={s.inlineLink} onPress={() => void Linking.openURL(PRIVACY_URL)}>
+                  política de privacidade
+                </Text>
+                .
+              </Text>
+            )}
+          </Card>
 
-      {__DEV__ && (
-        <Text style={styles.debug}>
-          API: {process.env.EXPO_PUBLIC_API_URL ?? "(não definido — reinicia o Expo)"}
-        </Text>
-      )}
-    </View>
+          {__DEV__ && (
+            <Text style={s.debug}>API: {process.env.EXPO_PUBLIC_API_URL ?? "(não definido — reinicia o Expo)"}</Text>
+          )}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
-  title: { fontSize: 28, fontWeight: "600" },
-  subtitle: { color: "#52525b", marginBottom: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#d4d4d8",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+const styles = (c: Palette) => ({
+  scroll: { flexGrow: 1, justifyContent: "center" as const },
+  wrap: { width: "100%" as const, maxWidth: 440, alignSelf: "center" as const, gap: 20 },
+  brand: { alignItems: "center" as const, gap: 8 },
+  logo: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: c.brand,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
-  button: {
-    backgroundColor: "#18181b",
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: "center",
+  logoText: { fontSize: 34 },
+  title: { fontSize: 28, fontWeight: "800" as const, color: c.ink },
+  subtitle: { color: c.muted, textAlign: "center" as const, fontSize: 15 },
+  label: { fontSize: 14, fontWeight: "600" as const, color: c.ink },
+  passwordRow: { flexDirection: "row" as const, justifyContent: "space-between" as const, alignItems: "center" as const },
+  switchRow: {
+    flexDirection: "row" as const,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    flexWrap: "wrap" as const,
+    borderTopWidth: 1,
+    borderTopColor: c.line,
+    paddingTop: 14,
   },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  link: { color: "#52525b", textAlign: "center", textDecorationLine: "underline" },
-  small: { color: "#71717a", fontSize: 12, textAlign: "center" },
-  inlineLink: { textDecorationLine: "underline" },
-  error: { color: "#dc2626" },
-  info: { color: "#15803d" },
-  debug: { color: "#a1a1aa", fontSize: 11, textAlign: "center", marginTop: 8 },
+  small: { color: c.muted, fontSize: 13 },
+  linkStrong: { color: c.brandStrong, fontWeight: "700" as const, fontSize: 14 },
+  inlineLink: { textDecorationLine: "underline" as const },
+  debug: { color: c.muted, fontSize: 11, textAlign: "center" as const },
 });

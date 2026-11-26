@@ -8,6 +8,9 @@ import { GameParticipation } from "@/components/game-participation";
 import { subscribeGame } from "@/lib/socket";
 import { GameRatings } from "@/components/game-ratings";
 import { GameTeams } from "@/components/game-teams";
+import { AppHeader, Notice, Page, navLinkClass } from "@/components/ui";
+import { formatGameDate } from "@/lib/format";
+import Link from "next/link";
 
 export function InviteClient() {
   const { code } = useParams<{ code: string }>();
@@ -48,21 +51,59 @@ export function InviteClient() {
     });
   }, [game?.id, me]);
 
-  if (error) return <main className="p-8 text-red-600">{error}</main>;
-  if (!game) return <main className="p-8">A carregar…</main>;
+  const header = (
+    <AppHeader>
+      {me ? (
+        <Link href="/games" className={navLinkClass}>
+          Os meus jogos
+        </Link>
+      ) : null}
+    </AppHeader>
+  );
+
+  if (error || !game) {
+    return (
+      <>
+        {header}
+        <Page width="narrow">
+          {error ? (
+            <Notice tone="danger" role="alert">
+              {error}
+            </Notice>
+          ) : (
+            <p className="text-muted">A carregar…</p>
+          )}
+        </Page>
+      </>
+    );
+  }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-10">
-      <p className="text-sm text-zinc-500">Convite · Convocados</p>
-      <h1 className="text-2xl font-semibold">{game.title}</h1>
-      <p>
-        {game.location} · {new Date(game.startsAt).toLocaleString("pt-PT")} · total{" "}
-        {formatEuros(game.totalPriceCents)}
-      </p>
-      {me ? <p className="text-sm text-zinc-600">Olá, {me.name}.</p> : null}
-      <GameParticipation game={game} me={me} loginNext={`/i/${code}`} onChange={setGame} />
-      <GameRatings game={game} me={me} />
-      <GameTeams game={game} me={me} onChange={setGame} />
-    </main>
+    <>
+      {header}
+      <Page>
+        <section className="flex flex-col gap-2 rounded-2xl bg-brand p-5 text-brand-ink shadow-sm sm:p-7">
+          <p className="text-sm font-semibold uppercase tracking-wide opacity-80">Foste convocado</p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{game.title}</h1>
+          <p className="text-base font-medium">{formatGameDate(game.startsAt)}</p>
+          <p className="text-sm opacity-90">
+            {game.location} · total {formatEuros(game.totalPriceCents)}
+          </p>
+          {game.status === "cancelled" ? (
+            <p role="status" className="mt-2 rounded-xl bg-danger-soft px-4 py-3 text-danger">
+              Este jogo foi cancelado pelo organizador.
+            </p>
+          ) : null}
+        </section>
+        {me ? <p className="text-sm text-muted">Olá, {me.name}.</p> : null}
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+          <GameParticipation game={game} me={me} loginNext={`/i/${code}`} onChange={setGame} />
+          <div className="flex flex-col gap-6">
+            <GameTeams game={game} me={me} onChange={setGame} />
+            <GameRatings game={game} me={me} />
+          </div>
+        </div>
+      </Page>
+    </>
   );
 }

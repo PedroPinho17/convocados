@@ -3,20 +3,20 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { CreateGameInput, GameDto, ParsedGameDraft } from "@convocados/shared";
-import { ApiError, createGame, listGames, logout, parseGameMessage } from "@/lib/api";
+import type { CreateGameInput, GameDto } from "@convocados/shared";
+import { ApiError, createGame, listGames, logout } from "@/lib/api";
 import { leaveToLogin, resetSocket } from "@/lib/socket";
-import { GameForm } from "@/components/game-form";
+import { dateParts, formatGameDate } from "@/lib/format";
+import { NewGame } from "@/components/new-game";
+import { AppHeader, Badge, Card, CardTitle, Notice, Page, navLinkClass } from "@/components/ui";
 
 export default function GamesPage() {
   const router = useRouter();
-  const [games, setGames] = useState<GameDto[]>([]);
+  // A lista e a hora a que chegou (separa próximos e anteriores). A hora não pode ser lida
+  // no primeiro render: o Next.js pré-renderiza a página no build.
+  const [loaded, setLoaded] = useState<{ games: GameDto[]; at: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [formKey, setFormKey] = useState(0);
-  const [paste, setPaste] = useState("");
-  const [draft, setDraft] = useState<ParsedGameDraft | null>(null);
-  const [aiPending, setAiPending] = useState(false);
-  const [aiInfo, setAiInfo] = useState<string | null>(null);
+  const games = loaded?.games ?? null;
 
   const onLoadError = useCallback(
     (err: unknown) => {
@@ -33,7 +33,7 @@ export default function GamesPage() {
     let cancelled = false;
     listGames()
       .then((rows) => {
-        if (!cancelled) setGames(rows);
+        if (!cancelled) setLoaded({ games: rows, at: Date.now() });
       })
       .catch(onLoadError);
     return () => {
@@ -43,38 +43,7 @@ export default function GamesPage() {
 
   async function onCreate(input: CreateGameInput) {
     await createGame(input);
-    setFormKey((k) => k + 1);
-    setDraft(null);
-    setPaste("");
-    setAiInfo(null);
-    setGames(await listGames());
-  }
-
-  async function onParse() {
-    setAiInfo(null);
-    setError(null);
-    setAiPending(true);
-    try {
-      const result = await parseGameMessage({ message: paste });
-      setDraft(result.draft);
-      setFormKey((k) => k + 1);
-      if (result.ok) {
-        setAiInfo(`Campos preenchidos. Restam ${result.remainingToday} pedidos IA hoje.`);
-      } else {
-        setAiInfo(
-          result.draft.notes ??
-            `A IA não conseguiu extrair bem os dados — completa o formulário. Restam ${result.remainingToday} pedidos hoje.`,
-        );
-      }
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 429) {
-        setAiInfo(err.message);
-      } else {
-        setError(err instanceof ApiError ? err.message : "Erro ao analisar a mensagem.");
-      }
-    } finally {
-      setAiPending(false);
-    }
+    setLoaded({ games: await listGames(), at: Date.now() });
   }
 
   async function onLogout() {
@@ -83,62 +52,103 @@ export default function GamesPage() {
     leaveToLogin();
   }
 
+  const now = loaded?.at ?? 0;
+  const upcoming = (games ?? []).filter((g) => new Date(g.startsAt).getTime() >= now);
+  const past = (games ?? []).filter((g) => new Date(g.startsAt).getTime() < now).reverse();
+
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <header className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Os meus jogos</h1>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/account" className="underline">
-            Conta
-          </Link>
-          <button type="button" onClick={onLogout} className="underline">
-            Sair
-          </button>
-        </nav>
-      </header>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="font-medium">Novo jogo</h2>
-        <p className="text-sm text-zinc-600">
-          Cola uma mensagem (WhatsApp, SMS…) ou preenche o formulário à mão.
-        </p>
-        <textarea
-          className="min-h-24 rounded border border-zinc-300 px-3 py-2 text-sm"
-          placeholder="Ex.: Jogo quinta 21h no Romaniz, 10 jogadores, campo 30€"
-          value={paste}
-          onChange={(e) => setPaste(e.target.value)}
-        />
-        <button
-          type="button"
-          disabled={aiPending || paste.trim().length < 10}
-          onClick={() => void onParse()}
-          className="self-start rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50"
-        >
-          {aiPending ? "A analisar…" : "Preencher com IA"}
+    <>
+      <AppHeader>
+        <Link href="/account" className={navLinkClass}>
+          Conta
+        </Link>
+        <button type="button" onClick={onLogout} className={navLinkClass}>
+          Sair
         </button>
-        {aiInfo ? <p className="text-sm text-zinc-600">{aiInfo}</p> : null}
-        <GameForm key={formKey} draft={draft} submitLabel="Criar jogo" onSubmit={onCreate} />
-      </section>
+      </AppHeader>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <Page>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Os meus jogos</h1>
+        {error ? (
+          <Notice tone="danger" role="alert">
+            {error}
+          </Notice>
+        ) : null}
 
-      <ul className="flex flex-col gap-3">
-        {games.length === 0 && <li className="text-zinc-500">Ainda não tens jogos.</li>}
-        {games.map((g) => (
-          <li key={g.id} className="rounded border border-zinc-200 p-4">
-            <Link href={`/games/${g.id}`} className="font-medium underline">
-              {g.title}
-            </Link>
-            {g.status === "cancelled" ? (
-              <span className="ml-2 rounded bg-red-100 px-2 py-0.5 text-xs text-red-800">Cancelado</span>
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_26rem]">
+          <div className="flex flex-col gap-6">
+            <section aria-labelledby="upcoming-title" className="flex flex-col gap-3">
+              <h2 id="upcoming-title" className="text-sm font-semibold uppercase tracking-wide text-muted">
+                Próximos
+              </h2>
+              {games === null ? (
+                <p className="text-muted">A carregar…</p>
+              ) : upcoming.length === 0 ? (
+                <Card className="text-center">
+                  <p className="font-medium">Ainda não tens jogos.</p>
+                  <p className="mt-1 text-sm text-muted">Cria um jogo e partilha o convite no grupo.</p>
+                </Card>
+              ) : (
+                <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                  {upcoming.map((g) => (
+                    <GameCard key={g.id} game={g} />
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {past.length > 0 ? (
+              <section aria-labelledby="past-title" className="flex flex-col gap-3">
+                <h2 id="past-title" className="text-sm font-semibold uppercase tracking-wide text-muted">
+                  Anteriores
+                </h2>
+                <ul className="grid gap-3 opacity-80 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                  {past.map((g) => (
+                    <GameCard key={g.id} game={g} />
+                  ))}
+                </ul>
+              </section>
             ) : null}
-            <p className="text-sm text-zinc-600">
-              {g.location} · {new Date(g.startsAt).toLocaleString("pt-PT")} · {g.slots} vagas · código{" "}
-              {g.inviteCode}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </main>
+          </div>
+
+          <Card className="lg:sticky lg:top-20">
+            <CardTitle>Novo jogo</CardTitle>
+            <NewGame onCreate={onCreate} />
+          </Card>
+        </div>
+      </Page>
+    </>
+  );
+}
+
+function GameCard({ game }: { game: GameDto }) {
+  const { day, month, weekday } = dateParts(game.startsAt);
+  const cancelled = game.status === "cancelled";
+  return (
+    <li className="group relative flex gap-4 rounded-2xl border border-line bg-surface p-4 shadow-sm transition hover:border-brand/50 hover:shadow">
+      <div
+        aria-hidden="true"
+        className={`flex w-14 shrink-0 flex-col items-center justify-center rounded-xl py-2 ${cancelled ? "bg-surface-2 text-muted" : "bg-brand-soft text-brand-strong"}`}
+      >
+        <span className="text-[0.7rem] font-semibold uppercase">{weekday}</span>
+        <span className="text-xl font-bold leading-none">{day}</span>
+        <span className="text-[0.7rem] uppercase">{month}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/games/${game.id}`}
+            className="truncate font-semibold after:absolute after:inset-0 after:rounded-2xl"
+          >
+            {game.title}
+          </Link>
+          {cancelled ? <Badge tone="danger">Cancelado</Badge> : null}
+        </div>
+        <p className="mt-1 truncate text-sm text-muted">{game.location}</p>
+        <p className="mt-0.5 text-sm text-muted">
+          {formatGameDate(game.startsAt)} · {game.slots} vagas
+        </p>
+      </div>
+    </li>
   );
 }
