@@ -5,3 +5,4 @@ export * from './entities/participation.entity.js';
 export * from './entities/push-token.entity.js';
 export * from './entities/rating.entity.js';
 export * from './entities/team-assignment.entity.js';
+export * from './entities/ai-usage.entity.js';

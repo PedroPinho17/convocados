@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 export const envSchema = z
   .object({
-    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    NODE_ENV: z
+      .enum(['development', 'production', 'test'])
+      .default('development'),
     DATABASE_URL: z.url(),
     PORT: z.coerce.number().int().positive().default(3001),
     /** Origens do web autorizadas (CORS), separadas por vírgula. */
@@ -25,6 +27,12 @@ export const envSchema = z
     RATE_LIMIT_DISABLED: z.stringbool().default(false),
     /** Nº de proxies à frente da API (Render = 1). Sem isto, todos os pedidos parecem vir do mesmo IP. */
     TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+    /** Groq (OpenAI-compatible). Vazio = IA desligada; o parse devolve ok:false. */
+    GROQ_API_KEY: z.string().optional().default(''),
+    /** Modelo do Groq (tem de suportar respostas em JSON). */
+    GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+    /** Máx. pedidos POST /ai/parse-game por utilizador e por dia (UTC). */
+    AI_DAILY_LIMIT: z.coerce.number().int().min(1).max(100).default(10),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production' && env.DB_SYNCHRONIZE) {
@@ -52,7 +60,9 @@ export type Env = z.infer<typeof envSchema>;
 export function validateEnv(config: Record<string, unknown>): Env {
   const result = envSchema.safeParse(config);
   if (!result.success) {
-    throw new Error(`Configuração inválida no .env:\n${z.prettifyError(result.error)}`);
+    throw new Error(
+      `Configuração inválida no .env:\n${z.prettifyError(result.error)}`,
+    );
   }
   return result.data;
 }

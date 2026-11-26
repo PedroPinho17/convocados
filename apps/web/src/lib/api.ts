@@ -9,6 +9,8 @@ import type {
   RatingDto,
   UpsertRatingInput,
   GenerateTeamsInput,
+  ParseGameMessageInput,
+  ParseGameResultDto,
 } from "@convocados/shared";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -99,3 +101,6 @@ export const upsertRating = (gameId: string, input: UpsertRatingInput) =>
 /** Só o organizador: gera e guarda as equipas; devolve o jogo com elas. */
 export const generateTeams = (gameId: string, input: GenerateTeamsInput = {}) =>
   request<GameDetailDto>(`/games/${gameId}/teams`, json(input));
+
+export const parseGameMessage = (input: ParseGameMessageInput) =>
+  request<ParseGameResultDto>("/ai/parse-game", json(input));

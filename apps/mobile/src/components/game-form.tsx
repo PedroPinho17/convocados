@@ -1,25 +1,35 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { toLocalDateTimeInput, type CreateGameInput, type GameDto } from "@convocados/shared";
+import {
+  initialGameForm,
+  type CreateGameInput,
+  type GameDto,
+  type ParsedGameDraft,
+} from "@convocados/shared";
 import { ApiError } from "../lib/api";
 import { priceRangeText } from "../lib/price";
 
 type Props = {
   /** Jogo a editar; sem ele, o formulário cria um jogo novo. */
   game?: GameDto;
+  /** Rascunho da IA (só ao criar). */
+  draft?: ParsedGameDraft | null;
   submitLabel: string;
   onSubmit: (input: CreateGameInput) => Promise<void>;
   onCancel?: () => void;
 };
 
 /** Formulário de criar e de editar um jogo. */
-export function GameForm({ game, submitLabel, onSubmit, onCancel }: Props) {
-  const [title, setTitle] = useState(game?.title ?? "");
-  const [location, setLocation] = useState(game?.location ?? "");
-  const [startsAt, setStartsAt] = useState(game ? toLocalDateTimeInput(game.startsAt) : ""); // ex: 2026-11-27T21:00
-  const [slots, setSlots] = useState(String(game?.slots ?? 10));
-  const [subs, setSubs] = useState(String(game?.subs ?? 2));
-  const [totalEuros, setTotalEuros] = useState(game ? String(game.totalPriceCents / 100) : "30");
+export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props) {
+  // Um rascunho novo da IA chega com uma `key` nova (o ecrã recria o formulário),
+  // por isso os valores iniciais chegam: não é preciso copiá-lo num efeito.
+  const [initial] = useState(() => initialGameForm(game, draft));
+  const [title, setTitle] = useState(initial.title);
+  const [location, setLocation] = useState(initial.location);
+  const [startsAt, setStartsAt] = useState(initial.startsAt); // ex.: 2026-11-27T21:00
+  const [slots, setSlots] = useState(String(initial.slots));
+  const [subs, setSubs] = useState(String(initial.subs));
+  const [totalEuros, setTotalEuros] = useState(String(initial.totalEuros));
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -53,6 +63,7 @@ export function GameForm({ game, submitLabel, onSubmit, onCancel }: Props) {
 
   return (
     <View style={styles.form}>
+      {draft?.notes ? <Text style={styles.notes}>{draft.notes}</Text> : null}
       <TextInput style={styles.input} placeholder="Título" value={title} onChangeText={setTitle} />
       <TextInput style={styles.input} placeholder="Local" value={location} onChangeText={setLocation} />
       <TextInput
@@ -63,8 +74,20 @@ export function GameForm({ game, submitLabel, onSubmit, onCancel }: Props) {
         autoCapitalize="none"
       />
       <View style={styles.row}>
-        <TextInput style={[styles.input, styles.half]} placeholder="Vagas" keyboardType="number-pad" value={slots} onChangeText={setSlots} />
-        <TextInput style={[styles.input, styles.half]} placeholder="Lista de espera (máx.)" keyboardType="number-pad" value={subs} onChangeText={setSubs} />
+        <TextInput
+          style={[styles.input, styles.half]}
+          placeholder="Vagas"
+          keyboardType="number-pad"
+          value={slots}
+          onChangeText={setSlots}
+        />
+        <TextInput
+          style={[styles.input, styles.half]}
+          placeholder="Lista de espera (máx.)"
+          keyboardType="number-pad"
+          value={subs}
+          onChangeText={setSubs}
+        />
       </View>
       <TextInput
         style={styles.input}
@@ -93,12 +116,31 @@ export function GameForm({ game, submitLabel, onSubmit, onCancel }: Props) {
 
 const styles = StyleSheet.create({
   form: { gap: 10 },
-  input: { borderWidth: 1, borderColor: "#d4d4d8", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
+  notes: { color: "#b45309", fontSize: 13 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#d4d4d8",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   row: { flexDirection: "row", gap: 8 },
   half: { flex: 1 },
   hint: { color: "#71717a", fontSize: 12 },
-  button: { backgroundColor: "#18181b", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  button: {
+    backgroundColor: "#18181b",
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
   buttonText: { color: "#fff", fontWeight: "600" },
-  secondary: { borderWidth: 1, borderColor: "#d4d4d8", borderRadius: 8, paddingVertical: 12, paddingHorizontal: 16, alignItems: "center" },
+  secondary: {
+    borderWidth: 1,
+    borderColor: "#d4d4d8",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
   error: { color: "#dc2626" },
 });

@@ -305,3 +305,42 @@ export function balanceTeams(players: PlayerSkill[], teamCount = 2): BalancedTea
 
   return teams;
 }
+
+/** POST /ai/parse-game — mensagem colada (WhatsApp, SMS, etc.) */
+export const parseGameMessageSchema = z.object({
+  message: z.string().trim().min(10).max(4000),
+});
+export type ParseGameMessageInput = z.infer<typeof parseGameMessageSchema>;
+
+/**
+ * O que a IA deve devolver. Campos opcionais: se falhar parcialmente,
+ * o formulário preenche o que houver e o resto fica manual.
+ */
+export const parsedGameDraftSchema = createGameSchema.partial().extend({
+  /** Notas da IA (ex.: "não encontrei a hora"). */
+  notes: z.string().max(500).optional(),
+});
+export type ParsedGameDraft = z.infer<typeof parsedGameDraftSchema>;
+
+export type ParseGameResultDto = {
+  draft: ParsedGameDraft;
+  /** false → mostrar/abrir o formulário manual (IA falhou ou incompleto). */
+  ok: boolean;
+  remainingToday: number;
+};
+
+/**
+ * Valores iniciais do formulário de jogo (web e app): o jogo a editar, ou o rascunho
+ * da IA, ou os valores por defeito. A data vem no formato do <input type="datetime-local">.
+ */
+export function initialGameForm(game?: GameDto | null, draft?: ParsedGameDraft | null) {
+  const src = game ?? draft ?? {};
+  return {
+    title: src.title ?? "",
+    location: src.location ?? "",
+    startsAt: src.startsAt ? toLocalDateTimeInput(src.startsAt) : "",
+    slots: src.slots ?? 10,
+    subs: src.subs ?? 2,
+    totalEuros: (src.totalPriceCents ?? 3000) / 100,
+  };
+}

@@ -13,6 +13,7 @@ import { RealtimeModule } from './realtime/realtime.module.js';
 import { PushModule } from './push/push.module.js';
 import { RatingsModule } from './ratings/ratings.module.js';
 import { TeamsModule } from './teams/teams.module.js';
+import { AiModule } from './ai/ai.module.js';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { TeamsModule } from './teams/teams.module.js';
     PushModule,
     RatingsModule,
     TeamsModule,
+    AiModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

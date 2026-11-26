@@ -8,6 +8,7 @@ import {
   PushToken,
   Rating,
   TeamAssignment,
+  AiUsage,
 } from '@convocados/db';
 
 import { Init1795621974591 } from './migrations/1795621974591-Init.js';
@@ -18,6 +19,7 @@ import { AddPushTokens1795700000000 } from './migrations/1795700000000-AddPushTo
 import { UserReminders1795710000000 } from './migrations/1795710000000-UserReminders.js';
 import { AddRatings1795720000000 } from './migrations/1795720000000-AddRatings.js';
 import { AddTeams1795730000000 } from './migrations/1795730000000-AddTeams.js';
+import { AddAiUsage1795740000000 } from './migrations/1795740000000-AddAiUsage.js';
 
 export const entities = [
   User,
@@ -27,6 +29,7 @@ export const entities = [
   PushToken,
   Rating,
   TeamAssignment,
+  AiUsage,
 ];
 export const migrations = [
   Init1795621974591,
@@ -37,6 +40,7 @@ export const migrations = [
   UserReminders1795710000000,
   AddRatings1795720000000,
   AddTeams1795730000000,
+  AddAiUsage1795740000000,
 ];
 
 try {

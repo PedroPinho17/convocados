@@ -12,6 +12,14 @@ import { PushToken } from '@convocados/db';
 import type { GameDetailDto, RemindersDto } from '@convocados/shared';
 import { AppModule } from './../src/app.module.js';
 
+// URL de um pedido do fetch, seja string, URL ou Request.
+const urlOf = (input: string | URL | Request) =>
+  typeof input === 'string'
+    ? input
+    : input instanceof URL
+      ? input.href
+      : input.url;
+
 type PushMessage = {
   to: string;
   title: string;
@@ -38,10 +46,10 @@ describe('tempo real e notificações (e2e)', () => {
 
   beforeAll(async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      if (!String(input).startsWith('https://exp.host/'))
+      if (!urlOf(input).startsWith('https://exp.host/'))
         return realFetch(input, init);
       if (expoDown) throw new TypeError('fetch failed');
-      const messages = JSON.parse(String(init?.body)) as PushMessage[];
+      const messages = JSON.parse(init?.body as string) as PushMessage[];
       sent.push(...messages);
       return new Response(
         JSON.stringify({ data: messages.map((m) => expoReply(m)) }),
