@@ -1,4 +1,5 @@
-import { balanceTeams, type PlayerSkill } from '@convocados/shared';
+import { describe, expect, it } from 'vitest';
+import { balanceTeams, type PlayerSkill } from '../index';
 
 const players = (...skills: number[]): PlayerSkill[] =>
   skills.map((skill, i) => ({ userId: String(i), name: `J${i}`, skill }));

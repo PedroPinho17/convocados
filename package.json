@@ -10,6 +10,8 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "test:e2e": "turbo test:e2e",
+    "test:browser": "pnpm --filter web test:browser",
+    "migration:check": "pnpm --filter api migration:check",
     "db:up": "docker compose up -d"
   },
   "devDependencies": {

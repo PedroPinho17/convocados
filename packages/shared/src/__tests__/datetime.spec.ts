@@ -1,4 +1,5 @@
-import { toLocalDateTimeInput } from '@convocados/shared';
+import { describe, expect, it } from 'vitest';
+import { toLocalDateTimeInput } from '../index';
 
 describe('toLocalDateTimeInput', () => {
   it('devolve o formato do <input type="datetime-local">', () => {

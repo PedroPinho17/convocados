@@ -1,8 +1,15 @@
 name: CI
 on: [push, pull_request]
+
+# Um push novo no mesmo branch cancela o CI anterior, que já não interessa.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     # Postgres real para os e2e (concorrência das confirmações, fila de espera, convites).
     services:
       postgres:
@@ -21,6 +28,8 @@ jobs:
     env:
       # Base de dados descartável do CI; não é um segredo.
       DATABASE_URL: postgres://convocados:convocados@localhost:5432/convocados
+      # O build da web inclui este URL: os testes no browser falam com a API do próprio CI.
+      NEXT_PUBLIC_API_URL: http://localhost:3001
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -29,5 +38,22 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm test:e2e
+      - name: Testes unitários (shared e API)
+        run: pnpm test
+      - name: Build (API e web)
+        run: pnpm build
+      - name: Testes e2e da API (Postgres)
+        run: pnpm test:e2e
+      - name: Migrações batem certo com as entidades
+        run: pnpm migration:check
+      - name: Instalar o Chromium
+        run: pnpm --filter web exec playwright install --with-deps chromium
+      - name: Testes no browser (web + API + Postgres)
+        run: pnpm test:browser
+      - name: Relatório do Playwright (só se falhar)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

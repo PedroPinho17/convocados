@@ -1,4 +1,5 @@
-import { shareSummary, sharePerPlayerCents } from '@convocados/shared';
+import { describe, expect, it } from 'vitest';
+import { shareSummary, sharePerPlayerCents } from '../index';
 
 // Intl põe um espaço inquebrável antes do €; normalizar para comparar.
 const text = (s: string) => s.replace(/\s/g, ' ');

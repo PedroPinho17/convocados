@@ -24,6 +24,7 @@
     "migration:generate": "nest build && typeorm migration:generate -d dist/data-source.js -p",
     "migration:run": "nest build && typeorm migration:run -d dist/data-source.js",
     "migration:revert": "nest build && typeorm migration:revert -d dist/data-source.js",
+    "migration:check": "nest build && typeorm migration:run -d dist/data-source.js && typeorm migration:generate -d dist/data-source.js --dryrun --check src/migrations/Check",
     "dev": "nest start --watch"
   },
   "dependencies": {

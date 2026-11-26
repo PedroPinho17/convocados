@@ -144,6 +144,45 @@ export type RemindersDto = {
   games: { gameId: string; title: string; location: string; startsAt: string }[];
 };
 
+export type PlannedReminder = {
+  gameId: string;
+  /** Quando tocar (ms desde 1970). */
+  at: number;
+  minutesBefore: number;
+  title: string;
+  body: string;
+};
+
+/**
+ * Que lembretes agendar no telemóvel: um por jogo e por antecedência escolhida,
+ * só os que ainda estão no futuro, por ordem de hora. Função pura (testável sem telemóvel).
+ */
+export function planReminders(
+  games: RemindersDto["games"],
+  reminderMinutes: number[],
+  now: number,
+): PlannedReminder[] {
+  const minutes = [...new Set(reminderMinutes)].filter((m) => m > 0);
+  const planned: PlannedReminder[] = [];
+  for (const game of games) {
+    const startsAt = new Date(game.startsAt);
+    if (Number.isNaN(startsAt.getTime())) continue;
+    const time = startsAt.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+    for (const m of minutes) {
+      const at = startsAt.getTime() - m * 60_000;
+      if (at <= now) continue;
+      planned.push({
+        gameId: game.gameId,
+        at,
+        minutesBefore: m,
+        title: `${game.title} daqui a ${formatReminder(m)}`,
+        body: `${game.location}, às ${time}.`,
+      });
+    }
+  }
+  return planned.sort((a, b) => a.at - b.at);
+}
+
 /** 15 → "15 min", 120 → "2 h", 1440 → "1 dia" */
 export function formatReminder(minutes: number): string {
   if (minutes % 1440 === 0) return minutes === 1440 ? "1 dia" : `${minutes / 1440} dias`;

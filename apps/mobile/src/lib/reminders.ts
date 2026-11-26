@@ -1,6 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { SchedulableTriggerInputTypes } from "expo-notifications";
-import { formatReminder } from "@convocados/shared";
+import { planReminders } from "@convocados/shared";
 import { getReminders, getToken } from "./api";
 
 /**
@@ -31,22 +31,12 @@ async function doSync(): Promise<void> {
     const { reminderMinutes, games } = await getReminders();
     await cancelScheduled();
 
-    const now = Date.now();
-    for (const game of games) {
-      const startsAt = new Date(game.startsAt);
-      const time = startsAt.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
-      for (const minutes of reminderMinutes) {
-        const at = startsAt.getTime() - minutes * 60_000;
-        if (at <= now) continue;
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: `${game.title} daqui a ${formatReminder(minutes)}`,
-            body: `${game.location}, às ${time}.`,
-            data: { kind: KIND, gameId: game.gameId },
-          },
-          trigger: { type: SchedulableTriggerInputTypes.DATE, date: at, channelId: "default" },
-        });
-      }
+    // O que agendar é decidido por uma função pura do shared (com testes); aqui só se agenda.
+    for (const r of planReminders(games, reminderMinutes, Date.now())) {
+      await Notifications.scheduleNotificationAsync({
+        content: { title: r.title, body: r.body, data: { kind: KIND, gameId: r.gameId } },
+        trigger: { type: SchedulableTriggerInputTypes.DATE, date: r.at, channelId: "default" },
+      });
     }
   } catch {
     // Sem rede / API a dormir: mantêm-se os lembretes já agendados.

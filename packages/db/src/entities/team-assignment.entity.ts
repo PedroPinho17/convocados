@@ -1,8 +1,18 @@
-import { Column, Entity, ManyToOne, PrimaryColumn, Relation } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryColumn,
+  Relation,
+} from 'typeorm';
 import { Game } from './game.entity.js';
 import { User } from './user.entity.js';
 
-/** Equipas guardadas pelo organizador: uma linha por jogador e jogo. */
+/**
+ * Equipas guardadas pelo organizador: uma linha por jogador e jogo.
+ * Nomes das FKs = os da migração AddTeams (ver `pnpm migration:check`).
+ */
 @Entity('teams')
 export class TeamAssignment {
   @PrimaryColumn('uuid')
@@ -12,9 +22,11 @@ export class TeamAssignment {
   userId!: string;
 
   @ManyToOne(() => Game, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'gameId', foreignKeyConstraintName: 'FK_teams_gameId' })
   game!: Relation<Game>;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId', foreignKeyConstraintName: 'FK_teams_userId' })
   user!: Relation<User>;
 
   /** A, B, C ou D. */
