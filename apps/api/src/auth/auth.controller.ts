@@ -1,22 +1,41 @@
-import { Body, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import {
+  forgotPasswordSchema,
   loginSchema,
   registerSchema,
+  resetPasswordSchema,
+  type ForgotPasswordInput,
   type LoginInput,
   type RegisterInput,
+  type ResetPasswordInput,
+  type SocketTokenDto,
   type UserDto,
 } from '@convocados/shared';
 import { AuthService } from './auth.service.js';
 import { CurrentUser, Public, type AuthedRequest } from './auth.decorators.js';
+import { PasswordResetService } from './password-reset.service.js';
 
 /** Login e registo: 10 tentativas por minuto e por IP (contra adivinhar passwords). */
 const AUTH_LIMIT = { default: { limit: 10, ttl: 60_000 } };
+/** Pedir o email de recuperação: poucos por minuto (cada um manda um email). */
+const FORGOT_LIMIT = { default: { limit: 5, ttl: 60_000 } };
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly resets: PasswordResetService,
+  ) {}
 
   @Public()
   @Throttle(AUTH_LIMIT)
@@ -54,14 +73,44 @@ export class AuthController {
     return this.auth.startTokenSession(await this.auth.login(body));
   }
 
+  /** Sempre 204, exista ou não a conta: não se descobre quem está registado. */
+  @Public()
+  @Throttle(FORGOT_LIMIT)
+  @Post('password/forgot')
+  @HttpCode(204)
+  async forgotPassword(
+    @Body({ schema: forgotPasswordSchema }) body: ForgotPasswordInput,
+  ): Promise<void> {
+    await this.resets.request(body.email);
+  }
+
+  @Public()
+  @Throttle(AUTH_LIMIT)
+  @Post('password/reset')
+  @HttpCode(204)
+  async resetPassword(
+    @Body({ schema: resetPasswordSchema }) body: ResetPasswordInput,
+  ): Promise<void> {
+    await this.resets.reset(body.token, body.password);
+  }
+
   @Post('logout')
   @HttpCode(204)
-  async logout(@Req() req: AuthedRequest, @Res({ passthrough: true }) res: Response) {
+  async logout(
+    @Req() req: AuthedRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.auth.endSession(req.sessionTokenHash, res);
   }
 
   @Get('me')
   me(@CurrentUser() user: UserDto): UserDto {
     return user;
+  }
+
+  /** Token curto para o socket da web (o cookie não chega à API pelo socket). */
+  @Get('socket-token')
+  socketToken(@CurrentUser() user: UserDto): SocketTokenDto {
+    return this.auth.issueSocketToken(user.id);
   }
 }

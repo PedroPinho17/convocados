@@ -1,8 +1,18 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import {
   createGameSchema,
   updateGameSchema,
   type CreateGameInput,
+  type GameDetailDto,
   type GameDto,
   type UpdateGameInput,
   type UserDto,
@@ -30,6 +40,16 @@ export class GamesController {
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string): Promise<GameDto> {
     return this.games.get(id);
+  }
+
+  /** Só o organizador. Avisa por push quem estava confirmado ou em espera. */
+  @Post(':id/cancel')
+  @HttpCode(200)
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UserDto,
+  ): Promise<GameDetailDto> {
+    return this.games.cancel(id, user.id);
   }
 
   @Patch(':id')

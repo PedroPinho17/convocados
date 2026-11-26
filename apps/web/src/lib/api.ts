@@ -11,9 +11,17 @@ import type {
   GenerateTeamsInput,
   ParseGameMessageInput,
   ParseGameResultDto,
+  ForgotPasswordInput,
+  ResetPasswordInput,
+  DeleteAccountInput,
+  SocketTokenDto,
 } from "@convocados/shared";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+/**
+ * A web fala com a API pelo proxy em /api (mesmo site: o cookie da sessão funciona em
+ * produção). Ver src/app/api/[...path]/route.ts.
+ */
+const API = "/api";
 
 export const UNAUTHORIZED_EVENT = "api:unauthorized";
 
@@ -27,14 +35,12 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  if (!API) throw new Error("NEXT_PUBLIC_API_URL não está definido em apps/web/.env.local");
-
   let res: Response;
   try {
     res = await fetch(`${API}${path}`, { ...init, credentials: "include" });
   } catch (err) {
     if (init?.signal?.aborted) throw err;
-    throw new ApiError("Não foi possível ligar à API. Está a correr?", 0);
+    throw new ApiError("Sem ligação. Confirma a internet e tenta outra vez.", 0);
   }
 
   if (res.status === 401 && !path.startsWith("/auth/")) {
@@ -104,3 +110,15 @@ export const generateTeams = (gameId: string, input: GenerateTeamsInput = {}) =>
 
 export const parseGameMessage = (input: ParseGameMessageInput) =>
   request<ParseGameResultDto>("/ai/parse-game", json(input));
+
+export const forgotPassword = (input: ForgotPasswordInput) =>
+  request<void>("/auth/password/forgot", json(input));
+export const resetPassword = (input: ResetPasswordInput) =>
+  request<void>("/auth/password/reset", json(input));
+/** Token curto para o socket (que liga direto à API, onde o cookie não chega). */
+export const getSocketToken = () => request<SocketTokenDto>("/auth/socket-token");
+export const deleteAccount = (input: DeleteAccountInput) =>
+  request<void>("/account", json(input, "DELETE"));
+/** Só o organizador. */
+export const cancelGame = (gameId: string) =>
+  request<GameDetailDto>(`/games/${gameId}/cancel`, { method: "POST" });

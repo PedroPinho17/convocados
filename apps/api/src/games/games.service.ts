@@ -10,6 +10,7 @@ import { Brackets, DataSource } from 'typeorm';
 import { Game } from '@convocados/db';
 import type {
   CreateGameInput,
+  GameDetailDto,
   GameDto,
   UpdateGameInput,
 } from '@convocados/shared';
@@ -93,6 +94,9 @@ export class GamesService {
             'Só o organizador pode editar este jogo.',
           );
         }
+        if (game.status === 'cancelled') {
+          throw new ConflictException('Este jogo foi cancelado.');
+        }
 
         const { confirmed, waiting } = await countByStatus(manager, id);
         if (input.slots !== undefined && input.slots < confirmed) {
@@ -133,5 +137,31 @@ export class GamesService {
     // Depois do commit: ecrãs abertos atualizam (hora, vagas, listas) e os promovidos recebem push.
     await this.participations.afterGameChanged(id, promotedIds);
     return dto;
+  }
+
+  /**
+   * O organizador cancela o jogo (ex.: chuva). Fica visível como cancelado, deixa de
+   * aceitar confirmações, e quem estava confirmado ou em espera recebe uma notificação.
+   * Os lembretes saem sozinhos: a lista de lembretes só tem jogos abertos.
+   */
+  async cancel(id: string, userId: string): Promise<GameDetailDto> {
+    const changed = await this.dataSource.transaction(async (manager) => {
+      const game = await lockGame(manager, id);
+      if (game.organizerId !== userId) {
+        throw new ForbiddenException(
+          'Só o organizador pode cancelar este jogo.',
+        );
+      }
+      if (game.status === 'cancelled') return false; // já estava: não avisa outra vez
+      if (game.status !== 'open') {
+        throw new ConflictException('Este jogo já terminou.');
+      }
+      game.status = 'cancelled';
+      await manager.save(game);
+      return true;
+    });
+    return changed
+      ? this.participations.afterGameCancelled(id, userId)
+      : this.participations.getDetail(id);
   }
 }

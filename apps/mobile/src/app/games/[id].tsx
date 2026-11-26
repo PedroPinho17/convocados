@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   Share,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import {
@@ -23,6 +24,7 @@ import {
   getMe,
   generateTeams,
   leaveGame,
+  cancelGame,
   listMyRatings,
   setPaid,
   updateGame,
@@ -33,7 +35,7 @@ import { GameForm } from "../../components/game-form";
 import { subscribeGame } from "../../lib/socket";
 import { syncReminders } from "../../lib/reminders";
 
-const WEB_ORIGIN = process.env.EXPO_PUBLIC_WEB_ORIGIN ?? "http://localhost:3000";
+import { WEB_ORIGIN } from "../../lib/links";
 
 export default function GameDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -84,12 +86,14 @@ export default function GameDetailScreen() {
     };
   }, [id]);
 
-  // Confirmei, desisti, subi da lista de espera ou o jogo mudou de hora: reagendar lembretes.
+  // Confirmei, desisti, subi da lista de espera, o jogo mudou de hora ou foi cancelado:
+  // reagendar lembretes.
   const myStatus = game?.participations.find((p) => p.userId === meId)?.status;
   const startsAt = game?.startsAt;
+  const gameStatus = game?.status;
   useEffect(() => {
     if (startsAt) void syncReminders();
-  }, [myStatus, startsAt]);
+  }, [myStatus, startsAt, gameStatus]);
 
   useEffect(() => {
     // Sem poder avaliar a secção não aparece, por isso não é preciso limpar a lista.
@@ -117,7 +121,7 @@ export default function GameDetailScreen() {
   }
 
   const isOrganizer = meId === game.organizerId;
-  const inviteUrl = `${WEB_ORIGIN.replace(/\/$/, "")}/i/${game.inviteCode}`;
+  const inviteUrl = `${WEB_ORIGIN}/i/${game.inviteCode}`;
   const confirmed = game.participations.filter((p) => p.status === "confirmed");
   const waiting = game.participations.filter((p) => p.status === "waiting");
   const mine = game.participations.find((p) => p.userId === meId);
@@ -125,6 +129,7 @@ export default function GameDetailScreen() {
   const slotsFull = game.confirmedCount >= game.slots;
   const full = slotsFull && game.waitingCount >= game.subs;
   const started = new Date(game.startsAt).getTime() <= openedAt;
+  const cancelled = game.status === "cancelled";
 
   const shareCents =
     game.totalPriceCents > 0 && confirmed.length > 0
@@ -199,6 +204,24 @@ export default function GameDetailScreen() {
     }
   }
 
+  function onCancelGame() {
+    const people = game?.participations.length ?? 0;
+    Alert.alert(
+      "Cancelar jogo?",
+      people > 0
+        ? `${people === 1 ? "A pessoa inscrita vai" : `As ${people} pessoas inscritas vão`} receber uma notificação.`
+        : "Ninguém está inscrito ainda.",
+      [
+        { text: "Não", style: "cancel" },
+        {
+          text: "Cancelar jogo",
+          style: "destructive",
+          onPress: () => void run(cancelGame, "Não foi possível cancelar o jogo."),
+        },
+      ],
+    );
+  }
+
   async function onShare() {
     await Share.share({ message: `Entra no jogo "${game?.title}": ${inviteUrl}`, url: inviteUrl });
   }
@@ -212,7 +235,9 @@ export default function GameDetailScreen() {
     );
   }
 
-  const confirmLabel = started
+  const confirmLabel = cancelled
+    ? "Jogo cancelado"
+    : started
     ? "Jogo já começou"
     : full
       ? "Jogo cheio"
@@ -224,7 +249,7 @@ export default function GameDetailScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.titleRow}>
         <Text style={styles.title}>{game.title}</Text>
-        {isOrganizer && (
+        {isOrganizer && !cancelled && (
           <Pressable style={styles.secondaryButton} onPress={() => setEditing(true)}>
             <Text>Editar</Text>
           </Pressable>
@@ -234,6 +259,9 @@ export default function GameDetailScreen() {
       <Text>
         {new Date(game.startsAt).toLocaleString("pt-PT")} · total {formatEuros(game.totalPriceCents)}
       </Text>
+      {cancelled ? (
+        <Text style={styles.cancelled}>Este jogo foi cancelado pelo organizador.</Text>
+      ) : null}
       <Text style={styles.bold}>
         {game.confirmedCount}/{game.slots} confirmados
         {game.subs > 0 ? ` · ${game.waitingCount}/${game.subs} em espera` : ""}
@@ -266,8 +294,8 @@ export default function GameDetailScreen() {
         </Pressable>
       ) : (
         <Pressable
-          style={[styles.button, (pending || full || started) && styles.disabled]}
-          disabled={pending || full || started}
+          style={[styles.button, (pending || full || started || cancelled) && styles.disabled]}
+          disabled={pending || full || started || cancelled}
           onPress={() => run(confirmGame, "Não foi possível confirmar.")}
         >
           {pending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{confirmLabel}</Text>}
@@ -372,12 +400,15 @@ export default function GameDetailScreen() {
         </Text>
       ) : null}
 
-      {isOrganizer ? (
+      {isOrganizer && game.status === "open" ? (
         <>
           <Text style={styles.section}>Convite</Text>
           <Text style={styles.muted}>{inviteUrl}</Text>
           <Pressable style={styles.button} onPress={onShare}>
             <Text style={styles.buttonText}>Partilhar convite</Text>
+          </Pressable>
+          <Pressable style={styles.dangerButton} disabled={pending} onPress={onCancelGame}>
+            <Text style={styles.dangerText}>Cancelar jogo</Text>
           </Pressable>
         </>
       ) : null}
@@ -387,6 +418,16 @@ export default function GameDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 16, gap: 8 },
+  cancelled: { color: "#991b1b", backgroundColor: "#fef2f2", borderRadius: 8, padding: 10 },
+  dangerButton: {
+    borderWidth: 1,
+    borderColor: "#fca5a5",
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  dangerText: { color: "#b91c1c", fontWeight: "600" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", textAlign: "center" },
   titleRow: {
     flexDirection: "row",

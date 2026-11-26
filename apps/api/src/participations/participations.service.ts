@@ -266,6 +266,35 @@ export class ParticipationsService {
     }
   }
 
+  /** Jogo cancelado: atualiza os ecrãs e avisa quem estava confirmado ou em espera. */
+  async afterGameCancelled(
+    gameId: string,
+    organizerId: string,
+  ): Promise<GameDetailDto> {
+    const detail = await this.getDetail(gameId);
+    this.gamesGateway.emitGameUpdated(gameId, detail);
+    const people = detail.participations
+      .map((p) => p.userId)
+      .filter((id) => id !== organizerId);
+    if (people.length > 0) {
+      const when = new Date(detail.startsAt).toLocaleString('pt-PT', {
+        timeZone: 'Europe/Lisbon',
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      await this.push.send(
+        people,
+        'Jogo cancelado',
+        `"${detail.title}" de ${when} foi cancelado pelo organizador.`,
+        { gameId },
+      );
+    }
+    return detail;
+  }
+
   private async notifyChanged(detail: GameDetailDto, promotedIds: string[]) {
     this.gamesGateway.emitGameUpdated(detail.id, detail);
     if (promotedIds.length > 0) {

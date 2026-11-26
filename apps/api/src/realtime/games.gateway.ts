@@ -39,15 +39,33 @@ export class GamesGateway implements OnGatewayInit {
    */
   afterInit(server: Server) {
     server.use((client, next) => {
-      const token = this.readToken(client);
-      (token ? this.auth.validate(token) : Promise.resolve(null))
-        .then((session) => {
-          if (!session) return next(new Error('Sessão inválida ou expirada.'));
-          (client.data as SocketData).user = session.user;
+      this.userOf(client)
+        .then((user) => {
+          if (!user) return next(new Error('Sessão inválida ou expirada.'));
+          (client.data as SocketData).user = user;
           next();
         })
         .catch(() => next(new Error('Erro ao validar a sessão.')));
     });
+  }
+
+  /**
+   * Quem está a ligar:
+   * - app mobile: o token da sessão em `auth.token`;
+   * - web: um token curto do socket (GET /auth/socket-token, pelo proxy da web);
+   * - web no mesmo site que a API (só em dev): o cookie da sessão.
+   */
+  private async userOf(client: Socket): Promise<UserDto | null> {
+    const fromAuth: unknown = client.handshake.auth?.token;
+    if (typeof fromAuth === 'string') {
+      if (TOKEN_RE.test(fromAuth))
+        return (await this.auth.validate(fromAuth))?.user ?? null;
+      return this.auth.userFromSocketToken(fromAuth);
+    }
+    const cookie = this.auth.readToken({
+      headers: client.handshake.headers,
+    } as Request);
+    return cookie ? ((await this.auth.validate(cookie))?.user ?? null) : null;
   }
 
   @SubscribeMessage('joinGame')
@@ -75,15 +93,5 @@ export class GamesGateway implements OnGatewayInit {
 
   emitGameUpdated(gameId: string, detail: GameDetailDto) {
     this.server.to(`game:${gameId}`).emit('gameUpdated', detail);
-  }
-
-  /** Mobile manda o token em `auth.token`; a web manda o cookie de sessão. */
-  private readToken(client: Socket): string | null {
-    const fromAuth: unknown = client.handshake.auth?.token;
-    if (typeof fromAuth === 'string')
-      return TOKEN_RE.test(fromAuth) ? fromAuth : null;
-    return this.auth.readToken({
-      headers: client.handshake.headers,
-    } as Request);
   }
 }

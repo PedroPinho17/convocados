@@ -209,6 +209,26 @@ export const registerSchema = loginSchema.extend({
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+/** POST /auth/password/forgot — responde sempre igual, exista ou não a conta. */
+export const forgotPasswordSchema = loginSchema.pick({ email: true });
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+/** POST /auth/password/reset — o token vem no link do email (vale 30 minutos, uma vez). */
+export const resetPasswordSchema = z.object({
+  token: z.string().regex(/^[\w-]{43}$/, "Link inválido."),
+  password: newPasswordSchema,
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+/** DELETE /account — pede a password outra vez, para ninguém apagar a conta de outro. */
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1).max(128),
+});
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
+
+/** GET /auth/socket-token — token curto para o socket da web. */
+export type SocketTokenDto = { token: string; expiresAt: string };
+
 /** PATCH /games/:gameId/participations/:userId/paid — só o organizador */
 export const setPaidSchema = z.object({
   paid: z.boolean(),

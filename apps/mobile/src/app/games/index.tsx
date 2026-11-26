@@ -94,7 +94,7 @@ export default function GamesScreen() {
             <View style={styles.actions}>
               <Link href="/settings" asChild>
                 <Pressable>
-                  <Text style={styles.link}>Lembretes</Text>
+                  <Text style={styles.link}>Definições</Text>
                 </Pressable>
               </Link>
               <Pressable onPress={onLogout}>

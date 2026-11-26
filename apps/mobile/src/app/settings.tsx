@@ -5,6 +5,7 @@ import { formatReminder, MAX_REMINDERS, REMINDER_OPTIONS } from "@convocados/sha
 import { ApiError, getReminders, setReminders } from "../lib/api";
 import { ensureNotificationPermission } from "../lib/push";
 import { syncReminders } from "../lib/reminders";
+import { DeleteAccount } from "../components/delete-account";
 
 type Option = (typeof REMINDER_OPTIONS)[number];
 
@@ -96,6 +97,8 @@ export default function SettingsScreen() {
       <Pressable style={styles.button} onPress={onSave} disabled={saving}>
         <Text style={styles.buttonText}>{saving ? "A guardar…" : saved ? "Guardado" : "Guardar"}</Text>
       </Pressable>
+
+      <DeleteAccount />
     </ScrollView>
   );
 }

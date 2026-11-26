@@ -33,8 +33,29 @@ export const envSchema = z
     GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
     /** Máx. pedidos POST /ai/parse-game por utilizador e por dia (UTC). */
     AI_DAILY_LIMIT: z.coerce.number().int().min(1).max(100).default(10),
+    /**
+     * Segredo partilhado com o proxy da web (Next.js). A web fala com a API através dele,
+     * por isso todos os pedidos da web chegam do mesmo IP: com este segredo, a API confia
+     * no cabeçalho X-Client-IP que o proxy envia, e o limite de pedidos continua por pessoa.
+     */
+    PROXY_SECRET: z.string().min(16).optional(),
+    /** Assina os tokens curtos do socket da web. Vazio = um segredo novo a cada arranque. */
+    SOCKET_TOKEN_SECRET: z.string().min(16).optional(),
+    /** Resend (emails de recuperar a password). Vazio = em dev, o link aparece no log. */
+    RESEND_API_KEY: z.string().optional().default(''),
+    EMAIL_FROM: z.string().default('Convocados <onboarding@resend.dev>'),
+    /** Endereço público da web, para os links nos emails. Vazio = o 1.º do WEB_ORIGIN. */
+    APP_URL: z.url().optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.NODE_ENV === 'production' && !env.PROXY_SECRET) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'PROXY_SECRET é obrigatório em produção (o mesmo valor na web e na API)',
+        path: ['PROXY_SECRET'],
+      });
+    }
     if (env.NODE_ENV === 'production' && env.DB_SYNCHRONIZE) {
       ctx.addIssue({
         code: 'custom',
@@ -53,6 +74,11 @@ export const envSchema = z
   .transform((env) => ({
     ...env,
     COOKIE_SECURE: env.COOKIE_SECURE ?? env.NODE_ENV === 'production',
+    APP_URL: (
+      env.APP_URL ??
+      env.WEB_ORIGIN[0] ??
+      'http://localhost:3000'
+    ).replace(/\/$/, ''),
   }));
 
 export type Env = z.infer<typeof envSchema>;

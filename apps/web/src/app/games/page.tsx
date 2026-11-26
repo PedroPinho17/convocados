@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CreateGameInput, GameDto, ParsedGameDraft } from "@convocados/shared";
 import { ApiError, createGame, listGames, logout, parseGameMessage } from "@/lib/api";
-import { resetSocket } from "@/lib/socket";
+import { leaveToLogin, resetSocket } from "@/lib/socket";
 import { GameForm } from "@/components/game-form";
 
 export default function GamesPage() {
@@ -80,16 +80,21 @@ export default function GamesPage() {
   async function onLogout() {
     await logout().catch(() => undefined);
     resetSocket();
-    router.replace("/login");
+    leaveToLogin();
   }
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <header className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Os meus jogos</h1>
-        <button type="button" onClick={onLogout} className="text-sm underline">
-          Sair
-        </button>
+        <nav className="flex gap-4 text-sm">
+          <Link href="/account" className="underline">
+            Conta
+          </Link>
+          <button type="button" onClick={onLogout} className="underline">
+            Sair
+          </button>
+        </nav>
       </header>
 
       <section className="flex flex-col gap-2">
@@ -124,6 +129,9 @@ export default function GamesPage() {
             <Link href={`/games/${g.id}`} className="font-medium underline">
               {g.title}
             </Link>
+            {g.status === "cancelled" ? (
+              <span className="ml-2 rounded bg-red-100 px-2 py-0.5 text-xs text-red-800">Cancelado</span>
+            ) : null}
             <p className="text-sm text-zinc-600">
               {g.location} · {new Date(g.startsAt).toLocaleString("pt-PT")} · {g.slots} vagas · código{" "}
               {g.inviteCode}

@@ -1,23 +1,14 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { register, unique } from "./helpers";
 
 /**
  * O percurso principal, como um utilizador o faz no browser:
  * o organizador cria o jogo, partilha o link, o convidado regista-se pelo convite e
  * confirma, e o ecrã do organizador atualiza sozinho (socket). Depois desiste.
+ *
+ * No CI, a web (localhost) e a API (127.0.0.1) são sites diferentes, como no Render:
+ * este teste prova que o cookie pelo proxy /api e o socket com token curto funcionam.
  */
-
-const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-async function register(page: Page, name: string) {
-  // O link "Entra ou cria conta" do convite já traz o ?next=; aqui só se muda para registo.
-  if (!page.url().includes("/login")) await page.goto("/login");
-  await page.getByRole("button", { name: "Criar conta" }).click();
-  await page.getByPlaceholder("Nome").fill(name);
-  await page.getByPlaceholder("Email").fill(`${name.toLowerCase()}-${unique()}@teste.local`);
-  await page.getByPlaceholder("Password").fill("password-de-teste");
-  await page.getByRole("button", { name: "Registar" }).click();
-  await page.waitForURL((url) => !url.pathname.startsWith("/login"));
-}
 
 test("convite por link, confirmação e desistência aparecem logo no ecrã do organizador", async ({
   browser,

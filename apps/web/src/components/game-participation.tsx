@@ -33,6 +33,7 @@ export function GameParticipation({ game, me, loginNext, onChange }: Props) {
   const slotsFull = game.confirmedCount >= game.slots;
   const full = slotsFull && game.waitingCount >= game.subs;
   const started = new Date(game.startsAt).getTime() <= openedAt;
+  const cancelled = game.status === "cancelled";
   const isOrganizer = me?.id === game.organizerId;
 
   const shareCents =
@@ -114,11 +115,11 @@ export function GameParticipation({ game, me, loginNext, onChange }: Props) {
             {!mine ? (
               <button
                 type="button"
-                disabled={pending || full || started}
+                disabled={pending || full || started || cancelled}
                 onClick={() => run(confirmGame, "Não foi possível confirmar.")}
                 className="rounded bg-zinc-900 px-3 py-2 text-white disabled:opacity-50"
               >
-                {started ? "Jogo já começou" : full ? "Jogo cheio" : slotsFull ? "Entrar na lista de espera" : "Confirmar"}
+                {cancelled ? "Jogo cancelado" : started ? "Jogo já começou" : full ? "Jogo cheio" : slotsFull ? "Entrar na lista de espera" : "Confirmar"}
               </button>
             ) : (
               <button

@@ -9,6 +9,7 @@ import { subscribeGame } from "@/lib/socket";
 import { GameForm } from "@/components/game-form";
 import { GameParticipation } from "@/components/game-participation";
 import { InviteShare } from "@/components/invite-share";
+import { CancelGame } from "@/components/cancel-game";
 import { GameRatings } from "@/components/game-ratings";
 import { GameTeams } from "@/components/game-teams";
 
@@ -47,6 +48,7 @@ export function GameDetailClient() {
   if (!game) return <main className="p-8">A carregar…</main>;
 
   const isOrganizer = me?.id === game.organizerId;
+  const cancelled = game.status === "cancelled";
 
   async function onSave(input: CreateGameInput) {
     await updateGame(id, input);
@@ -70,7 +72,7 @@ export function GameDetailClient() {
         <>
           <div className="flex items-center justify-between gap-4">
             <h1 className="text-2xl font-semibold">{game.title}</h1>
-            {isOrganizer && (
+            {isOrganizer && !cancelled && (
               <button type="button" onClick={() => setEditing(true)} className="rounded border px-3 py-1 text-sm">
                 Editar
               </button>
@@ -80,11 +82,16 @@ export function GameDetailClient() {
             {game.location} · {new Date(game.startsAt).toLocaleString("pt-PT")} · total{" "}
             {formatEuros(game.totalPriceCents)}
           </p>
-          {game.status !== "open" ? <p>Estado: {game.status}</p> : null}
+          {cancelled ? (
+            <p role="status" className="rounded border border-red-200 bg-red-50 p-3 text-red-800">
+              Este jogo foi cancelado pelo organizador.
+            </p>
+          ) : null}
           <GameParticipation game={game} me={me} loginNext={`/games/${id}`} onChange={setGame} />
-          <GameRatings game={game} me={me} />
-          <GameTeams game={game} me={me} onChange={setGame} />
-          {isOrganizer ? <InviteShare inviteCode={game.inviteCode} /> : null}
+          {!cancelled ? <GameRatings game={game} me={me} /> : null}
+          {!cancelled ? <GameTeams game={game} me={me} onChange={setGame} /> : null}
+          {isOrganizer && !cancelled ? <InviteShare inviteCode={game.inviteCode} /> : null}
+          {isOrganizer && game.status === "open" ? <CancelGame game={game} onChange={setGame} /> : null}
         </>
       )}
     </main>

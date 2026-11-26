@@ -16,6 +16,8 @@ import type {
   GenerateTeamsInput,
   ParseGameMessageInput,
   ParseGameResultDto,
+  ForgotPasswordInput,
+  DeleteAccountInput,
 } from "@convocados/shared";
 
 const API = process.env.EXPO_PUBLIC_API_URL;
@@ -145,3 +147,11 @@ export const generateTeams = (gameId: string, input: GenerateTeamsInput = {}) =>
 
 export const parseGameMessage = (input: ParseGameMessageInput) =>
   request<ParseGameResultDto>("/ai/parse-game", json(input));
+
+export const forgotPassword = (input: ForgotPasswordInput) =>
+  request<void>("/auth/password/forgot", json(input));
+export const deleteAccount = (input: DeleteAccountInput) =>
+  request<void>("/account", json(input, "DELETE"));
+/** Só o organizador. */
+export const cancelGame = (gameId: string) =>
+  request<GameDetailDto>(`/games/${gameId}/cancel`, { method: "POST" });

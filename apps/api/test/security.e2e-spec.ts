@@ -94,6 +94,9 @@ describe('segurança (e2e)', () => {
         ['get', '/push/reminders'],
         ['put', '/push/reminders'],
         ['post', '/ai/parse-game'],
+        ['post', `/games/${id}/cancel`],
+        ['delete', '/account'],
+        ['get', '/auth/socket-token'],
       ];
       for (const [method, path] of routes) {
         const res = await (

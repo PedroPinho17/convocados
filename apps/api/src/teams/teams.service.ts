@@ -37,6 +37,9 @@ export class TeamsService {
       if (game.organizerId !== organizerId) {
         throw new ForbiddenException('Só o organizador pode fazer as equipas.');
       }
+      if (game.status === 'cancelled') {
+        throw new ConflictException('Este jogo foi cancelado.');
+      }
 
       const rows = await manager.find(Participation, {
         where: { gameId, status: 'confirmed' },

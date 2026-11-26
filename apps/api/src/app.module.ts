@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module.js';
+import { ClientIpThrottlerGuard } from './auth/client-ip.js';
 import { HealthController } from './health.controller.js';
 import { validateEnv, type Env } from './config.js';
 import { entities, migrations } from './data-source.js';
@@ -14,6 +15,7 @@ import { PushModule } from './push/push.module.js';
 import { RatingsModule } from './ratings/ratings.module.js';
 import { TeamsModule } from './teams/teams.module.js';
 import { AiModule } from './ai/ai.module.js';
+import { AccountModule } from './account/account.module.js';
 
 @Module({
   imports: [
@@ -41,7 +43,12 @@ import { AiModule } from './ai/ai.module.js';
       useFactory: (config: ConfigService<Env, true>) => {
         const disabled = config.get('RATE_LIMIT_DISABLED', { infer: true });
         return {
-          throttlers: [{ ttl: 60_000, limit: config.get('RATE_LIMIT_PER_MIN', { infer: true }) }],
+          throttlers: [
+            {
+              ttl: 60_000,
+              limit: config.get('RATE_LIMIT_PER_MIN', { infer: true }),
+            },
+          ],
           skipIf: () => disabled,
         };
       },
@@ -54,8 +61,9 @@ import { AiModule } from './ai/ai.module.js';
     RatingsModule,
     TeamsModule,
     AiModule,
+    AccountModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [{ provide: APP_GUARD, useClass: ClientIpThrottlerGuard }],
 })
 export class AppModule {}

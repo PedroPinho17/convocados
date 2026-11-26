@@ -28,8 +28,13 @@ jobs:
     env:
       # Base de dados descartável do CI; não é um segredo.
       DATABASE_URL: postgres://convocados:convocados@localhost:5432/convocados
-      # O build da web inclui este URL: os testes no browser falam com a API do próprio CI.
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      # Web em localhost e API em 127.0.0.1: para o browser são sites diferentes, como a web e
+      # a API no Render. Os testes no browser provam que o cookie pelo proxy /api e o socket
+      # com token curto funcionam assim. (O build da web inclui o NEXT_PUBLIC_API_URL.)
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:3001
+      API_URL: http://127.0.0.1:3001
+      # Segredo só do CI (não é o de produção).
+      PROXY_SECRET: segredo-do-proxy-so-para-o-ci
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

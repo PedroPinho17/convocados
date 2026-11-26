@@ -9,6 +9,7 @@ import {
   Rating,
   TeamAssignment,
   AiUsage,
+  PasswordReset,
 } from '@convocados/db';
 
 import { Init1795621974591 } from './migrations/1795621974591-Init.js';
@@ -20,6 +21,7 @@ import { UserReminders1795710000000 } from './migrations/1795710000000-UserRemin
 import { AddRatings1795720000000 } from './migrations/1795720000000-AddRatings.js';
 import { AddTeams1795730000000 } from './migrations/1795730000000-AddTeams.js';
 import { AddAiUsage1795740000000 } from './migrations/1795740000000-AddAiUsage.js';
+import { AddPasswordResets1795750000000 } from './migrations/1795750000000-AddPasswordResets.js';
 
 export const entities = [
   User,
@@ -30,6 +32,7 @@ export const entities = [
   Rating,
   TeamAssignment,
   AiUsage,
+  PasswordReset,
 ];
 export const migrations = [
   Init1795621974591,
@@ -41,6 +44,7 @@ export const migrations = [
   AddRatings1795720000000,
   AddTeams1795730000000,
   AddAiUsage1795740000000,
+  AddPasswordResets1795750000000,
 ];
 
 try {
