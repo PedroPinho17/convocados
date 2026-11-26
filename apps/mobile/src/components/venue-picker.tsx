@@ -25,11 +25,7 @@ export function VenuePicker({ value, venueId, sport, onChange }: Props) {
   const shouldSearch = query.length >= 2;
 
   useEffect(() => {
-    if (!shouldSearch) {
-      setResults([]);
-      setHint(null);
-      return;
-    }
+    if (!shouldSearch) return;
     const ctrl = new AbortController();
     const timer = setTimeout(() => {
       searchVenues({ q: query, sport, limit: 6 }, ctrl.signal)
@@ -45,6 +41,10 @@ export function VenuePicker({ value, venueId, sport, onChange }: Props) {
     };
   }, [query, sport, shouldSearch]);
 
+  // Sem pesquisa activa: não mostrar resultados/hints antigos (evita setState no effect).
+  const shown = shouldSearch ? results : [];
+  const shownHint = shouldSearch ? hint : null;
+
   return (
     <View style={{ gap: 6 }}>
       <Field
@@ -54,16 +54,17 @@ export function VenuePicker({ value, venueId, sport, onChange }: Props) {
         onChangeText={(text) => onChange(text, null)}
         autoCapitalize="words"
       />
-      {venueId ? <Muted>✓ Campo da lista</Muted> : hint ? <Muted>{hint}</Muted> : null}
-      {results.length > 0 && !venueId ? (
+      {venueId ? <Muted>✓ Campo da lista</Muted> : shownHint ? <Muted>{shownHint}</Muted> : null}
+      {shown.length > 0 && !venueId ? (
         <View style={s.list}>
-          {results.map((v) => (
+          {shown.map((v) => (
             <Pressable
               key={v.id}
               accessibilityRole="button"
               onPress={() => {
                 onChange(venueLabel(v), v.id);
                 setResults([]);
+                setHint(null);
               }}
               style={({ pressed }) => [s.row, pressed ? { backgroundColor: c.brandSoft } : null]}
             >
