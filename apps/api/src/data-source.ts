@@ -10,6 +10,7 @@ import {
   TeamAssignment,
   AiUsage,
   PasswordReset,
+  Venue,
 } from '@convocados/db';
 
 import { Init1795621974591 } from './migrations/1795621974591-Init.js';
@@ -22,6 +23,7 @@ import { AddRatings1795720000000 } from './migrations/1795720000000-AddRatings.j
 import { AddTeams1795730000000 } from './migrations/1795730000000-AddTeams.js';
 import { AddAiUsage1795740000000 } from './migrations/1795740000000-AddAiUsage.js';
 import { AddPasswordResets1795750000000 } from './migrations/1795750000000-AddPasswordResets.js';
+import { AddVenues1795760000000 } from './migrations/1795760000000-AddVenues.js';
 
 export const entities = [
   User,
@@ -33,6 +35,7 @@ export const entities = [
   TeamAssignment,
   AiUsage,
   PasswordReset,
+  Venue,
 ];
 export const migrations = [
   Init1795621974591,
@@ -45,6 +48,7 @@ export const migrations = [
   AddTeams1795730000000,
   AddAiUsage1795740000000,
   AddPasswordResets1795750000000,
+  AddVenues1795760000000,
 ];
 
 try {
