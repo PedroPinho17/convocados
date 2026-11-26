@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SPORTS, SPORT_KEYS } from "@convocados/shared";
 import { AppHeader } from "@/components/ui";
-import { HomeActions, HomeNavAction } from "@/components/home-actions";
+import { HomeActions, HomeFooterLink, HomeNavAction } from "@/components/home-actions";
 
 export const metadata: Metadata = {
   title: "Convocados · Organiza os teus jogos",
@@ -63,7 +63,7 @@ export default function Home() {
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_30rem_at_80%_-10%,var(--brand-soft),transparent)]"
           />
-          <div className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="relative mx-auto grid grid-cols-1 w-full max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="flex flex-col gap-6">
               <p className="inline-flex w-fit items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-sm font-medium text-muted">
                 <span aria-hidden="true">🏟️</span> Grátis para grupos de amigos
@@ -138,7 +138,7 @@ export default function Home() {
           <p className="mx-auto mt-3 max-w-2xl text-center text-muted">
             Feito para quem organiza todas as semanas e está farto de contar nomes no WhatsApp.
           </p>
-          <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
               <li key={f.title} className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
                 <span aria-hidden="true" className="grid size-11 place-items-center rounded-xl bg-brand-soft text-2xl">
@@ -157,7 +157,7 @@ export default function Home() {
             <h2 id="how-title" className="text-center text-3xl font-bold tracking-tight sm:text-4xl">
               Como funciona
             </h2>
-            <ol className="mt-10 grid gap-6 md:grid-cols-3">
+            <ol className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
               {STEPS.map((s) => (
                 <li key={s.n} className="flex gap-4">
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-lg font-bold text-brand-ink">
@@ -190,9 +190,7 @@ export default function Home() {
             <Link href="/privacidade" className="hover:text-ink hover:underline">
               Privacidade
             </Link>
-            <Link href="/login" className="hover:text-ink hover:underline">
-              Entrar
-            </Link>
+            <HomeFooterLink />
           </nav>
         </div>
       </footer>

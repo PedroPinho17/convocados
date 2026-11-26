@@ -67,8 +67,8 @@ export default function AccountPage() {
               {me.name.slice(0, 1).toUpperCase()}
             </span>
             <div className="min-w-0">
-              <p className="truncate font-semibold">{me.name}</p>
-              <p className="truncate text-sm text-muted">{me.email}</p>
+              <p className="font-semibold wrap-break-word">{me.name}</p>
+              <p className="text-sm text-muted break-all">{me.email}</p>
             </div>
           </div>
           <Link href="/privacidade" className="mt-4 inline-block text-sm font-medium text-brand-strong hover:underline">

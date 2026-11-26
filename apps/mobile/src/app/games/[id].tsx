@@ -364,7 +364,7 @@ export default function GameDetailScreen() {
               <Text style={s.avatarText}>{initials(p.userName)}</Text>
             </View>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={s.personName} numberOfLines={1}>
+              <Text style={s.personName}>
                 {`${i + 1}. ${p.userName}`}
               </Text>
               {game.totalPriceCents > 0 ? (

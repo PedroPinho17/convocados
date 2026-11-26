@@ -198,7 +198,7 @@ export function GameParticipation({ game, me, loginNext, onChange }: Props) {
                     {initials(p.userName)}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-medium">
+                    <span className="block font-medium wrap-break-word">
                       {i + 1}. {p.userName}
                     </span>
                     {game.totalPriceCents > 0 ? (

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { formatEuros, sportLabel, type CreateGameInput, type GameDetailDto, type UserDto } from "@convocados/shared";
-import { ApiError, getGameDetail, getMe, updateGame } from "@/lib/api";
+import { ApiError, getGameDetail, getMe, listGroups, updateGame } from "@/lib/api";
 import { subscribeGame } from "@/lib/socket";
 import { formatGameDate } from "@/lib/format";
 import { GameForm } from "@/components/game-form";
@@ -21,15 +21,18 @@ export function GameDetailClient() {
   const router = useRouter();
   const [game, setGame] = useState<GameDetailDto | null>(null);
   const [me, setMe] = useState<UserDto | null>(null);
+  // Grupos de que sou membro: quem entrou só pelo convite do jogo não pode ir parar ao grupo (403).
+  const [myGroupIds, setMyGroupIds] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([getGameDetail(id), getMe()])
-      .then(([g, user]) => {
+    Promise.all([getGameDetail(id), getMe(), listGroups().catch(() => [])])
+      .then(([g, user, groups]) => {
         setGame(g);
         setMe(user);
+        setMyGroupIds(new Set(groups.map((grp) => grp.id)));
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
@@ -74,6 +77,7 @@ export function GameDetailClient() {
 
   const isOrganizer = me?.id === game.organizerId;
   const cancelled = game.status === "cancelled";
+  const inMyGroup = !!game.groupId && myGroupIds.has(game.groupId);
 
   async function onSave(input: CreateGameInput) {
     await updateGame(id, input);
@@ -87,8 +91,8 @@ export function GameDetailClient() {
       {header}
       <Page>
         <BackLink
-          href={game.groupId ? `/groups/${game.groupId}` : "/games"}
-          label={game.groupName ? `Voltar a ${game.groupName}` : "Voltar aos jogos"}
+          href={inMyGroup ? `/groups/${game.groupId}` : "/games"}
+          label={inMyGroup ? "Voltar ao grupo" : "Voltar aos jogos"}
         />
 
         {editing ? (
@@ -110,10 +114,15 @@ export function GameDetailClient() {
                   <p className="mt-2 text-base font-medium text-brand-strong">{formatGameDate(game.startsAt)}</p>
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
                     <Badge tone="brand">{sportLabel(game.sport)}</Badge>
-                    {game.groupId && game.groupName ? (
-                      <Link href={`/groups/${game.groupId}`} className="font-medium text-brand-strong hover:underline">
+                    {game.groupName && inMyGroup ? (
+                      <Link
+                        href={`/groups/${game.groupId}`}
+                        className="font-medium text-brand-strong wrap-break-word hover:underline"
+                      >
                         {game.groupName}
                       </Link>
+                    ) : game.groupName ? (
+                      <span className="font-medium wrap-break-word">{game.groupName}</span>
                     ) : null}
                   </p>
                 </div>
@@ -123,7 +132,7 @@ export function GameDetailClient() {
                   </Button>
                 )}
               </div>
-              <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
                 <div className="flex min-w-0 gap-2">
                   <dt className="shrink-0 text-muted">Local</dt>
                   <dd className="min-w-0 font-medium">
@@ -143,7 +152,7 @@ export function GameDetailClient() {
               ) : null}
             </section>
 
-            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
               <GameParticipation game={game} me={me} loginNext={`/games/${id}`} onChange={setGame} />
               <div className="flex flex-col gap-6">
                 {isOrganizer && !cancelled ? <InviteShare inviteCode={game.inviteCode} /> : null}

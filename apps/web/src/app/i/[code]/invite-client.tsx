@@ -99,7 +99,7 @@ export function InviteClient() {
           ) : null}
         </section>
         {me ? <p className="text-sm text-muted">Olá, {me.name}.</p> : null}
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <GameParticipation game={game} me={me} loginNext={`/i/${code}`} onChange={setGame} />
           <div className="flex flex-col gap-6">
             <GameTeams game={game} me={me} onChange={setGame} />

@@ -69,7 +69,7 @@ export default function GamesPage() {
           </Notice>
         ) : null}
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_28rem]">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_28rem]">
           <div className="flex min-w-0 flex-col gap-6">
             <section aria-labelledby="upcoming-title" className="flex flex-col gap-3">
               <h2 id="upcoming-title" className="text-sm font-semibold uppercase tracking-wide text-muted">

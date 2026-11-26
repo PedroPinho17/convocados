@@ -59,7 +59,7 @@ export default function GroupsPage() {
           </Notice>
         ) : null}
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <section aria-label="Grupos" className="flex min-w-0 flex-col gap-3">
             {groups === null ? (
               <p className="text-muted">A carregar…</p>
@@ -71,7 +71,7 @@ export default function GroupsPage() {
                 </p>
               </Card>
             ) : (
-              <ul className="grid gap-3 sm:grid-cols-2">
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {groups.map((g) => (
                   <li
                     key={g.id}
@@ -86,11 +86,11 @@ export default function GroupsPage() {
                     <div className="min-w-0 flex-1">
                       <Link
                         href={`/groups/${g.id}`}
-                        className="block truncate font-semibold after:absolute after:inset-0 after:rounded-2xl"
+                        className="block line-clamp-2 font-semibold wrap-break-word after:absolute after:inset-0 after:rounded-2xl"
                       >
                         {g.name}
                       </Link>
-                      <p className="truncate text-sm text-muted">
+                      <p className="line-clamp-2 text-sm text-muted">
                         {SPORTS[g.sport].label} · {g.memberCount} {g.memberCount === 1 ? "membro" : "membros"}
                       </p>
                     </div>

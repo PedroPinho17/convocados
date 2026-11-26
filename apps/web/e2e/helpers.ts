@@ -8,7 +8,14 @@ export const unique = () => `${Date.now()}-${Math.random().toString(36).slice(2,
 export async function register(page: Page, name: string): Promise<string> {
   // O link "Entra ou cria conta" do convite já traz o ?next=; aqui só se muda para registo.
   if (!page.url().includes("/login")) await page.goto("/login");
-  const email = `${name.toLowerCase()}-${unique()}@teste.local`;
+  // Nomes com espaços e acentos ("Maria Antónia") dariam um email inválido.
+  const slug = name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  const email = `${slug}-${unique()}@teste.local`;
   await page.getByRole("button", { name: "Criar conta" }).click();
   await page.getByPlaceholder("Nome").fill(name);
   await page.getByPlaceholder("Email").fill(email);

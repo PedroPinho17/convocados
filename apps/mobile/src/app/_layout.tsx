@@ -29,8 +29,9 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="games/index" options={{ title: "Convocados" }} />
-        <Stack.Screen name="games/[id]" options={{ title: "Jogo" }} />
-        <Stack.Screen name="settings" options={{ title: "Definições" }} />
+        {/* iPhone: o botão de voltar diz para onde vai ("Jogos"), não o título do ecrã anterior. */}
+        <Stack.Screen name="games/[id]" options={{ title: "Jogo", headerBackTitle: "Jogos" }} />
+        <Stack.Screen name="settings" options={{ title: "Definições", headerBackTitle: "Jogos" }} />
       </Stack>
     </>
   );

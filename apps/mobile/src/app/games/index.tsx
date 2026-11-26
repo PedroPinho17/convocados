@@ -138,16 +138,16 @@ function GameCard({ game, faded }: { game: GameDto; faded?: boolean }) {
         </View>
         <View style={{ flex: 1, gap: 3 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <Text style={s.cardTitle} numberOfLines={1}>
+            <Text style={s.cardTitle} numberOfLines={2}>
               {game.title}
             </Text>
             {cancelled ? <Badge label="Cancelado" tone="danger" /> : null}
           </View>
-          <Text style={s.muted} numberOfLines={1}>
+          <Text style={s.muted} numberOfLines={2}>
             {sportLabel(game.sport)}
             {game.groupName ? ` · ${game.groupName}` : ""}
           </Text>
-          <Text style={s.muted} numberOfLines={1}>
+          <Text style={s.muted} numberOfLines={2}>
             {game.location}
           </Text>
           <Text style={s.muted}>

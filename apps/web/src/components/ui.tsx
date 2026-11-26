@@ -128,11 +128,20 @@ export function AppHeader({ children, brandHref = "/games" }: { children?: React
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href={brandHref} className="flex items-center gap-2 font-bold tracking-tight">
+        <Link
+          href={brandHref}
+          aria-label="Convocados"
+          className="flex shrink-0 items-center gap-2 font-bold tracking-tight"
+        >
           <Logo size="sm" />
-          <span className="text-lg">Convocados</span>
+          {/* Com navegação, no telemóvel só cabe o logo: o nome volta a partir de 640 px. */}
+          <span className={cn("text-lg", children ? "hidden sm:inline" : undefined)}>Convocados</span>
         </Link>
-        {children ? <nav className="flex items-center gap-1 text-sm">{children}</nav> : null}
+        {children ? (
+          <nav aria-label="Principal" className="flex min-w-0 items-center gap-0.5 text-sm sm:gap-1">
+            {children}
+          </nav>
+        ) : null}
       </div>
     </header>
   );

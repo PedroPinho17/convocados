@@ -119,7 +119,7 @@ export function GroupDetailClient() {
             {sport.emoji}
           </span>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{group.name}</h1>
+            <h1 className="text-2xl font-bold wrap-break-word tracking-tight sm:text-3xl">{group.name}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
               {sport.label} · {group.memberCount} {group.memberCount === 1 ? "membro" : "membros"}
               {isAdmin ? <Badge tone="brand">És admin</Badge> : null}
@@ -133,7 +133,7 @@ export function GroupDetailClient() {
           </Notice>
         ) : null}
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <div className="flex min-w-0 flex-col gap-6">
             <section aria-labelledby="group-upcoming" className="flex flex-col gap-3">
               <h2 id="group-upcoming" className="text-sm font-semibold uppercase tracking-wide text-muted">
@@ -188,7 +188,7 @@ export function GroupDetailClient() {
                         {m.name.slice(0, 1).toUpperCase()}
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate font-medium">
+                        <span className="block font-medium wrap-break-word">
                           {m.name}
                           {m.userId === me?.id ? " (tu)" : ""}
                         </span>

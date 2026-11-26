@@ -171,8 +171,8 @@ export function VenuePicker({ value, venueId, sport, onChange }: Props) {
               )}
             >
               <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold">{v.name}</span>
-                <span className="block truncate text-xs text-muted">
+                <span className="block line-clamp-2 text-sm font-semibold">{v.name}</span>
+                <span className="block line-clamp-2 text-xs text-muted">
                   {[v.city, v.address].filter(Boolean).join(" · ") || "Sem morada"}
                 </span>
               </span>
@@ -181,6 +181,18 @@ export function VenuePicker({ value, venueId, sport, onChange }: Props) {
               ) : null}
             </li>
           ))}
+          {/* Licença ODbL: os campos vêm do OpenStreetMap e a atribuição tem de estar visível. */}
+          <li role="presentation" className="px-3 pb-1 pt-2 text-[11px] text-muted">
+            Campos ©{" "}
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:text-ink"
+            >
+              contribuidores do OpenStreetMap
+            </a>
+          </li>
         </ul>
       ) : null}
     </div>

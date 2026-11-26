@@ -101,7 +101,7 @@ export function GameForm({ game, draft, groups = [], groupId: fixedGroupId, subm
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {draft?.notes ? <Notice tone="warn">{draft.notes}</Notice> : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className={labelClass}>
           Desporto
           <select className={inputClass} value={sport} onChange={(e) => changeSport(e.target.value as Sport)}>

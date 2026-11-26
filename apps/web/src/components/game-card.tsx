@@ -30,17 +30,17 @@ export function GameCard({ game, faded }: { game: GameDto; faded?: boolean }) {
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <Link
             href={`/games/${game.id}`}
-            className="min-w-0 truncate font-semibold after:absolute after:inset-0 after:rounded-2xl"
+            className="min-w-0 line-clamp-2 font-semibold wrap-break-word after:absolute after:inset-0 after:rounded-2xl"
           >
             {game.title}
           </Link>
           {cancelled ? <Badge tone="danger">Cancelado</Badge> : null}
         </div>
-        <p className="mt-1 truncate text-sm text-muted">
+        <p className="mt-1 line-clamp-2 text-sm text-muted">
           <span aria-label={sport.label}>{sport.emoji}</span> {sport.label}
           {game.groupName ? <> · {game.groupName}</> : null}
         </p>
-        <p className="mt-0.5 truncate text-sm text-muted">{game.location}</p>
+        <p className="mt-0.5 line-clamp-2 text-sm text-muted">{game.location}</p>
         <p className="mt-0.5 text-sm text-muted">
           {formatGameDate(game.startsAt)} · {game.slots} vagas
         </p>

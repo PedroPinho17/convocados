@@ -68,14 +68,16 @@ export function VenuePicker({ value, venueId, sport, onChange }: Props) {
               }}
               style={({ pressed }) => [s.row, pressed ? { backgroundColor: c.brandSoft } : null]}
             >
-              <Text style={s.name} numberOfLines={1}>
+              <Text style={s.name} numberOfLines={2}>
                 {v.name}
               </Text>
-              <Text style={s.meta} numberOfLines={1}>
+              <Text style={s.meta} numberOfLines={2}>
                 {[v.city, v.address].filter(Boolean).join(" · ") || "Sem morada"}
               </Text>
             </Pressable>
           ))}
+          {/* Licença ODbL: os campos vêm do OpenStreetMap e a atribuição tem de estar visível. */}
+          <Text style={s.attribution}>Campos © contribuidores do OpenStreetMap</Text>
         </View>
       ) : null}
     </View>
@@ -93,4 +95,5 @@ const styles = (c: Palette) => ({
   row: { paddingHorizontal: 14, paddingVertical: 12, gap: 2, borderBottomWidth: 1, borderBottomColor: c.line },
   name: { fontSize: 15, fontWeight: "600" as const, color: c.ink },
   meta: { fontSize: 12, color: c.muted },
+  attribution: { fontSize: 11, color: c.muted, paddingHorizontal: 14, paddingVertical: 8 },
 });
