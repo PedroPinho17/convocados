@@ -9,10 +9,13 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
+    "test:cov": "turbo test:cov",
     "test:e2e": "turbo test:e2e",
+    "test:e2e:cov": "pnpm --filter api test:e2e:cov",
     "test:browser": "pnpm --filter web test:browser",
     "migration:check": "pnpm --filter api migration:check",
-    "db:up": "docker compose up -d"
+    "db:up": "docker compose up -d",
+    "coverage:summary": "node scripts/coverage-summary.mjs"
   },
   "devDependencies": {
     "turbo": "^2.11.13",

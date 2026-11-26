@@ -32,8 +32,13 @@
     "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
+    "@jest/globals": "30.5.2",
+    "@testing-library/react-native": "^14.1.0",
+    "@types/jest": "30.0.0",
     "@types/react": "~19.3.0",
     "eslint-config-expo": "~58.0.4",
+    "jest": "~30.5.2",
+    "jest-expo": "~58.0.15",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -45,7 +50,29 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:cov": "jest --coverage"
   },
-  "private": true
+  "private": true,
+  "jest": {
+    "preset": "jest-expo",
+    "roots": [
+      "<rootDir>/src"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.ts?(x)"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|expo-.*|@expo-google-fonts|react-navigation|@react-navigation|@convocados|socket.io-client|engine.io-client)/)"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.{ts,tsx}",
+      "!src/**/__tests__/**"
+    ],
+    "coverageReporters": [
+      "text-summary",
+      "json-summary"
+    ]
+  }
 }

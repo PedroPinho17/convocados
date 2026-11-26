@@ -38,12 +38,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-      - name: Testes unitários (shared e API)
-        run: pnpm test
+      - name: Testes unitários e de componentes (shared, API, web, mobile)
+        run: pnpm test:cov
       - name: Build (API e web)
         run: pnpm build
       - name: Testes e2e da API (Postgres)
-        run: pnpm test:e2e
+        run: pnpm test:e2e:cov
+      - name: Resumo da cobertura
+        if: always()
+        run: pnpm coverage:summary
       - name: Migrações batem certo com as entidades
         run: pnpm migration:check
       - name: Instalar o Chromium
