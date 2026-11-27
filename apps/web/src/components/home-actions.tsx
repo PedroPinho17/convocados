@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { getMe } from "@/lib/api";
 import { cn } from "@/components/ui";
@@ -92,5 +92,51 @@ export function HomeFooterLink() {
     <Link href={loggedIn ? "/games" : "/login"} className="hover:text-ink hover:underline">
       {loggedIn ? "Os meus jogos" : "Entrar"}
     </Link>
+  );
+}
+
+/** APK estável no GitHub Releases (nome do ficheiro fixo em cada v1.x). */
+export const ANDROID_APK_URL =
+  "https://github.com/PedroPinho17/convocados/releases/latest/download/convocados-1.0.0.apk";
+
+const emptySubscribe = () => () => {};
+const readIsIos = () => /iPad|iPhone|iPod/i.test(navigator.userAgent);
+/** No SSR assume não-iOS; no cliente lê o user agent. */
+function useIsIos(): boolean {
+  return useSyncExternalStore(emptySubscribe, readIsIos, () => false);
+}
+
+/**
+ * Botão para instalar a APK Android. Em iOS mostra só a nota (sem download);
+ * em Android e desktop mostra o botão + a nota.
+ */
+export function HomeAndroidInstall({ align = "start" }: { align?: "start" | "center" }) {
+  const isIos = useIsIos();
+
+  if (isIos) {
+    return (
+      <p
+        className={cn(
+          "max-w-md text-sm text-muted",
+          align === "center" && "mx-auto text-center",
+        )}
+      >
+        No iPhone usa a versão web — a app é só para Android.
+      </p>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex max-w-md flex-col gap-2",
+        align === "center" && "mx-auto items-center text-center",
+      )}
+    >
+      <a href={ANDROID_APK_URL} className={secondary} download>
+        Instalar app Android
+      </a>
+      <p className="text-sm text-muted">Android 8 ou superior. No iPhone usa a versão web.</p>
+    </div>
   );
 }

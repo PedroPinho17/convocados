@@ -25,6 +25,8 @@ teams and who has paid.
 
 **[convocados-web.onrender.com](https://convocados-web.onrender.com)**
 
+**[Download for Android](https://github.com/PedroPinho17/convocados/releases/latest/download/convocados-1.0.0.apk)** (Android 8+; iPhone users use the web app)
+
 1. Create an account and a game.
 2. Open the game's invite link in another browser (or on your phone) and confirm with a second account.
 3. Watch both screens: the list, the teams and the payments update without refreshing.

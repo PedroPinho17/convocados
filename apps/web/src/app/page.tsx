@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SPORTS, SPORT_KEYS } from "@convocados/shared";
 import { AppHeader } from "@/components/ui";
-import { HomeActions, HomeFooterLink, HomeNavAction } from "@/components/home-actions";
+import {
+  HomeActions,
+  HomeAndroidInstall,
+  HomeFooterLink,
+  HomeNavAction,
+} from "@/components/home-actions";
 
 export const metadata: Metadata = {
   title: "Convocados · Organiza os teus jogos",
@@ -66,6 +71,7 @@ export default function Home() {
                 espera, das equipas e de quem já pagou.
               </p>
               <HomeActions />
+              <HomeAndroidInstall />
               <p className="text-sm text-muted">
                 Grátis. Para {sportsLine}.
               </p>
@@ -158,6 +164,7 @@ export default function Home() {
             Funciona no browser, sem instalar nada. Há também app para Android; quem usa iPhone entra pela web.
           </p>
           <HomeActions align="center" />
+          <HomeAndroidInstall align="center" />
         </section>
       </main>
 
