@@ -2,6 +2,7 @@ import type {
   CreateGameInput,
   GameDetailDto,
   GameDto,
+  GameInviteDto,
   LoginInput,
   RegisterInput,
   UpdateGameInput,
@@ -87,18 +88,26 @@ export const createGame = (input: CreateGameInput) =>
 export const updateGame = (id: string, input: UpdateGameInput) =>
   request<GameDto>(`/games/${id}`, json(input, "PATCH"));
 
+/**
+ * Quem chega pelo link do convite ainda não está no jogo: manda o código para ter acesso.
+ * Sem ele, a API só deixa entrar o organizador, quem já está no jogo e os membros do grupo.
+ */
+const withInvite = (path: string, inviteCode?: string) =>
+  inviteCode ? `${path}?invite=${encodeURIComponent(inviteCode)}` : path;
+
 /** Jogo + confirmados + lista de espera. */
-export const getGameDetail = (id: string) => request<GameDetailDto>(`/games/${id}/detail`);
+export const getGameDetail = (id: string, inviteCode?: string) =>
+  request<GameDetailDto>(withInvite(`/games/${id}/detail`, inviteCode));
 
-/** Público — não precisa de sessão. */
+/** Público — não precisa de sessão. Só o essencial (sem pagamentos). */
 export const getInvite = (code: string) =>
-  request<GameDetailDto>(`/invites/${encodeURIComponent(code)}`);
+  request<GameInviteDto>(`/invites/${encodeURIComponent(code)}`);
 
-export const confirmGame = (gameId: string) =>
-  request<GameDetailDto>(`/games/${gameId}/confirm`, { method: "POST" });
+export const confirmGame = (gameId: string, inviteCode?: string) =>
+  request<GameDetailDto>(withInvite(`/games/${gameId}/confirm`, inviteCode), { method: "POST" });
 
-export const leaveGame = (gameId: string) =>
-  request<GameDetailDto>(`/games/${gameId}/leave`, { method: "POST" });
+export const leaveGame = (gameId: string, inviteCode?: string) =>
+  request<GameDetailDto>(withInvite(`/games/${gameId}/leave`, inviteCode), { method: "POST" });
 
 export const setPaid = (gameId: string, userId: string, paid: boolean) =>
   request<GameDetailDto>(

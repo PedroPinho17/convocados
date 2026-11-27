@@ -2,9 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { formatEuros, sportLabel, type GameDetailDto, type UserDto } from "@convocados/shared";
-import { ApiError, getInvite, getMe } from "@/lib/api";
+import {
+  formatEuros,
+  sportLabel,
+  type GameDetailDto,
+  type GameInviteDto,
+  type UserDto,
+} from "@convocados/shared";
+import { ApiError, getGameDetail, getInvite, getMe } from "@/lib/api";
 import { GameParticipation } from "@/components/game-participation";
+import { InvitePreview } from "@/components/invite-preview";
 import { subscribeGame } from "@/lib/socket";
 import { GameRatings } from "@/components/game-ratings";
 import { GameTeams } from "@/components/game-teams";
@@ -12,10 +19,18 @@ import { AppHeader, Badge, Notice, Page, navLinkClass } from "@/components/ui";
 import { formatGameDate } from "@/lib/format";
 import Link from "next/link";
 
+/**
+ * Página do convite (/i/<código>).
+ * - Sem sessão: o resumo público do jogo (sem pagamentos) e "Entra ou cria conta".
+ * - Com sessão: o detalhe completo, pedido com o código do convite (é ele que dá acesso
+ *   a quem ainda não está no jogo), para confirmar, desistir e ver tudo em tempo real.
+ */
 export function InviteClient() {
   const { code } = useParams<{ code: string }>();
+  const [invite, setInvite] = useState<GameInviteDto | null>(null);
   const [game, setGame] = useState<GameDetailDto | null>(null);
   const [me, setMe] = useState<UserDto | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,10 +45,13 @@ export function InviteClient() {
         throw err;
       }),
     ])
-      .then(([detail, user]) => {
+      .then(async ([preview, user]) => {
+        const detail = user ? await getGameDetail(preview.id, code) : null;
         if (cancelled) return;
-        setGame(detail);
+        setInvite(preview);
         setMe(user);
+        setGame(detail);
+        setLoaded(true);
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof ApiError ? err.message : "Erro ao abrir o convite.");
@@ -45,11 +63,15 @@ export function InviteClient() {
   }, [code]);
 
   useEffect(() => {
-    if (!game?.id || !me) return;
-    return subscribeGame(game.id, (detail) => {
-      if (detail.id === game.id) setGame(detail);
-    });
-  }, [game?.id, me]);
+    if (!game?.id || !me || !code) return;
+    return subscribeGame(
+      game.id,
+      (detail) => {
+        if (detail.id === game.id) setGame(detail);
+      },
+      code,
+    );
+  }, [game?.id, me, code]);
 
   const header = (
     <AppHeader>
@@ -61,7 +83,7 @@ export function InviteClient() {
     </AppHeader>
   );
 
-  if (error || !game) {
+  if (error || !loaded || !invite) {
     return (
       <>
         {header}
@@ -78,34 +100,46 @@ export function InviteClient() {
     );
   }
 
+  const summary = game ?? invite;
+
   return (
     <>
       {header}
       <Page>
         <section className="flex flex-col gap-2 rounded-2xl bg-brand p-5 text-brand-ink shadow-sm sm:p-7">
           <p className="text-sm font-semibold uppercase tracking-wide opacity-80">Foste convocado</p>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{game.title}</h1>
-          <p className="text-base font-medium">{formatGameDate(game.startsAt)}</p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{summary.title}</h1>
+          <p className="text-base font-medium">{formatGameDate(summary.startsAt)}</p>
           <p className="mt-1">
-            <Badge tone="brand">{sportLabel(game.sport)}</Badge>
+            <Badge tone="brand">{sportLabel(summary.sport)}</Badge>
           </p>
           <p className="text-sm opacity-90">
-            {game.location} · total {formatEuros(game.totalPriceCents)}
+            {summary.location} · total {formatEuros(summary.totalPriceCents)}
           </p>
-          {game.status === "cancelled" ? (
+          {summary.status === "cancelled" ? (
             <p role="status" className="mt-2 rounded-xl bg-danger-soft px-4 py-3 text-danger">
               Este jogo foi cancelado pelo organizador.
             </p>
           ) : null}
         </section>
         {me ? <p className="text-sm text-muted">Olá, {me.name}.</p> : null}
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
-          <GameParticipation game={game} me={me} loginNext={`/i/${code}`} onChange={setGame} />
-          <div className="flex flex-col gap-6">
-            <GameTeams game={game} me={me} onChange={setGame} />
-            <GameRatings game={game} me={me} />
+        {game && me ? (
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+            <GameParticipation
+              game={game}
+              me={me}
+              loginNext={`/i/${code}`}
+              inviteCode={code}
+              onChange={setGame}
+            />
+            <div className="flex flex-col gap-6">
+              <GameTeams game={game} me={me} onChange={setGame} />
+              <GameRatings game={game} me={me} />
+            </div>
           </div>
-        </div>
+        ) : (
+          <InvitePreview invite={invite} loginNext={`/i/${code}`} />
+        )}
       </Page>
     </>
   );

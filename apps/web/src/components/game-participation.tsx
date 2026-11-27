@@ -17,6 +17,8 @@ type Props = {
   me: UserDto | null;
   /** Para onde voltar depois do login (só usado sem sessão). */
   loginNext: string;
+  /** Na página do convite: o código dá acesso para confirmar/desistir antes de estar no jogo. */
+  inviteCode?: string;
   onChange: (game: GameDetailDto) => void;
 };
 
@@ -29,7 +31,7 @@ const initials = (name: string) =>
     .join("");
 
 /** Vagas, preço por pessoa, confirmar/desistir e as listas. Usado no convite e no detalhe do jogo. */
-export function GameParticipation({ game, me, loginNext, onChange }: Props) {
+export function GameParticipation({ game, me, loginNext, inviteCode, onChange }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   // Hora fixada ao abrir a página (o render tem de ser puro); a API valida de novo ao confirmar.
@@ -53,11 +55,14 @@ export function GameParticipation({ game, me, loginNext, onChange }: Props) {
   const unpaidCount = confirmed.filter((p) => !p.paid).length;
   const outstandingCents = shareCents * unpaidCount;
 
-  async function run(action: (id: string) => Promise<GameDetailDto>, fallback: string) {
+  async function run(
+    action: (id: string, inviteCode?: string) => Promise<GameDetailDto>,
+    fallback: string,
+  ) {
     setError(null);
     setPending(true);
     try {
-      onChange(await action(game.id));
+      onChange(await (inviteCode ? action(game.id, inviteCode) : action(game.id)));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : fallback);
     } finally {

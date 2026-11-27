@@ -38,6 +38,24 @@ describe("GameParticipation", () => {
     expect(onChange).toHaveBeenCalledWith(updated);
   });
 
+  it("na página do convite: confirmar e desistir levam o código (dá acesso a quem ainda não está no jogo)", async () => {
+    const confirmed = game({ participations: [player(PLAYER.id, "Ana")] });
+    api.confirmGame.mockResolvedValue(confirmed);
+    api.leaveGame.mockResolvedValue(game());
+    const { rerender } = render(
+      <GameParticipation game={game()} me={PLAYER} loginNext="/i/abcdef123456" inviteCode="abcdef123456" onChange={onChange} />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(api.confirmGame).toHaveBeenCalledWith("g1", "abcdef123456");
+
+    rerender(
+      <GameParticipation game={confirmed} me={PLAYER} loginNext="/i/abcdef123456" inviteCode="abcdef123456" onChange={onChange} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Desistir" }));
+    expect(api.leaveGame).toHaveBeenCalledWith("g1", "abcdef123456");
+  });
+
   it("vagas cheias mas há lugar na espera: entra na lista de espera", () => {
     const full = ["a", "b", "c", "d"].map((id) => player(id, id.toUpperCase()));
     show(game({ participations: full }));

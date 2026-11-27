@@ -4,6 +4,7 @@ import { INestApplication, StandardSchemaValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
+import { confirmPath, rememberInvite } from './invites.js';
 
 // Precisa do Postgres local (pnpm db:up) e do .env na raiz.
 describe('confirm concurrency (e2e)', () => {
@@ -56,12 +57,14 @@ describe('confirm concurrency (e2e)', () => {
         })
         .expect(201);
 
-      const gameId = created.body.id as string;
+      const gameId = rememberInvite(
+        created.body as { id: string; inviteCode: string },
+      ).id;
 
       const results = await Promise.all(
         tokens.map((token) =>
           request(server)
-            .post(`/games/${gameId}/confirm`)
+            .post(confirmPath(gameId))
             .set('Authorization', `Bearer ${token}`),
         ),
       );

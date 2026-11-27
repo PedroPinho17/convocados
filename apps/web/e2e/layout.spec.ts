@@ -74,7 +74,8 @@ test("quem entrou só pelo convite do jogo volta aos jogos, não ao grupo (onde 
   const guestCtx = await browser.newContext();
   const guest = await guestCtx.newPage();
   await register(guest, "Convidado");
-  await post(guest, `/games/${game.id}/confirm`);
+  // Não é do grupo: só tem acesso ao jogo pelo código do convite.
+  await post(guest, `/games/${game.id}/confirm?invite=${game.inviteCode}`);
   await guest.goto(`/games/${game.id}`);
 
   await expect(guest.getByRole("link", { name: "Voltar aos jogos" })).toHaveAttribute("href", "/games");

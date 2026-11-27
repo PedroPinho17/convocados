@@ -38,8 +38,11 @@ export class GamesController {
   }
 
   @Get(':id')
-  get(@Param('id', ParseUUIDPipe) id: string): Promise<GameDto> {
-    return this.games.get(id);
+  get(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UserDto,
+  ): Promise<GameDto> {
+    return this.games.get(id, user.id);
   }
 
   /** Só o organizador. Avisa por push quem estava confirmado ou em espera. */

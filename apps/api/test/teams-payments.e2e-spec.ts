@@ -8,6 +8,7 @@ import type { DataSource } from 'typeorm';
 import { Rating } from '@convocados/db';
 import type { GameDetailDto } from '@convocados/shared';
 import { AppModule } from './../src/app.module.js';
+import { confirmPath, rememberInvite } from './invites.js';
 
 // Precisa do Postgres local (pnpm db:up) e do .env na raiz.
 describe('pagamentos, avaliações e equipas (e2e)', () => {
@@ -72,9 +73,11 @@ describe('pagamentos, avaliações e equipas (e2e)', () => {
         totalPriceCents: 3000,
       })
       .expect(201);
-    const id = res.body.id as string;
+    const id = rememberInvite(
+      res.body as { id: string; inviteCode: string },
+    ).id;
     for (const n of confirmed) {
-      await as(t[n]!).post(`/games/${id}/confirm`).expect(200);
+      await as(t[n]!).post(confirmPath(id)).expect(200);
     }
     return id;
   }
@@ -272,7 +275,7 @@ describe('pagamentos, avaliações e equipas (e2e)', () => {
         .expect(200);
 
       await as(t.A!).post(`/games/${id}/leave`).expect(200);
-      const res = await as(t.D!).post(`/games/${id}/confirm`).expect(200);
+      const res = await as(t.D!).post(confirmPath(id)).expect(200);
       const players = (res.body as GameDetailDto).teams.flatMap((x) =>
         x.players.map((p) => p.userId),
       );

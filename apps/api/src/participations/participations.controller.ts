@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   setPaidSchema,
@@ -15,8 +16,13 @@ import {
   type UserDto,
 } from '@convocados/shared';
 import { CurrentUser } from '../auth/auth.decorators.js';
+import { normalizeInviteCode } from '../games/game-access.js';
 import { ParticipationsService } from './participations.service.js';
 
+/**
+ * Detalhe, confirmar e desistir: só quem tem acesso ao jogo (ver games/game-access.ts).
+ * Quem chega pelo link do convite manda o código em `?invite=<código>`.
+ */
 @Controller('games/:gameId')
 export class ParticipationsController {
   constructor(private readonly participations: ParticipationsService) {}
@@ -24,8 +30,14 @@ export class ParticipationsController {
   @Get('detail')
   getDetail(
     @Param('gameId', ParseUUIDPipe) gameId: string,
+    @CurrentUser() user: UserDto,
+    @Query('invite') invite?: string,
   ): Promise<GameDetailDto> {
-    return this.participations.getDetail(gameId);
+    return this.participations.getDetailFor(
+      gameId,
+      user.id,
+      normalizeInviteCode(invite),
+    );
   }
 
   @Post('confirm')
@@ -33,8 +45,13 @@ export class ParticipationsController {
   confirm(
     @Param('gameId', ParseUUIDPipe) gameId: string,
     @CurrentUser() user: UserDto,
+    @Query('invite') invite?: string,
   ): Promise<GameDetailDto> {
-    return this.participations.confirm(gameId, user.id);
+    return this.participations.confirm(
+      gameId,
+      user.id,
+      normalizeInviteCode(invite),
+    );
   }
 
   @Post('leave')
@@ -42,8 +59,13 @@ export class ParticipationsController {
   leave(
     @Param('gameId', ParseUUIDPipe) gameId: string,
     @CurrentUser() user: UserDto,
+    @Query('invite') invite?: string,
   ): Promise<GameDetailDto> {
-    return this.participations.leave(gameId, user.id);
+    return this.participations.leave(
+      gameId,
+      user.id,
+      normalizeInviteCode(invite),
+    );
   }
 
   @Patch('participations/:userId/paid')

@@ -11,6 +11,7 @@ import type { DataSource } from 'typeorm';
 import { PushToken } from '@convocados/db';
 import type { GameDetailDto, RemindersDto } from '@convocados/shared';
 import { AppModule } from './../src/app.module.js';
+import { confirmPath, rememberInvite } from './invites.js';
 
 // URL de um pedido do fetch, seja string, URL ou Request.
 const urlOf = (input: string | URL | Request) =>
@@ -122,7 +123,7 @@ describe('tempo real e notificações (e2e)', () => {
         totalPriceCents: 3000,
       })
       .expect(201);
-    return res.body as { id: string };
+    return rememberInvite(res.body as { id: string; inviteCode: string });
   }
 
   /** Regista um token Expo para o utilizador e devolve-o. */
@@ -167,7 +168,7 @@ describe('tempo real e notificações (e2e)', () => {
     const t = await users('A', 'B', 'C');
     const { id } = await newGame(t.A, 2, 2);
     for (const n of ['A', 'B', 'C'])
-      await as(t[n]).post(`/games/${id}/confirm`).expect(200);
+      await as(t[n]).post(confirmPath(id)).expect(200);
     const cDevice = await device(t.C);
 
     const s = await watch(t.A, id);
@@ -187,7 +188,7 @@ describe('tempo real e notificações (e2e)', () => {
     const t = await users('A', 'B', 'C');
     const { id } = await newGame(t.A, 2, 2);
     for (const n of ['A', 'B', 'C'])
-      await as(t[n]).post(`/games/${id}/confirm`).expect(200);
+      await as(t[n]).post(confirmPath(id)).expect(200);
     const cDevice = await device(t.C);
 
     const s = await watch(t.B, id);
@@ -204,7 +205,7 @@ describe('tempo real e notificações (e2e)', () => {
     const t = await users('Org', 'B');
     const { id } = await newGame(t.Org, 4, 2);
     for (const n of ['Org', 'B'])
-      await as(t[n]).post(`/games/${id}/confirm`).expect(200);
+      await as(t[n]).post(confirmPath(id)).expect(200);
     const orgDevice = await device(t.Org);
 
     await as(t.B).post(`/games/${id}/leave`).expect(200);
@@ -222,7 +223,7 @@ describe('tempo real e notificações (e2e)', () => {
     const t = await users('A', 'B', 'C');
     const { id } = await newGame(t.A, 2, 1);
     for (const n of ['A', 'B', 'C'])
-      await as(t[n]).post(`/games/${id}/confirm`).expect(200);
+      await as(t[n]).post(confirmPath(id)).expect(200);
     await device(t.C);
 
     expoDown = true;
@@ -234,7 +235,7 @@ describe('tempo real e notificações (e2e)', () => {
     const t = await users('Org', 'B');
     const { id } = await newGame(t.Org, 4, 0);
     for (const n of ['Org', 'B'])
-      await as(t[n]).post(`/games/${id}/confirm`).expect(200);
+      await as(t[n]).post(confirmPath(id)).expect(200);
     const dead = await device(t.Org);
     expoReply = () => ({
       status: 'error',
@@ -254,7 +255,7 @@ describe('tempo real e notificações (e2e)', () => {
     const t = await users('Org', 'B');
     const { id } = await newGame(t.Org, 4, 0);
     for (const n of ['Org', 'B'])
-      await as(t[n]).post(`/games/${id}/confirm`).expect(200);
+      await as(t[n]).post(confirmPath(id)).expect(200);
     const orgDevice = await device(t.Org);
     await as(t.Org)
       .post('/push/unregister')
@@ -276,10 +277,54 @@ describe('tempo real e notificações (e2e)', () => {
     });
   });
 
+  it('joinGame: só entra na sala quem tem acesso ao jogo (ou traz o convite)', async () => {
+    const t = await users('Org', 'A', 'Intruso', 'Convidado');
+    const game = await newGame(t.Org, 4, 0);
+    const other = await newGame(t.Org, 4, 0);
+    await as(t.A).post(confirmPath(game.id)).expect(200);
+
+    // Organizador e confirmados entram só com o id.
+    await watch(t.Org, game.id);
+    await watch(t.A, game.id);
+
+    // Sem acesso: a mesma resposta de um jogo que não existe.
+    const intruder = await connect(t.Intruso);
+    expect(await intruder.emitWithAck('joinGame', game.id)).toEqual({
+      ok: false,
+    });
+    expect(
+      await intruder.emitWithAck('joinGame', {
+        gameId: game.id,
+        inviteCode: other.inviteCode,
+      }),
+    ).toEqual({ ok: false });
+    expect(await intruder.emitWithAck('joinGame', randomUUID())).toEqual({
+      ok: false,
+    });
+
+    // Quem abre o link do convite entra na sala com o código e recebe as atualizações.
+    const guest = await connect(t.Convidado);
+    expect(
+      await guest.emitWithAck('joinGame', {
+        gameId: game.id,
+        inviteCode: game.inviteCode,
+      }),
+    ).toEqual({ ok: true });
+
+    let intruderGotUpdate = false;
+    intruder.on('gameUpdated', () => {
+      intruderGotUpdate = true;
+    });
+    const update = nextUpdate(guest);
+    await as(t.A).post(`/games/${game.id}/leave`).expect(200);
+    expect((await update).confirmedCount).toBe(0);
+    expect(intruderGotUpdate).toBe(false);
+  });
+
   it('lembretes: por defeito 2 h antes; só aceita até 3 valores da lista', async () => {
     const t = await users('A', 'B');
     const { id } = await newGame(t.A, 4, 0);
-    await as(t.B).post(`/games/${id}/confirm`).expect(200);
+    await as(t.B).post(confirmPath(id)).expect(200);
 
     let res = await as(t.B).get('/push/reminders').expect(200);
     let body = res.body as RemindersDto;

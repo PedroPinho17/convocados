@@ -63,7 +63,8 @@ describe('API (e2e)', () => {
 
       const other = await newUser('outro');
       await other.patch(`/games/${id}`).send({ title: 'x' }).expect(403);
-      await other.get(`/games/${id}`).expect(200);
+      // Sem convite nem lugar no jogo, nem se fica a saber que existe.
+      await other.get(`/games/${id}`).expect(404);
 
       await organizer.patch('/games/nao-e-uuid').send({ title: 'x' }).expect(400);
       await organizer.patch(`/games/${id}`).send({ slots: 1 }).expect(400);

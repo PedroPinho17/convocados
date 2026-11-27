@@ -6,8 +6,9 @@ import request from 'supertest';
 import { App } from 'supertest/types.js';
 import type { DataSource } from 'typeorm';
 import { PushToken } from '@convocados/db';
-import type { GameDetailDto } from '@convocados/shared';
+import type { GameDetailDto, GroupDto } from '@convocados/shared';
 import { AppModule } from './../src/app.module.js';
+import { confirmPath, rememberInvite } from './invites.js';
 
 /**
  * Segurança num só sítio: autenticação, autorização (ninguém mexe no que não é seu),
@@ -53,6 +54,7 @@ describe('segurança (e2e)', () => {
       post: (path: string) => auth(request(server()).post(path)),
       patch: (path: string) => auth(request(server()).patch(path)),
       put: (path: string) => auth(request(server()).put(path)),
+      delete: (path: string) => auth(request(server()).delete(path)),
     };
   };
 
@@ -65,12 +67,16 @@ describe('segurança (e2e)', () => {
     totalPriceCents: 3000,
   };
 
+  /** Cria o jogo e confirma os jogadores pelo convite (como quem abre o link). */
   async function gameOf(owner: U, ...confirmed: U[]) {
     const res = await as(owner).post('/games').send(newGame).expect(201);
+    const game = rememberInvite(
+      res.body as { id: string; inviteCode: string },
+    );
     for (const u of confirmed) {
-      await as(u).post(`/games/${res.body.id}/confirm`).expect(200);
+      await as(u).post(confirmPath(game.id)).expect(200);
     }
-    return res.body as { id: string; inviteCode: string };
+    return game;
   }
 
   describe('autenticação', () => {
@@ -173,10 +179,11 @@ describe('segurança (e2e)', () => {
 
     it('confirmar e desistir só valem para quem tem a sessão (userId no pedido é ignorado)', async () => {
       const t = await users('Org', 'Vitima', 'Intruso');
-      const { id } = await gameOf(t.Org!, t.Vitima!);
+      const { id, inviteCode } = await gameOf(t.Org!, t.Vitima!);
 
+      // Mesmo com o convite (acesso ao jogo), desistir só tira quem tem a sessão.
       await as(t.Intruso!)
-        .post(`/games/${id}/leave`)
+        .post(`/games/${id}/leave?invite=${inviteCode}`)
         .send({ userId: t.Vitima!.id })
         .expect(200);
       const detail = (await as(t.Org!).get(`/games/${id}/detail`).expect(200))
@@ -208,6 +215,114 @@ describe('segurança (e2e)', () => {
     });
   });
 
+  describe('acesso aos jogos: só quem tem lugar, grupo ou convite', () => {
+    const notFound = async (path: string, u: U, method: 'get' | 'post') => {
+      const res = await as(u)[method](path).expect(404);
+      return res.body.message as string;
+    };
+
+    it('sem acesso: detalhe, jogo, confirmar e desistir dão 404 (igual a um jogo que não existe)', async () => {
+      const t = await users('Org', 'A', 'Intruso');
+      const { id } = await gameOf(t.Org!, t.A!);
+      const other = await gameOf(t.Org!);
+      const missing = await notFound(
+        `/games/${randomUUID()}/detail`,
+        t.Intruso!,
+        'get',
+      );
+
+      for (const [method, path] of [
+        ['get', `/games/${id}/detail`],
+        ['get', `/games/${id}`],
+        ['post', `/games/${id}/confirm`],
+        ['post', `/games/${id}/leave`],
+        // O código de outro jogo não abre este.
+        ['get', `/games/${id}/detail?invite=${other.inviteCode}`],
+        ['post', `/games/${id}/confirm?invite=${other.inviteCode}`],
+        ['get', `/games/${id}/detail?invite=nao-e-codigo`],
+      ] as const) {
+        expect({ path, message: await notFound(path, t.Intruso!, method) }).toEqual(
+          { path, message: missing },
+        );
+      }
+
+      const detail = (await as(t.Org!).get(`/games/${id}/detail`).expect(200))
+        .body as GameDetailDto;
+      expect(detail.participations.map((p) => p.userId)).toEqual([t.A!.id]);
+    });
+
+    it('com acesso: organizador, confirmados, lista de espera e quem traz o convite', async () => {
+      const t = await users('Org', 'A', 'B', 'Espera', 'Convidado');
+      const res = await as(t.Org!)
+        .post('/games')
+        .send({ ...newGame, slots: 2, subs: 1 })
+        .expect(201);
+      const { id, inviteCode } = rememberInvite(
+        res.body as { id: string; inviteCode: string },
+      );
+      for (const u of [t.A!, t.B!, t.Espera!]) {
+        await as(u).post(confirmPath(id)).expect(200);
+      }
+
+      for (const u of [t.Org!, t.A!, t.B!, t.Espera!]) {
+        await as(u).get(`/games/${id}/detail`).expect(200);
+        await as(u).get(`/games/${id}`).expect(200);
+      }
+
+      // Convidado: sem código não vê; com o código (maiúsculas também) vê, e confirmar
+      // pelo convite continua a funcionar (aqui o jogo está cheio: 409, não 404).
+      await as(t.Convidado!).get(`/games/${id}/detail`).expect(404);
+      await as(t.Convidado!)
+        .get(`/games/${id}/detail?invite=${inviteCode.toUpperCase()}`)
+        .expect(200);
+      await as(t.Convidado!)
+        .post(`/games/${id}/confirm?invite=${inviteCode}`)
+        .expect(409);
+    });
+
+    it('quem desiste deixa de ter acesso pelo id, mas volta pelo convite', async () => {
+      const t = await users('Org', 'A');
+      const { id, inviteCode } = await gameOf(t.Org!, t.A!);
+
+      await as(t.A!).post(`/games/${id}/leave`).expect(200);
+      await as(t.A!).get(`/games/${id}/detail`).expect(404);
+      await as(t.A!).post(`/games/${id}/confirm`).expect(404);
+
+      const back = (
+        await as(t.A!).post(`/games/${id}/confirm?invite=${inviteCode}`).expect(200)
+      ).body as GameDetailDto;
+      expect(back.participations.map((p) => p.userId)).toEqual([t.A!.id]);
+    });
+
+    it('jogos de um grupo: os membros veem e confirmam sem convite; quem sai do grupo deixa de ver', async () => {
+      const t = await users('Org', 'Membro', 'Fora');
+      const group = (
+        await as(t.Org!)
+          .post('/groups')
+          .send({ name: 'Futebol de quinta', sport: 'football' })
+          .expect(201)
+      ).body as GroupDto;
+      await as(t.Membro!)
+        .post(`/group-invites/${group.inviteCode}/join`)
+        .expect(200);
+      const game = (
+        await as(t.Org!)
+          .post('/games')
+          .send({ ...newGame, groupId: group.id })
+          .expect(201)
+      ).body as { id: string };
+
+      await as(t.Membro!).get(`/games/${game.id}/detail`).expect(200);
+      await as(t.Fora!).get(`/games/${game.id}/detail`).expect(404);
+      await as(t.Fora!).post(`/games/${game.id}/confirm`).expect(404);
+
+      await as(t.Membro!).post(`/games/${game.id}/confirm`).expect(200);
+      await as(t.Membro!).post(`/games/${game.id}/leave`).expect(200);
+      await as(t.Membro!).post(`/groups/${group.id}/leave`).expect(204);
+      await as(t.Membro!).get(`/games/${game.id}/detail`).expect(404);
+    });
+  });
+
   describe('campos que o cliente não escolhe', () => {
     it('criar ou editar um jogo ignora organizador, código de convite e estado enviados', async () => {
       const t = await users('Org', 'Outro');
@@ -236,7 +351,7 @@ describe('segurança (e2e)', () => {
       const t = await users('Org', 'A');
       const { id } = await gameOf(t.Org!);
       const res = await as(t.A!)
-        .post(`/games/${id}/confirm`)
+        .post(confirmPath(id))
         .send({ status: 'confirmed', position: 0, paid: true })
         .expect(200);
       const mine = (res.body as GameDetailDto).participations.find(
@@ -251,15 +366,44 @@ describe('segurança (e2e)', () => {
   });
 
   describe('dados que nunca saem da API', () => {
-    it('o convite público não mostra emails nem hashes', async () => {
+    it('o convite público não mostra emails, hashes, pagamentos nem ids de utilizadores', async () => {
       const t = await users('Org', 'A');
-      const { inviteCode } = await gameOf(t.Org!, t.Org!, t.A!);
+      const { id, inviteCode } = await gameOf(t.Org!, t.Org!, t.A!);
+      await as(t.Org!)
+        .patch(`/games/${id}/participations/${t.A!.id}/paid`)
+        .send({ paid: true })
+        .expect(200);
+
       const res = await request(server())
         .get(`/invites/${inviteCode}`)
         .expect(200);
       const body = JSON.stringify(res.body);
       expect(body).not.toContain('@');
       expect(body).not.toMatch(/password|hash|token|email/i);
+      expect(body).not.toMatch(/"paid"/);
+      expect(body).not.toContain(t.A!.id);
+      expect(body).not.toContain(t.Org!.id);
+      expect(body).not.toContain(inviteCode);
+      expect(Object.keys(res.body).sort()).toEqual(
+        [
+          'confirmedCount',
+          'id',
+          'location',
+          'players',
+          'slots',
+          'sport',
+          'startsAt',
+          'status',
+          'subs',
+          'title',
+          'totalPriceCents',
+          'waitingCount',
+        ].sort(),
+      );
+      expect(res.body.players).toEqual([
+        { name: 'Org', status: 'confirmed' },
+        { name: 'A', status: 'confirmed' },
+      ]);
     });
 
     it('nenhuma resposta da conta traz a password ou o hash', async () => {

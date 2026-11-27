@@ -9,6 +9,7 @@ import { App } from 'supertest/types.js';
 import { io } from 'socket.io-client';
 import type { DataSource } from 'typeorm';
 import type { GameDetailDto, RemindersDto } from '@convocados/shared';
+import { confirmPath, rememberInvite } from './invites.js';
 
 // URL de um pedido do fetch, seja string, URL ou Request.
 const urlOf = (input: string | URL | Request) =>
@@ -120,7 +121,7 @@ describe('conta, password e cancelar jogos (e2e)', () => {
         totalPriceCents: 3000,
       })
       .expect(201);
-    return res.body.id as string;
+    return rememberInvite(res.body as { id: string; inviteCode: string }).id;
   }
 
   async function device(u: U) {
@@ -268,7 +269,7 @@ describe('conta, password e cancelar jogos (e2e)', () => {
       const t = await users('Org', 'A', 'B', 'C');
       const id = await game(t.Org!, 2, 2);
       for (const n of ['Org', 'A', 'B'])
-        await as(t[n]!).post(`/games/${id}/confirm`).expect(200);
+        await as(t[n]!).post(confirmPath(id)).expect(200);
       const aDevice = await device(t.A!);
       const bDevice = await device(t.B!);
       await device(t.Org!);
@@ -281,7 +282,7 @@ describe('conta, password e cancelar jogos (e2e)', () => {
       expect(pushes.map((p) => p.to).sort()).toEqual([aDevice, bDevice].sort());
       expect(pushes[0]!.title).toBe('Jogo cancelado');
 
-      await as(t.C!).post(`/games/${id}/confirm`).expect(409);
+      await as(t.C!).post(confirmPath(id)).expect(409);
       await as(t.Org!).patch(`/games/${id}`).send({ slots: 4 }).expect(409);
       await as(t.Org!).post(`/games/${id}/teams`).send({}).expect(409);
 
@@ -302,7 +303,7 @@ describe('conta, password e cancelar jogos (e2e)', () => {
       const t = await users('Org', 'Sai', 'Espera');
       const id = await game(t.Org!, 2, 2);
       for (const n of ['Org', 'Sai', 'Espera'])
-        await as(t[n]!).post(`/games/${id}/confirm`).expect(200);
+        await as(t[n]!).post(confirmPath(id)).expect(200);
 
       await as(t.Sai!)
         .delete('/account')
@@ -326,7 +327,7 @@ describe('conta, password e cancelar jogos (e2e)', () => {
     it('quem organiza jogos marcados com outros tem de os cancelar primeiro', async () => {
       const t = await users('Org', 'A');
       const id = await game(t.Org!);
-      await as(t.A!).post(`/games/${id}/confirm`).expect(200);
+      await as(t.A!).post(confirmPath(id)).expect(200);
 
       const res = await as(t.Org!)
         .delete('/account')

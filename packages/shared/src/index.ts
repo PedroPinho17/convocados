@@ -82,7 +82,30 @@ export type ParticipationDto = {
   joinedAt: string; // ISO
 };
 
-/** Jogo + listas (detalhe e página de convite). */
+/**
+ * GET /invites/:code — público, sem sessão: só o que a página de convite mostra a quem
+ * ainda não entrou. Sem pagamentos, ids de utilizadores, código do convite nem grupo.
+ */
+export type GameInviteDto = {
+  id: string;
+  title: string;
+  location: string;
+  startsAt: string; // ISO
+  slots: number;
+  subs: number;
+  totalPriceCents: number;
+  status: GameDto["status"];
+  sport: Sport;
+  confirmedCount: number;
+  waitingCount: number;
+  /** Confirmados e lista de espera, pela ordem da convocatória. */
+  players: { name: string; status: "confirmed" | "waiting" }[];
+};
+
+/**
+ * Jogo + listas (detalhe). Só para quem tem acesso ao jogo: organizador, confirmados,
+ * lista de espera, membros do grupo, ou quem apresenta o código do convite.
+ */
 export type GameDetailDto = GameDto & {
   confirmedCount: number;
   waitingCount: number;

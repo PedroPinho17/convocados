@@ -25,9 +25,9 @@ import {
 } from '../participations/participations.service.js';
 import { GroupsService } from '../groups/groups.service.js';
 import { PushService } from '../push/push.service.js';
+import { assertGameAccess } from './game-access.js';
 
-/** 12 hex = 48 bits: curto para o link/QR e impossível de adivinhar à força. */
-export const INVITE_CODE_RE = /^[0-9a-f]{8,32}$/;
+/** 12 hex = 48 bits: curto para o link/QR e impossível de adivinhar à força (ver game-access.ts). */
 function newInviteCode() {
   return randomBytes(6).toString('hex');
 }
@@ -141,7 +141,9 @@ export class GamesService {
     return rows.map(toGameDto);
   }
 
-  async get(id: string): Promise<GameDto> {
+  /** Traz o código do convite: só para quem tem acesso ao jogo (404 para os outros). */
+  async get(id: string, userId: string): Promise<GameDto> {
+    await assertGameAccess(this.dataSource.manager, id, userId);
     const game = await this.games.findOneBy({ id });
     if (!game) throw new NotFoundException('Jogo não encontrado.');
     return toGameDto(game);

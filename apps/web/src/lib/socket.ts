@@ -32,22 +32,28 @@ export function resetSocket(): void {
   socket = null;
 }
 
+/**
+ * Atualizações do jogo em tempo real. Quem veio pelo link do convite (e ainda não está no
+ * jogo) manda o código: sem acesso, a API não o deixa entrar na sala.
+ */
 export function subscribeGame(
   gameId: string,
   onUpdate: (detail: GameDetailDto) => void,
+  inviteCode?: string,
 ): () => void {
   const s = getSocket();
+  const join = () => s.emit("joinGame", inviteCode ? { gameId, inviteCode } : gameId);
 
   // Também ao religar (rede caiu, separador voltou): o servidor esquece as salas.
   const onConnect = () => {
-    s.emit("joinGame", gameId);
+    join();
   };
 
   s.on("gameUpdated", onUpdate);
   s.on("connect", onConnect);
 
   if (s.connected) {
-    s.emit("joinGame", gameId);
+    join();
   } else {
     s.connect();
   }

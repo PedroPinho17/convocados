@@ -11,6 +11,7 @@ import { Game, Participation, TeamAssignment, User } from '@convocados/db';
 import type {
   GameDetailDto,
   GameDto,
+  GameInviteDto,
   ParticipationDto,
   ParticipationStatus,
   Sport,
@@ -18,6 +19,7 @@ import type {
 } from '@convocados/shared';
 import { GamesGateway } from '../realtime/games.gateway.js';
 import { PushService } from '../push/push.service.js';
+import { assertGameAccess } from '../games/game-access.js';
 
 export const toGameDto = (g: Game): GameDto => ({
   id: g.id,
@@ -116,16 +118,49 @@ export class ParticipationsService {
     return detail;
   }
 
-  async getDetailByInviteCode(code: string): Promise<GameDetailDto> {
+  /** O detalhe para quem o pede: 404 se não tiver acesso ao jogo (ver game-access.ts). */
+  async getDetailFor(
+    gameId: string,
+    userId: string,
+    inviteCode?: string | null,
+  ): Promise<GameDetailDto> {
+    await assertGameAccess(this.dataSource.manager, gameId, userId, inviteCode);
+    return this.getDetail(gameId);
+  }
+
+  /** Página de convite (pública): só o essencial, sem pagamentos nem ids de utilizadores. */
+  async getInvite(code: string): Promise<GameInviteDto> {
     const game = await this.dataSource.manager.findOneBy(Game, {
       inviteCode: code,
     });
     if (!game)
       throw new NotFoundException('Convite inválido ou jogo não encontrado.');
-    return this.buildDetail(this.dataSource.manager, game.id);
+    const detail = await this.buildDetail(this.dataSource.manager, game.id);
+    return {
+      id: detail.id,
+      title: detail.title,
+      location: detail.location,
+      startsAt: detail.startsAt,
+      slots: detail.slots,
+      subs: detail.subs,
+      totalPriceCents: detail.totalPriceCents,
+      status: detail.status,
+      sport: detail.sport,
+      confirmedCount: detail.confirmedCount,
+      waitingCount: detail.waitingCount,
+      players: detail.participations.map((p) => ({
+        name: p.userName,
+        status: p.status === 'waiting' ? 'waiting' : 'confirmed',
+      })),
+    };
   }
 
-  async confirm(gameId: string, userId: string): Promise<GameDetailDto> {
+  async confirm(
+    gameId: string,
+    userId: string,
+    inviteCode?: string | null,
+  ): Promise<GameDetailDto> {
+    await assertGameAccess(this.dataSource.manager, gameId, userId, inviteCode);
     const detail = await this.dataSource.transaction(async (manager) => {
       const game = await lockGame(manager, gameId);
       if (game.status !== 'open') {
@@ -188,7 +223,12 @@ export class ParticipationsService {
     return detail;
   }
 
-  async leave(gameId: string, userId: string): Promise<GameDetailDto> {
+  async leave(
+    gameId: string,
+    userId: string,
+    inviteCode?: string | null,
+  ): Promise<GameDetailDto> {
+    await assertGameAccess(this.dataSource.manager, gameId, userId, inviteCode);
     let promotedIds: string[] = [];
     let confirmedLeft = false;
 
