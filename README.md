@@ -63,6 +63,16 @@ servers wake up.
 - **Paste the WhatsApp message** ("Thursday 9pm at the sports hall, 10 of us, 30€") and the form fills itself.
   If the AI is unavailable, the normal form is always there.
 - **Account basics:** password reset by email, delete account, privacy page.
+- **Player profile.** Preferred position and foot, city, bio, and stats from games already played
+  (games played/organised, average rating after kick-off, last five games). Edit yours at `/profile`;
+  open someone else’s from a game’s player list at `/players/[id]` (public-safe: no email).
+
+### Profile
+
+Each player has an optional profile on top of the existing account name: preferred pitch position
+(GK / DEF / MID / FWD / ANY), preferred foot, city and a short bio. Stats are computed from
+participations and ratings that already exist — no duplicated data. The public profile never
+exposes email or other private fields.
 
 Android app via Expo; iPhone users use the web app (no App Store fee).
 

@@ -63,6 +63,16 @@ cerca de um minuto, enquanto os servidores acordam.
 - **Colar a mensagem do WhatsApp** ("quinta às 21h no pavilhão, somos 10, 30€") e o formulário fica preenchido.
   Se a IA não estiver disponível, o formulário normal está sempre lá.
 - **O básico da conta:** recuperar a password por email, apagar a conta e página de privacidade.
+- **Perfil de jogador.** Posição e pé preferidos, cidade, bio e estatísticas a partir dos jogos já
+  jogados (jogos, organizados, média de avaliações depois do kick-off, últimos cinco jogos). Edita o
+  teu em `/profile`; o de outro jogador abre a partir da lista do jogo em `/players/[id]` (sem email).
+
+### Perfil
+
+Cada jogador tem um perfil opcional sobre o nome da conta: posição preferida no campo
+(GR / Defesa / Médio / Avançado / Qualquer), pé preferido, cidade e uma bio curta. As estatísticas
+vêm das participações e avaliações que já existem — sem dados duplicados. O perfil público nunca
+mostra o email nem outros dados privados.
 
 App Android com Expo; quem usa iPhone entra pela versão web (sem a taxa da App Store).
 
