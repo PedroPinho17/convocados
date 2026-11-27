@@ -28,6 +28,8 @@ import {
 import { priceRangeText } from "../../lib/price";
 import { GameForm } from "../../components/game-form";
 import { InviteQr } from "../../components/invite-qr";
+import { GameResultCard } from "../../components/game-result";
+import { AttendanceForecastCard } from "../../components/attendance-forecast";
 import { subscribeGame } from "../../lib/socket";
 import { syncReminders } from "../../lib/reminders";
 import { WEB_ORIGIN } from "../../lib/links";
@@ -542,6 +544,14 @@ export default function GameDetailScreen() {
       </Card>
     ) : null;
 
+  const forecast = !cancelled ? (
+    <AttendanceForecastCard gameId={id} isOrganizer={isOrganizer} cancelled={cancelled} />
+  ) : null;
+
+  const resultCard = !cancelled ? (
+    <GameResultCard game={game} isOrganizer={isOrganizer} onChange={setGame} />
+  ) : null;
+
   const danger =
     isOrganizer && game.status === "open" ? (
       <Card style={{ borderColor: c.danger }}>
@@ -564,7 +574,9 @@ export default function GameDetailScreen() {
         side={
           <>
             {invite}
+            {forecast}
             {teams}
+            {resultCard}
             {ratings}
             {danger}
           </>
