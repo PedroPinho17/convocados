@@ -1,0 +1,30 @@
+name: Keep Render awake
+
+# O plano gratuito do Render adormece ao fim de 15 min sem pedidos, e o primeiro pedido
+# depois disso demora cerca de 1 min. Este ping mantém a API e a web acordadas só nas
+# horas em que se marcam e confirmam jogos.
+#
+# Porque não 24 h: o Render dá 750 h grátis por mês para TODOS os serviços gratuitos
+# da conta. API + web acordadas o mês inteiro seriam ~1440 h; ao passar das 750 h, o
+# Render suspende os serviços gratuitos até ao fim do mês. Das 17h às 23h são ~360 h.
+#
+# A API é chamada em /health/live, que não toca na base de dados: assim o Neon continua a
+# adormecer e não gasta as horas de computação do plano gratuito.
+on:
+  schedule:
+    # A cada 10 min, das 17:00 às 22:50 UTC (em Portugal: a mesma hora no inverno, +1 h no verão).
+    # O GitHub pode atrasar alguns minutos os agendamentos quando está carregado.
+    - cron: "*/10 17-22 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: API
+        run: curl -fsS --retry 2 --retry-delay 20 -m 90 -o /dev/null -w "%{http_code} em %{time_total}s\n" https://convocados-api.onrender.com/health/live
+      - name: Web
+        run: curl -fsS --retry 2 --retry-delay 20 -m 90 -o /dev/null -w "%{http_code} em %{time_total}s\n" https://convocados-web.onrender.com/
