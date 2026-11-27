@@ -6,6 +6,7 @@ import { ApiError, getReminders, setReminders } from "../lib/api";
 import { ensureNotificationPermission } from "../lib/push";
 import { syncReminders } from "../lib/reminders";
 import { DeleteAccount } from "../components/delete-account";
+import { signOut } from "../lib/session";
 import { Button, Card, Muted, Notice, Screen } from "../components/ui";
 import { radius, usePalette, useThemedStyles, type Palette } from "../lib/theme";
 
@@ -106,6 +107,11 @@ export default function SettingsScreen() {
         </Card>
 
         <Card>
+          <Button
+            label="Terminar sessão"
+            variant="secondary"
+            onPress={() => void signOut().then(() => router.replace("/login"))}
+          />
           <DeleteAccount />
         </Card>
       </View>

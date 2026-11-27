@@ -21,6 +21,10 @@ import type {
   VenueDto,
   VenueSearchInput,
   CreateVenueInput,
+  CreateGroupInput,
+  GroupDetailDto,
+  GroupDto,
+  GroupInviteDto,
 } from "@convocados/shared";
 
 const API = process.env.EXPO_PUBLIC_API_URL;
@@ -170,3 +174,16 @@ export function searchVenues(input: VenueSearchInput, signal?: AbortSignal) {
   }
   return request<VenueDto[]>(`/venues?${params}`, { signal });
 }
+
+// Grupos (iguais aos da web)
+export const listGroups = () => request<GroupDto[]>("/groups");
+export const createGroup = (input: CreateGroupInput) => request<GroupDto>("/groups", json(input));
+export const getGroup = (id: string) => request<GroupDetailDto>(`/groups/${id}`);
+export const leaveGroup = (id: string) => request<void>(`/groups/${id}/leave`, { method: "POST" });
+export const removeGroupMember = (id: string, userId: string) =>
+  request<void>(`/groups/${id}/members/${userId}`, { method: "DELETE" });
+/** Público: o que se vê antes de entrar no grupo. */
+export const getGroupInvite = (code: string) =>
+  request<GroupInviteDto>(`/group-invites/${encodeURIComponent(code)}`);
+export const joinGroup = (code: string) =>
+  request<GroupDto>(`/group-invites/${encodeURIComponent(code)}/join`, { method: "POST" });

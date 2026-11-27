@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import type { CreateGameInput, ParsedGameDraft } from "@convocados/shared";
+import type { CreateGameInput, GroupDto, ParsedGameDraft } from "@convocados/shared";
 import { ApiError, parseGameMessage } from "../lib/api";
 import { radius, usePalette } from "../lib/theme";
 import { GameForm } from "./game-form";
@@ -12,7 +12,15 @@ type Mode = "manual" | "paste";
  * Criar um jogo de uma de duas formas: preencher à mão, ou colar a mensagem do grupo
  * e a IA preenche. Depois da IA, volta ao formulário já preenchido, para rever e criar.
  */
-export function NewGame({ onCreate }: { onCreate: (input: CreateGameInput) => Promise<void> }) {
+type Props = {
+  onCreate: (input: CreateGameInput) => Promise<void>;
+  /** Grupos de que sou membro (para escolher onde fica o jogo). */
+  groups?: GroupDto[];
+  /** Jogo novo dentro de um grupo (ecrã do grupo): grupo fixo. */
+  groupId?: string | null;
+};
+
+export function NewGame({ onCreate, groups = [], groupId }: Props) {
   const c = usePalette();
   const [mode, setMode] = useState<Mode>("manual");
   const [paste, setPaste] = useState("");
@@ -122,7 +130,14 @@ export function NewGame({ onCreate }: { onCreate: (input: CreateGameInput) => Pr
       ) : (
         <View style={{ gap: 12 }}>
           {aiInfo ? <Notice tone={aiInfo.tone} text={aiInfo.text} /> : null}
-          <GameForm key={formKey} draft={draft} submitLabel="Criar jogo" onSubmit={create} />
+          <GameForm
+            key={formKey}
+            draft={draft}
+            groups={groups}
+            groupId={groupId}
+            submitLabel="Criar jogo"
+            onSubmit={create}
+          />
         </View>
       )}
     </View>

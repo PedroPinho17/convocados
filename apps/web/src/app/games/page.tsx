@@ -57,12 +57,30 @@ export default function GamesPage() {
     <>
       <AppNav />
       <Page>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Os meus jogos</h1>
-          <Link href="/groups" className="text-sm font-semibold text-brand-strong hover:underline">
-            {groups.length > 0 ? `Os meus grupos (${groups.length}) →` : "Criar um grupo →"}
-          </Link>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Os meus jogos</h1>
+        {/* Atalho para os grupos: um cartão claro, não um link de texto perdido no canto. */}
+        <Link
+          href="/groups"
+          className="group flex items-center gap-4 rounded-2xl border border-line bg-surface p-4 shadow-sm transition hover:border-brand/50 hover:shadow"
+        >
+          <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand-soft text-2xl">
+            👥
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">{groups.length > 0 ? "Os meus grupos" : "Criar um grupo"}</span>
+            <span className="block line-clamp-2 text-sm text-muted">
+              {groups.length > 0
+                ? `${groups.length} ${groups.length === 1 ? "grupo" : "grupos"} · ${groups.map((g) => g.name).join(", ")}`
+                : "Para quem joga sempre junto: os jogos do grupo aparecem a todos os membros."}
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-lg text-muted transition group-hover:translate-x-0.5 group-hover:bg-brand-soft group-hover:text-brand-strong"
+          >
+            →
+          </span>
+        </Link>
         {error ? (
           <Notice tone="danger" role="alert">
             {error}

@@ -9,6 +9,7 @@ import {
   initialGameForm,
   type CreateGameInput,
   type GameDto,
+  type GroupDto,
   type ParsedGameDraft,
   type Sport,
 } from "@convocados/shared";
@@ -23,6 +24,10 @@ type Props = {
   game?: GameDto;
   /** Rascunho da IA (só ao criar). */
   draft?: ParsedGameDraft | null;
+  /** Grupos de que sou membro (só ao criar). */
+  groups?: GroupDto[];
+  /** Grupo fixo (jogo criado dentro do ecrã do grupo). */
+  groupId?: string | null;
   submitLabel: string;
   onSubmit: (input: CreateGameInput) => Promise<void>;
   onCancel?: () => void;
@@ -47,7 +52,7 @@ function formatTime(d: Date): string {
 }
 
 /** Formulário de criar e de editar um jogo. */
-export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props) {
+export function GameForm({ game, draft, groups = [], groupId: fixedGroupId, submitLabel, onSubmit, onCancel }: Props) {
   const { width } = useLayout();
   const roomy = width >= 480;
   const c = usePalette();
@@ -55,7 +60,9 @@ export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props
 
   // Um rascunho novo da IA chega com uma `key` nova (o ecrã recria o formulário),
   // por isso os valores iniciais chegam: não é preciso copiá-lo num efeito.
-  const [initial] = useState(() => initialGameForm(game, draft));
+  const [initial] = useState(() =>
+    initialGameForm(game, draft, { sport: groups.find((g) => g.id === fixedGroupId)?.sport }),
+  );
   const [title, setTitle] = useState(initial.title);
   const [location, setLocation] = useState(initial.location);
   const [venueId, setVenueId] = useState<string | null>(initial.venueId);
@@ -71,6 +78,16 @@ export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props
   const slotsN = Number(slots) || 0;
   const subsN = Number(subs) || 0;
   const totalPriceCents = Math.round((Number(totalEuros.replace(",", ".")) || 0) * 100);
+
+  const creating = !game;
+  const [groupId, setGroupId] = useState<string>(fixedGroupId ?? "");
+
+  /** Escolher um grupo traz o desporto dele (o padel da empresa é padel). */
+  function changeGroup(id: string) {
+    setGroupId(id);
+    const g = groups.find((x) => x.id === id);
+    if (g && g.sport !== sport) changeSport(g.sport);
+  }
 
   function changeSport(next: Sport) {
     if (slotsN === SPORTS[sport].slots) setSlots(String(SPORTS[next].slots));
@@ -111,6 +128,8 @@ export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props
         totalPriceCents,
         sport,
         venueId,
+        // O grupo só se escolhe ao criar (não muda depois).
+        ...(creating ? { groupId: groupId || null } : {}),
       });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível guardar o jogo.");
@@ -147,6 +166,35 @@ export function GameForm({ game, draft, submitLabel, onSubmit, onCancel }: Props
           })}
         </ScrollView>
       </View>
+
+      {creating && groups.length > 0 ? (
+        <View style={{ gap: 6 }}>
+          <Text style={s.label}>Grupo</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {[{ id: "", name: "Sem grupo (só por convite)" }, ...groups].map((g) => {
+              const active = groupId === g.id;
+              const locked = Boolean(fixedGroupId) && !active;
+              return (
+                <Pressable
+                  key={g.id || "none"}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active, disabled: locked }}
+                  disabled={locked}
+                  onPress={() => changeGroup(g.id)}
+                  style={[
+                    s.chip,
+                    active ? { backgroundColor: c.brandSoft, borderColor: c.brand } : null,
+                    locked ? { opacity: 0.4 } : null,
+                  ]}
+                >
+                  <Text style={{ color: active ? c.brandStrong : c.ink, fontWeight: "600" }}>{g.name}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          {groupId ? <Muted>Todos os membros do grupo veem o jogo e recebem um aviso.</Muted> : null}
+        </View>
+      ) : null}
 
       <Field label="Título" placeholder="Título" value={title} onChangeText={setTitle} />
       <VenuePicker

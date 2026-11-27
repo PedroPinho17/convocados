@@ -16,9 +16,9 @@ teams and who has paid.
 ![Playwright](https://img.shields.io/badge/Playwright-browser%20tests-2EAD33?logo=playwright&logoColor=white)
 
 <p align="center">
-  <img src="docs/media/demo.gif" alt="Demo: on the right, a player opens the invite on a phone and confirms; on the left, the organiser's list updates by itself, the organiser makes balanced teams and marks the player as paid, and the phone shows 'paid' straight away" width="900">
+  <img src="docs/media/demo.gif" alt="Demo of a padel game: on the right, a player opens the invite on a phone and takes the last of 4 slots; on the left, the organiser's list updates by itself to 4/4, the organiser makes two teams of two and marks the player as paid, and the phone shows 'paid' straight away" width="900">
 </p>
-<p align="center"><sub>Organiser on a computer (left) and a player on a phone (right), updating in real time ·
+<p align="center"><sub>A padel game: organiser on a computer (left) and a player on a phone (right), updating in real time ·
 <a href="docs/media/demo.mp4">full-quality video (.mp4)</a> · all names are fictional; the interface is in Portuguese</sub></p>
 
 ## Try it
@@ -37,7 +37,9 @@ servers wake up.
 
 | Light | Dark |
 |---|---|
+| ![My games: football, tennis, padel, basketball and volleyball, with the groups shortcut and the new game form](docs/media/games-desktop.png) | ![My games in dark mode](docs/media/games-desktop-dark.png) |
 | ![A game with confirmed players, payments, invite QR code and teams](docs/media/game-desktop.png) | ![The same game in dark mode](docs/media/game-desktop-dark.png) |
+| <img src="docs/media/games-mobile.png" alt="My games on a phone" width="300"> | <img src="docs/media/games-mobile-dark.png" alt="My games on a phone, dark mode" width="300"> |
 | <img src="docs/media/game-mobile.png" alt="The game on a phone" width="300"> | <img src="docs/media/game-mobile-dark.png" alt="The game on a phone, dark mode" width="300"> |
 
 ![Homepage](docs/media/home.png)

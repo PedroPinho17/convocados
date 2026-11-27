@@ -16,9 +16,9 @@ equipas equilibradas e de quem já pagou.
 ![Playwright](https://img.shields.io/badge/Playwright-testes%20no%20browser-2EAD33?logo=playwright&logoColor=white)
 
 <p align="center">
-  <img src="docs/media/demo.gif" alt="Demo: à direita, um jogador abre o convite no telemóvel e confirma; à esquerda, a lista do organizador atualiza sozinha, o organizador faz equipas equilibradas e marca o jogador como pago, e o telemóvel mostra 'pago' logo a seguir" width="900">
+  <img src="docs/media/demo.gif" alt="Demo de um jogo de padel: à direita, um jogador abre o convite no telemóvel e fica com a última das 4 vagas; à esquerda, a lista do organizador passa sozinha a 4/4, o organizador faz duas equipas de dois e marca o jogador como pago, e o telemóvel mostra 'pago' logo a seguir" width="900">
 </p>
-<p align="center"><sub>Organizador no computador (esquerda) e jogador no telemóvel (direita), em tempo real ·
+<p align="center"><sub>Um jogo de padel: organizador no computador (esquerda) e jogador no telemóvel (direita), em tempo real ·
 <a href="docs/media/demo.mp4">vídeo em melhor qualidade (.mp4)</a> · todos os nomes são fictícios</sub></p>
 
 ## Experimenta
@@ -37,7 +37,9 @@ cerca de um minuto, enquanto os servidores acordam.
 
 | Claro | Escuro |
 |---|---|
+| ![Os meus jogos: futebol, ténis, padel, basquetebol e voleibol, com o atalho para os grupos e o formulário de jogo novo](docs/media/games-desktop.png) | ![Os meus jogos em modo escuro](docs/media/games-desktop-dark.png) |
 | ![Um jogo com confirmados, pagamentos, QR do convite e equipas](docs/media/game-desktop.png) | ![O mesmo jogo em modo escuro](docs/media/game-desktop-dark.png) |
+| <img src="docs/media/games-mobile.png" alt="Os meus jogos no telemóvel" width="300"> | <img src="docs/media/games-mobile-dark.png" alt="Os meus jogos no telemóvel, modo escuro" width="300"> |
 | <img src="docs/media/game-mobile.png" alt="O jogo no telemóvel" width="300"> | <img src="docs/media/game-mobile-dark.png" alt="O jogo no telemóvel, modo escuro" width="300"> |
 
 ![Página inicial](docs/media/home.png)

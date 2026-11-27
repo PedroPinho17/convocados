@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { Venue } from '@convocados/db';
 import dataSource from '../data-source.js';
@@ -53,13 +53,32 @@ async function main() {
     // Portugal inteiro, bloco a bloco, um pedido de cada vez.
     const tiles = portugalTiles();
     const seen = new Map<string, OverpassResponse['elements'][number]>();
+    // Retomável: com --save, cada bloco concluído fica em <ficheiro>.partial; se o Overpass
+    // falhar a meio, correr outra vez continua a partir do bloco que faltava.
+    const partialPath = values.save ? `${values.save}.partial` : null;
+    const done = new Set<number>();
+    if (partialPath && existsSync(partialPath)) {
+      const saved = JSON.parse(readFileSync(partialPath, 'utf8')) as {
+        done: number[];
+        elements: OverpassResponse['elements'];
+      };
+      saved.done.forEach((i) => done.add(i));
+      for (const el of saved.elements) seen.set(`${el.type}/${el.id}`, el);
+      console.log(`A retomar: ${done.size}/${tiles.length} blocos já feitos.`);
+    }
     for (const [i, tile] of tiles.entries()) {
+      if (done.has(i)) continue;
       const res = await fetchOverpass(buildPortugalTileQuery(tile));
       for (const el of res.elements) seen.set(`${el.type}/${el.id}`, el);
+      done.add(i);
+      if (partialPath) {
+        writeFileSync(partialPath, JSON.stringify({ done: [...done], elements: [...seen.values()] }));
+      }
       console.log(`Bloco ${i + 1}/${tiles.length}: ${res.elements.length} elementos (total ${seen.size}).`);
       await new Promise((r) => setTimeout(r, 2_000)); // pausa entre pedidos: servidor público
     }
     data = { elements: [...seen.values()] };
+    if (partialPath && existsSync(partialPath)) unlinkSync(partialPath);
     if (values.save) {
       writeFileSync(values.save, JSON.stringify(data));
       console.log(`Resposta guardada em ${values.save}.`);
