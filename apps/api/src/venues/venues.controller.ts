@@ -1,5 +1,13 @@
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
-import { venueSearchSchema, type VenueDto } from '@convocados/shared';
+import { BadRequestException, Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import {
+  createVenueSchema,
+  venueSearchSchema,
+  type CreateVenueInput,
+  type UserDto,
+  type VenueDto,
+} from '@convocados/shared';
+import { CurrentUser } from '../auth/auth.decorators.js';
 import { VenuesService } from './venues.service.js';
 
 @Controller('venues')
@@ -18,5 +26,15 @@ export class VenuesController {
       );
     }
     return this.venues.search(parsed.data);
+  }
+
+  /** Guardar um campo escrito à mão (aparece nas sugestões a toda a gente). Limite contra spam. */
+  @Post()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  create(
+    @CurrentUser() user: UserDto,
+    @Body({ schema: createVenueSchema }) body: CreateVenueInput,
+  ): Promise<VenueDto> {
+    return this.venues.create(user.id, body);
   }
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { venueLabel, type Sport, type VenueDto } from "@convocados/shared";
-import { searchVenues } from "@/lib/api";
+import { ApiError, createVenue, searchVenues } from "@/lib/api";
 import { cn, inputClass } from "@/components/ui";
 
 type Props = {
@@ -67,6 +67,22 @@ export function VenuePicker({ value, venueId, sport, onChange }: Props) {
     setOpen(false);
     setResults([]);
     setNear(null);
+  }
+
+  // Sem resultados para o que se escreveu: pode guardar-se como campo novo, para a próxima vez.
+  const [saving, setSaving] = useState(false);
+  const canSave = !venueId && !near && query.length >= 3 && results.length === 0;
+
+  async function saveVenue() {
+    setSaving(true);
+    try {
+      pick(await createVenue({ name: query, sport }));
+      setHint(null);
+    } catch (err) {
+      setHint(err instanceof ApiError ? err.message : "Não foi possível guardar o campo.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function nearMe() {
@@ -145,7 +161,19 @@ export function VenuePicker({ value, venueId, sport, onChange }: Props) {
       {venueId ? (
         <p className="text-xs font-medium text-ok">✓ Campo da lista</p>
       ) : hint && shouldSearch && open ? (
-        <p className="text-xs text-muted">{hint}</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="text-xs text-muted">{hint}</p>
+          {canSave ? (
+            <button
+              type="button"
+              onClick={() => void saveVenue()}
+              disabled={saving}
+              className="text-xs font-semibold text-brand-strong hover:underline disabled:opacity-60"
+            >
+              {saving ? "A guardar…" : `Guardar “${query}” como campo`}
+            </button>
+          ) : null}
+        </div>
       ) : null}
       {visible ? (
         <ul

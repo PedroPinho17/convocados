@@ -3,7 +3,9 @@ import { parseArgs } from 'node:util';
 import { Venue } from '@convocados/db';
 import dataSource from '../data-source.js';
 import {
+  buildPortugalTileQuery,
   buildVenueQuery,
+  portugalTiles,
   toVenues,
   type OverpassResponse,
 } from '../venues/osm-venues.js';
@@ -14,6 +16,7 @@ import { fetchOverpass } from '../venues/overpass.js';
  *
  *   pnpm --filter api venues:import                      (Lourosa/Fiães, 10 km)
  *   pnpm --filter api venues:import -- --lat 40.946 --lng -8.470 --radius-km 5
+ *   pnpm --filter api venues:import -- --portugal --save pt.json   (Portugal inteiro, ~27 blocos)
  *   pnpm --filter api venues:import -- --save osm.json   (guarda a resposta do Overpass)
  *   pnpm --filter api venues:import -- --file osm.json   (sem rede: usa a resposta guardada)
  *
@@ -31,6 +34,7 @@ async function main() {
       'radius-km': { type: 'string' },
       file: { type: 'string' },
       save: { type: 'string' },
+      portugal: { type: 'boolean' },
     },
   });
   const area = {
@@ -45,6 +49,21 @@ async function main() {
   if (values.file) {
     data = JSON.parse(readFileSync(values.file, 'utf8')) as OverpassResponse;
     console.log(`A ler ${values.file} (sem pedido ao Overpass).`);
+  } else if (values.portugal) {
+    // Portugal inteiro, bloco a bloco, um pedido de cada vez.
+    const tiles = portugalTiles();
+    const seen = new Map<string, OverpassResponse['elements'][number]>();
+    for (const [i, tile] of tiles.entries()) {
+      const res = await fetchOverpass(buildPortugalTileQuery(tile));
+      for (const el of res.elements) seen.set(`${el.type}/${el.id}`, el);
+      console.log(`Bloco ${i + 1}/${tiles.length}: ${res.elements.length} elementos (total ${seen.size}).`);
+      await new Promise((r) => setTimeout(r, 2_000)); // pausa entre pedidos: servidor público
+    }
+    data = { elements: [...seen.values()] };
+    if (values.save) {
+      writeFileSync(values.save, JSON.stringify(data));
+      console.log(`Resposta guardada em ${values.save}.`);
+    }
   } else {
     const query = buildVenueQuery(area);
     console.log(

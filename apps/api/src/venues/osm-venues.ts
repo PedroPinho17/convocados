@@ -68,15 +68,50 @@ export function buildVenueQuery({ lat, lng, radiusKm }: Area): string {
     throw new Error(`O raio tem de estar entre 0 e ${MAX_RADIUS_KM} km.`);
   }
   const around = `around:${Math.round(radiusKm * 1000)},${lat.toFixed(5)},${lng.toFixed(5)}`;
-  return `[out:json][timeout:50];
+  return venueQuery(`(${around})`);
+}
+
+/** Retângulo em graus (sul, oeste, norte, este). */
+export type BBox = { south: number; west: number; north: number; east: number };
+
+/**
+ * Um bloco de Portugal: o retângulo, mas só o que fica dentro da fronteira portuguesa
+ * (os blocos junto a Espanha não trazem campos espanhóis).
+ */
+export function buildPortugalTileQuery({ south, west, north, east }: BBox): string {
+  if (!(south < north && west < east)) throw new Error('Retângulo inválido.');
+  const box = [south, west, north, east].map((v) => v.toFixed(4)).join(',');
+  return venueQuery(`(area.pt)(${box})`, 'area["ISO3166-1"="PT"][admin_level=2]->.pt;', 180);
+}
+
+/**
+ * Portugal em blocos de 1° (continente) + Madeira + Açores. Um pedido por bloco é leve
+ * para o Overpass; um só pedido para o país inteiro esbarrava no tempo limite.
+ */
+export function portugalTiles(): BBox[] {
+  const tiles: BBox[] = [];
+  for (let south = 36.9; south < 42.2; south += 1) {
+    for (let west = -9.6; west < -6.1; west += 1) {
+      tiles.push({ south, west, north: Math.min(south + 1, 42.2), east: Math.min(west + 1, -6.1) });
+    }
+  }
+  tiles.push({ south: 32.3, west: -17.4, north: 33.2, east: -16.1 }); // Madeira e Porto Santo
+  tiles.push({ south: 39.3, west: -31.4, north: 39.8, east: -31.0 }); // Açores: Flores e Corvo
+  tiles.push({ south: 36.9, west: -29.0, north: 39.2, east: -24.9 }); // Açores: resto
+  return tiles;
+}
+
+function venueQuery(filter: string, prelude = '', timeout = 50): string {
+  return `[out:json][timeout:${timeout}];
+${prelude}
 (
-  nwr(${around})["leisure"="pitch"]["sport"~"soccer|futsal|multi|padel|tennis|basketball|volleyball"];
+  nwr${filter}["leisure"="pitch"]["sport"~"soccer|futsal|multi|padel|tennis|basketball|volleyball"];
 )->.pitches;
 (
-  nwr(${around})["leisure"="sports_hall"];
+  nwr${filter}["leisure"="sports_hall"];
 )->.halls;
 (
-  nwr(${around})["leisure"~"^(sports_centre|stadium)$"];
+  nwr${filter}["leisure"~"^(sports_centre|stadium)$"];
 )->.complexes;
 .pitches out center tags;
 .halls out center tags;

@@ -5,6 +5,7 @@ import {
   SPORTS,
   foldText,
   type VenueDto,
+  type CreateVenueInput,
   type VenueSearchQuery,
 } from '@convocados/shared';
 
@@ -19,8 +20,8 @@ type Row = {
   name: string;
   address: string | null;
   city: string | null;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   sports: string[];
   distanceKm: number | null;
 };
@@ -94,14 +95,44 @@ export class VenuesService {
        LIMIT ${limit}`,
       params,
     );
-    return rows.map((r) => ({
-      ...r,
-      lat: Number(r.lat),
-      lng: Number(r.lng),
-      distanceKm:
-        r.distanceKm === null
-          ? null
-          : Math.round(Number(r.distanceKm) * 10) / 10,
-    }));
+    return rows.map(toDto);
+  }
+
+  /**
+   * Um campo escrito à mão, para aparecer nas sugestões da próxima vez. Se já existe um com
+   * o mesmo nome e localidade (sem acentos nem maiúsculas), devolve esse em vez de duplicar.
+   */
+  async create(userId: string, input: CreateVenueInput): Promise<VenueDto> {
+    const name = input.name.replace(/\s+/g, ' ').trim();
+    const city = input.city?.replace(/\s+/g, ' ').trim() || null;
+
+    const existing: Row[] = await this.dataSource.query(
+      `SELECT "id", "name", "address", "city", "lat", "lng", "sports", NULL::double precision AS "distanceKm"
+       FROM "venues"
+       WHERE ${folded('"name"')} = $1 AND ${folded(`coalesce("city", '')`)} = $2
+       LIMIT 1`,
+      [foldText(name), foldText(city ?? '')],
+    );
+    if (existing[0]) return toDto(existing[0]);
+
+    const sports = input.sport && input.sport !== 'other' ? [SPORTS[input.sport].osm[0]] : [];
+    const created: Row[] = await this.dataSource.query(
+      `INSERT INTO "venues" ("name", "city", "source", "sports", "createdById")
+       VALUES ($1, $2, 'user', $3::text[], $4)
+       RETURNING "id", "name", "address", "city", "lat", "lng", "sports", NULL::double precision AS "distanceKm"`,
+      [name, city, sports, userId],
+    );
+    return toDto(created[0]);
   }
 }
+
+const toDto = (r: Row): VenueDto => ({
+  id: r.id,
+  name: r.name,
+  address: r.address,
+  city: r.city,
+  lat: r.lat === null ? null : Number(r.lat),
+  lng: r.lng === null ? null : Number(r.lng),
+  sports: r.sports,
+  distanceKm: r.distanceKm === null ? null : Math.round(Number(r.distanceKm) * 10) / 10,
+});

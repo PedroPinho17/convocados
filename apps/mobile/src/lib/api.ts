@@ -20,6 +20,7 @@ import type {
   DeleteAccountInput,
   VenueDto,
   VenueSearchInput,
+  CreateVenueInput,
 } from "@convocados/shared";
 
 const API = process.env.EXPO_PUBLIC_API_URL;
@@ -159,6 +160,9 @@ export const cancelGame = (gameId: string) =>
   request<GameDetailDto>(`/games/${gameId}/cancel`, { method: "POST" });
 
 /** Pesquisa de campos (OpenStreetMap importados + acrescentados). */
+/** Guarda um campo escrito à mão (devolve o existente se já houver um com o mesmo nome). */
+export const createVenue = (input: CreateVenueInput) => request<VenueDto>("/venues", json(input));
+
 export function searchVenues(input: VenueSearchInput, signal?: AbortSignal) {
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(input)) {

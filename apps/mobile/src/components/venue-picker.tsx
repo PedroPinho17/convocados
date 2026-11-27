@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { venueLabel, type Sport, type VenueDto } from "@convocados/shared";
-import { searchVenues } from "../lib/api";
+import { ApiError, createVenue, searchVenues } from "../lib/api";
 import { usePalette, useThemedStyles, type Palette } from "../lib/theme";
 import { Field, Muted } from "./ui";
 
@@ -45,6 +45,24 @@ export function VenuePicker({ value, venueId, sport, onChange }: Props) {
   const shown = shouldSearch ? results : [];
   const shownHint = shouldSearch ? hint : null;
 
+  // Sem resultados: guardar o que se escreveu como campo novo, para aparecer da próxima vez.
+  const [saving, setSaving] = useState(false);
+  const canSave = !venueId && query.length >= 3 && shown.length === 0 && shownHint !== null;
+
+  async function saveVenue() {
+    setSaving(true);
+    try {
+      const v = await createVenue({ name: query, sport });
+      onChange(venueLabel(v), v.id);
+      setResults([]);
+      setHint(null);
+    } catch (err) {
+      setHint(err instanceof ApiError ? err.message : "Não foi possível guardar o campo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <View style={{ gap: 6 }}>
       <Field
@@ -55,6 +73,11 @@ export function VenuePicker({ value, venueId, sport, onChange }: Props) {
         autoCapitalize="words"
       />
       {venueId ? <Muted>✓ Campo da lista</Muted> : shownHint ? <Muted>{shownHint}</Muted> : null}
+      {canSave ? (
+        <Pressable accessibilityRole="button" onPress={() => void saveVenue()} disabled={saving}>
+          <Text style={s.save}>{saving ? "A guardar…" : `Guardar “${query}” como campo`}</Text>
+        </Pressable>
+      ) : null}
       {shown.length > 0 && !venueId ? (
         <View style={s.list}>
           {shown.map((v) => (
@@ -95,5 +118,6 @@ const styles = (c: Palette) => ({
   row: { paddingHorizontal: 14, paddingVertical: 12, gap: 2, borderBottomWidth: 1, borderBottomColor: c.line },
   name: { fontSize: 15, fontWeight: "600" as const, color: c.ink },
   meta: { fontSize: 12, color: c.muted },
+  save: { fontSize: 13, fontWeight: "600" as const, color: c.brandStrong },
   attribution: { fontSize: 11, color: c.muted, paddingHorizontal: 14, paddingVertical: 8 },
 });

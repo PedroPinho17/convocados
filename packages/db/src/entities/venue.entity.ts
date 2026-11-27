@@ -35,11 +35,12 @@ export class Venue {
   @Column({ type: 'varchar', length: 120, nullable: true })
   city!: string | null;
 
-  @Column({ type: 'double precision' })
-  lat!: number;
+  /** Vazio nos campos acrescentados à mão (quem os escreve não sabe as coordenadas). */
+  @Column({ type: 'double precision', nullable: true })
+  lat!: number | null;
 
-  @Column({ type: 'double precision' })
-  lng!: number;
+  @Column({ type: 'double precision', nullable: true })
+  lng!: number | null;
 
   @Column({ type: 'varchar', length: 10 })
   source!: VenueSource;

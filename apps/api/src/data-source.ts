@@ -27,6 +27,7 @@ import { AddAiUsage1795740000000 } from './migrations/1795740000000-AddAiUsage.j
 import { AddPasswordResets1795750000000 } from './migrations/1795750000000-AddPasswordResets.js';
 import { AddVenues1795760000000 } from './migrations/1795760000000-AddVenues.js';
 import { GroupsSportsVenues1795770000000 } from './migrations/1795770000000-GroupsSportsVenues.js';
+import { UserVenues1795780000000 } from './migrations/1795780000000-UserVenues.js';
 
 export const entities = [
   User,
@@ -55,6 +56,7 @@ export const migrations = [
   AddPasswordResets1795750000000,
   AddVenues1795760000000,
   GroupsSportsVenues1795770000000,
+  UserVenues1795780000000,
 ];
 
 try {

@@ -21,6 +21,7 @@ import type {
   GroupInviteDto,
   VenueDto,
   VenueSearchInput,
+  CreateVenueInput,
 } from "@convocados/shared";
 
 /**
@@ -143,6 +144,9 @@ export const joinGroup = (code: string) =>
   request<GroupDto>(`/group-invites/${encodeURIComponent(code)}/join`, { method: "POST" });
 
 // Campos
+/** Guarda um campo escrito à mão (devolve o existente se já houver um com o mesmo nome). */
+export const createVenue = (input: CreateVenueInput) => request<VenueDto>("/venues", json(input));
+
 export function searchVenues(input: VenueSearchInput, signal?: AbortSignal) {
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(input)) {

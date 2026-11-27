@@ -459,13 +459,22 @@ export const venueSearchSchema = z.object({
 export type VenueSearchInput = z.input<typeof venueSearchSchema>;
 export type VenueSearchQuery = z.infer<typeof venueSearchSchema>;
 
+/** POST /venues — um campo que não está na lista, escrito à mão. */
+export const createVenueSchema = z.object({
+  name: z.string().trim().min(3, "Escreve o nome do campo.").max(120),
+  city: z.string().trim().max(80).nullable().optional(),
+  sport: sportSchema.optional(),
+});
+export type CreateVenueInput = z.input<typeof createVenueSchema>;
+
 export type VenueDto = {
   id: string;
   name: string;
   address: string | null;
   city: string | null;
-  lat: number;
-  lng: number;
+  /** null nos campos acrescentados à mão. */
+  lat: number | null;
+  lng: number | null;
   sports: string[];
   /** Só quando a pesquisa tem coordenadas. */
   distanceKm: number | null;
