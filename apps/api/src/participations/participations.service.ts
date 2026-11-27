@@ -8,18 +8,30 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, In, type EntityManager } from 'typeorm';
 import { Game, Participation, TeamAssignment, User } from '@convocados/db';
-import type {
-  GameDetailDto,
-  GameDto,
-  GameInviteDto,
-  ParticipationDto,
-  ParticipationStatus,
-  Sport,
-  TeamDto,
+import {
+  roundStrength,
+  teamsBalanceSummary,
+  type GameDetailDto,
+  type GameDto,
+  type GameInviteDto,
+  type ParticipationDto,
+  type ParticipationStatus,
+  type PreferredPosition,
+  type Sport,
+  type TeamDto,
+  type TeamsBalanceDto,
 } from '@convocados/shared';
 import { GamesGateway } from '../realtime/games.gateway.js';
 import { PushService } from '../push/push.service.js';
+import { RatingsService } from '../ratings/ratings.service.js';
 import { assertGameAccess } from '../games/game-access.js';
+
+const asPosition = (v: string | null): PreferredPosition | null => {
+  if (v === 'GK' || v === 'DEF' || v === 'MID' || v === 'FWD' || v === 'ANY') {
+    return v;
+  }
+  return null;
+};
 
 export const toGameDto = (g: Game): GameDto => ({
   id: g.id,
@@ -105,6 +117,7 @@ export class ParticipationsService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly gamesGateway: GamesGateway,
     private readonly push: PushService,
+    private readonly ratings: RatingsService,
   ) {}
 
   getDetail(gameId: string): Promise<GameDetailDto> {
@@ -395,13 +408,19 @@ export class ParticipationsService {
       toParticipationDto(p, nameById.get(p.userId) ?? 'Jogador'),
     );
     const confirmed = participations.filter((p) => p.status === 'confirmed');
+    const { teams, teamsBalance } = await this.loadTeams(
+      manager,
+      gameId,
+      confirmed,
+    );
 
     return {
       ...toGameDto(game),
       confirmedCount: confirmed.length,
       waitingCount: participations.filter((p) => p.status === 'waiting').length,
       participations,
-      teams: await this.loadTeams(manager, gameId, confirmed),
+      teams,
+      teamsBalance,
     };
   }
 
@@ -410,20 +429,48 @@ export class ParticipationsService {
     manager: EntityManager,
     gameId: string,
     confirmed: ParticipationDto[],
-  ): Promise<TeamDto[]> {
+  ): Promise<{ teams: TeamDto[]; teamsBalance: TeamsBalanceDto | null }> {
     const assignments = await manager.findBy(TeamAssignment, { gameId });
-    if (assignments.length === 0) return [];
+    if (assignments.length === 0) {
+      return { teams: [], teamsBalance: null };
+    }
+
+    const inTeams = confirmed.filter((p) =>
+      assignments.some((a) => a.userId === p.userId),
+    );
+    const userIds = inTeams.map((p) => p.userId);
+    const users =
+      userIds.length === 0
+        ? []
+        : await manager.findBy(User, { id: In(userIds) });
+    const userById = new Map(users.map((u) => [u.id, u]));
+    const strengths = await this.ratings.strengthScores(userIds);
 
     const teamByUser = new Map(assignments.map((a) => [a.userId, a.team]));
     const teams = new Map<string, TeamDto>();
     for (const name of [...new Set(assignments.map((a) => a.team))].sort()) {
-      teams.set(name, { name, players: [] });
+      teams.set(name, { name, players: [], totalStrength: 0 });
     }
-    for (const p of confirmed) {
-      const team = teamByUser.get(p.userId);
-      if (team)
-        teams.get(team)!.players.push({ userId: p.userId, name: p.userName });
+    for (const p of inTeams) {
+      const teamName = teamByUser.get(p.userId);
+      if (!teamName) continue;
+      const team = teams.get(teamName)!;
+      const u = userById.get(p.userId);
+      const strength = strengths.get(p.userId) ?? 3;
+      team.players.push({
+        userId: p.userId,
+        name: p.userName,
+        preferredPosition: asPosition(u?.preferredPosition ?? null),
+        strength,
+      });
+      team.totalStrength = roundStrength(team.totalStrength + strength);
     }
-    return [...teams.values()];
+    const list = [...teams.values()];
+    return {
+      teams: list,
+      teamsBalance: teamsBalanceSummary(
+        list.map((t) => ({ totalSkill: t.totalStrength })),
+      ),
+    };
   }
 }

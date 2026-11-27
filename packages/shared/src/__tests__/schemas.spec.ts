@@ -53,11 +53,14 @@ describe('schemas partilhados', () => {
     expect(upsertRatingSchema.safeParse({ toUserId: 'x', score: 3 }).success).toBe(false);
   });
 
-  it('generateTeamsSchema: 2 equipas por defeito, no máximo 4', () => {
+  it('generateTeamsSchema: 2 equipas por defeito, semente opcional', () => {
     expect(generateTeamsSchema.parse({})).toEqual({ teamCount: 2 });
-    expect(generateTeamsSchema.safeParse({ teamCount: 4 }).success).toBe(true);
+    expect(generateTeamsSchema.safeParse({ teamCount: 4, seed: 7 }).success).toBe(
+      true,
+    );
     expect(generateTeamsSchema.safeParse({ teamCount: 5 }).success).toBe(false);
     expect(generateTeamsSchema.safeParse({ teamCount: 1 }).success).toBe(false);
+    expect(generateTeamsSchema.safeParse({ seed: 1.5 }).success).toBe(false);
   });
 
   it('registerPushTokenSchema: só tokens Expo', () => {

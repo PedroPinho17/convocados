@@ -113,14 +113,31 @@ export type GameDetailDto = GameDto & {
   /**
    * Equipas guardadas pelo organizador (vazio se ainda não houver). Só com confirmados:
    * quem confirmou depois aparece fora das equipas até o organizador as atualizar.
-   * Sem avaliações: são privadas de quem as deu.
    */
   teams: TeamDto[];
+  /** Diferença de força e texto pt-PT; null se ainda não há equipas. */
+  teamsBalance: TeamsBalanceDto | null;
+};
+
+export type TeamPlayerDto = {
+  userId: string;
+  name: string;
+  preferredPosition: "GK" | "DEF" | "MID" | "FWD" | "ANY" | null;
+  /** Força (Bayesian), 1 casa decimal. */
+  strength: number;
 };
 
 export type TeamDto = {
   name: string;
-  players: { userId: string; name: string }[];
+  players: TeamPlayerDto[];
+  totalStrength: number;
+};
+
+export type TeamsBalanceDto = {
+  /** |totalA − totalB| (ou max−min com mais equipas), 1 casa decimal. */
+  difference: number;
+  /** Ex.: "Diferença de 0,4 pontos". */
+  explanation: string;
 };
 
 /**
@@ -313,15 +330,56 @@ export type RatingDto = {
 /** POST /games/:gameId/teams — só o organizador; gera e guarda as equipas. */
 export const generateTeamsSchema = z.object({
   teamCount: z.number().int().min(2).max(4).default(2),
+  /** Semente opcional: "Gerar outra vez" manda outra e muda o empate do snake draft. */
+  seed: z.number().int().optional(),
 });
 export type GenerateTeamsInput = z.input<typeof generateTeamsSchema>;
 
-/** Entrada do algoritmo (só na API: a skill nunca vai para os clientes). */
+/** Peso do prior Bayesian (C): com poucas avaliações a força fica perto da média do grupo. */
+export const STRENGTH_PRIOR_WEIGHT = 3;
+/** Sem avaliações no grupo, o prior é 3 (nota neutra). */
+export const DEFAULT_STRENGTH_PRIOR = 3;
+
+/**
+ * Força Bayesian: (sum + prior×C) / (count + C). Sem avaliações → prior.
+ * Só se usam avaliações de jogos já começados (a API filtra antes).
+ */
+export function bayesianStrength(
+  sum: number,
+  count: number,
+  prior: number,
+  C = STRENGTH_PRIOR_WEIGHT,
+): number {
+  if (count <= 0) return prior;
+  return (sum + prior * C) / (count + C);
+}
+
+export function roundStrength(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+/** Texto pt-PT da diferença entre equipas. */
+export function teamsBalanceExplanation(difference: number): string {
+  const formatted = roundStrength(difference).toLocaleString("pt-PT", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  return `Diferença de ${formatted} pontos`;
+}
+
+export function teamsBalanceSummary(teams: { totalSkill: number }[]): TeamsBalanceDto {
+  const totals = teams.map((t) => t.totalSkill);
+  const difference = roundStrength(Math.max(...totals) - Math.min(...totals));
+  return { difference, explanation: teamsBalanceExplanation(difference) };
+}
+
+/** Entrada do algoritmo de equilibrar. */
 export type PlayerSkill = {
   userId: string;
   name: string;
-  /** Média das avaliações recebidas (1–5). Sem avaliações → 3. */
+  /** Força 1–5 (já com prior Bayesian). */
   skill: number;
+  preferredPosition?: "GK" | "DEF" | "MID" | "FWD" | "ANY" | null;
 };
 
 export type BalancedTeam = {
@@ -330,57 +388,194 @@ export type BalancedTeam = {
   totalSkill: number;
 };
 
+export type BalanceTeamsOptions = {
+  teamCount?: number;
+  /** Com semente, o empate do snake muda (reprodutível); sem ela, ordem por força. */
+  seed?: number;
+};
+
+/** PRNG determinista (Mulberry32) para o snake draft com semente. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle<T>(items: T[], seed: number): T[] {
+  const rng = mulberry32(seed);
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
+function teamCapacity(n: number, teamCount: number, teamIndex: number): number {
+  const minSize = Math.floor(n / teamCount);
+  const extra = n % teamCount;
+  return minSize + (teamIndex < extra ? 1 : 0);
+}
+
+/** Soft: muitos GR na mesma equipa e posições todas iguais. A força manda sempre. */
+function positionSoftCost(teams: BalancedTeam[]): number {
+  let cost = 0;
+  for (const team of teams) {
+    let gk = 0;
+    const counts: Record<string, number> = {};
+    for (const p of team.players) {
+      const pos = p.preferredPosition;
+      if (!pos || pos === "ANY") continue;
+      if (pos === "GK") gk++;
+      counts[pos] = (counts[pos] ?? 0) + 1;
+    }
+    if (gk > 1) cost += (gk - 1) * 50;
+    for (const c of Object.values(counts)) {
+      if (c > 2) cost += (c - 2) * 2;
+    }
+  }
+  return cost;
+}
+
+function strengthSpread(teams: BalancedTeam[]): number {
+  const totals = teams.map((t) => t.totalSkill);
+  return Math.max(...totals) - Math.min(...totals);
+}
+
+function objective(teams: BalancedTeam[]): number {
+  // A diferença de força pesa muito mais que as posições (soft).
+  return strengthSpread(teams) * 1000 + positionSoftCost(teams);
+}
+
+function retotal(team: BalancedTeam) {
+  team.totalSkill = team.players.reduce((s, p) => s + p.skill, 0);
+}
+
+/**
+ * Snake draft: ronda 0 A→B→…, ronda 1 …→B→A, respeitando o tamanho alvo de cada equipa.
+ */
+function snakeDraft(ordered: PlayerSkill[], teamCount: number): BalancedTeam[] {
+  const n = ordered.length;
+  const teams: BalancedTeam[] = Array.from({ length: teamCount }, (_, i) => ({
+    name: String.fromCharCode(65 + i),
+    players: [],
+    totalSkill: 0,
+  }));
+  const caps = teams.map((_, i) => teamCapacity(n, teamCount, i));
+
+  let round = 0;
+  let i = 0;
+  while (i < ordered.length) {
+    const forward = round % 2 === 0;
+    const order = forward
+      ? teams.map((_, idx) => idx)
+      : teams.map((_, idx) => teamCount - 1 - idx);
+    for (const ti of order) {
+      if (i >= ordered.length) break;
+      if (teams[ti]!.players.length >= caps[ti]!) continue;
+      const player = ordered[i++]!;
+      teams[ti]!.players.push(player);
+      teams[ti]!.totalSkill += player.skill;
+    }
+    round++;
+    // Segurança: se uma ronda não colocou ninguém (tudo cheio), sai.
+    if (round > n + teamCount) break;
+  }
+  return teams;
+}
+
+/**
+ * Trocas locais entre equipas enquanto a diferença (e soft de posições) melhorar.
+ * Ordem fixa de pares → determinista.
+ */
+function localSearch(teams: BalancedTeam[]): BalancedTeam[] {
+  const out = teams.map((t) => ({
+    ...t,
+    players: [...t.players],
+  }));
+  for (const t of out) retotal(t);
+
+  let improved = true;
+  while (improved) {
+    improved = false;
+    let bestScore = objective(out);
+    let bestSwap: { a: number; ai: number; b: number; bi: number } | null = null;
+
+    for (let a = 0; a < out.length; a++) {
+      for (let b = a + 1; b < out.length; b++) {
+        for (let ai = 0; ai < out[a]!.players.length; ai++) {
+          for (let bi = 0; bi < out[b]!.players.length; bi++) {
+            const pa = out[a]!.players[ai]!;
+            const pb = out[b]!.players[bi]!;
+            out[a]!.players[ai] = pb;
+            out[b]!.players[bi] = pa;
+            retotal(out[a]!);
+            retotal(out[b]!);
+            const score = objective(out);
+            out[a]!.players[ai] = pa;
+            out[b]!.players[bi] = pb;
+            retotal(out[a]!);
+            retotal(out[b]!);
+            if (score + 1e-9 < bestScore) {
+              bestScore = score;
+              bestSwap = { a, ai, b, bi };
+            }
+          }
+        }
+      }
+    }
+
+    if (bestSwap) {
+      const { a, ai, b, bi } = bestSwap;
+      const pa = out[a]!.players[ai]!;
+      out[a]!.players[ai] = out[b]!.players[bi]!;
+      out[b]!.players[bi] = pa;
+      retotal(out[a]!);
+      retotal(out[b]!);
+      improved = true;
+    }
+  }
+  return out;
+}
+
 /**
  * Divide os jogadores em N equipas equilibradas.
  *
- * Tamanhos: todas as equipas ficam com ⌊n ÷ N⌋ ou ⌈n ÷ N⌉ jogadores (no máximo 1 de
- * diferença). Força: do mais forte para o mais fraco, cada jogador vai para a equipa
- * com menos skill que ainda tem lugar (empate → menos jogadores → primeira equipa).
- * Sem aleatoriedade: os mesmos jogadores e avaliações dão sempre as mesmas equipas.
+ * 1. Ordena por força (ou baralha com `seed` e volta a ordenar por força — o seed
+ *    só desempata / muda a ordem inicial do snake).
+ * 2. Snake draft com tamanhos ⌊n/N⌋ ou ⌈n/N⌉.
+ * 3. Pesquisa local (trocas) a minimizar a diferença de força; GR/DEF/MID/FWD
+ *    são preferências suaves e nunca bloqueiam.
  */
-export function balanceTeams(players: PlayerSkill[], teamCount = 2): BalancedTeam[] {
+export function balanceTeams(
+  players: PlayerSkill[],
+  options: number | BalanceTeamsOptions = {},
+): BalancedTeam[] {
+  const opts: BalanceTeamsOptions =
+    typeof options === "number" ? { teamCount: options } : options;
+  const teamCount = opts.teamCount ?? 2;
+
   if (teamCount < 2) throw new Error("teamCount deve ser >= 2");
   if (players.length < teamCount) {
     throw new Error("São precisos pelo menos tantos jogadores quantas equipas.");
   }
 
-  const teams: BalancedTeam[] = Array.from({ length: teamCount }, (_, i) => ({
-    name: String.fromCharCode(65 + i), // A, B, C, D
-    players: [],
-    totalSkill: 0,
-  }));
+  const bySkillThenName = (a: PlayerSkill, b: PlayerSkill) =>
+    b.skill - a.skill || a.name.localeCompare(b.name, "pt") || a.userId.localeCompare(b.userId);
 
-  const minSize = Math.floor(players.length / teamCount);
-  // Quantas equipas podem ter 1 jogador a mais (quando a divisão não é exata).
-  let extraSlots = players.length % teamCount;
+  // Sem semente: ordem fixa por força e nome. Com semente: baralha e ordena só por
+  // força (empates ficam na ordem do baralhamento → "Gerar outra vez" muda o draft).
+  const ordered =
+    opts.seed === undefined
+      ? [...players].sort(bySkillThenName)
+      : seededShuffle(players, opts.seed).sort((a, b) => b.skill - a.skill);
 
-  const sorted = [...players].sort(
-    (a, b) => b.skill - a.skill || a.name.localeCompare(b.name, "pt"),
-  );
-
-  for (const player of sorted) {
-    const hasRoom = (t: BalancedTeam) =>
-      t.players.length < minSize || (t.players.length === minSize && extraSlots > 0);
-
-    let best: BalancedTeam | undefined;
-    for (const t of teams) {
-      if (!hasRoom(t)) continue;
-      if (
-        !best ||
-        t.totalSkill < best.totalSkill ||
-        (t.totalSkill === best.totalSkill && t.players.length < best.players.length)
-      ) {
-        best = t;
-      }
-    }
-    // Há sempre lugar: a soma das capacidades é exatamente o número de jogadores.
-    const team = best!;
-    if (team.players.length === minSize) extraSlots--;
-    team.players.push(player);
-    team.totalSkill += player.skill;
-  }
-
-  return teams;
+  return localSearch(snakeDraft(ordered, teamCount));
 }
 
 /** POST /ai/parse-game — mensagem colada (WhatsApp, SMS, etc.) */

@@ -9,6 +9,7 @@ import {
 import {
   generateTeamsSchema,
   type GameDetailDto,
+  type GenerateTeamsInput,
   type UserDto,
 } from '@convocados/shared';
 import { CurrentUser } from '../auth/auth.decorators.js';
@@ -24,8 +25,13 @@ export class TeamsController {
   generate(
     @Param('gameId', ParseUUIDPipe) gameId: string,
     @CurrentUser() user: UserDto,
-    @Body({ schema: generateTeamsSchema }) body: { teamCount: number },
+    @Body({ schema: generateTeamsSchema }) body: GenerateTeamsInput,
   ): Promise<GameDetailDto> {
-    return this.teams.generate(gameId, user.id, body.teamCount);
+    return this.teams.generate(
+      gameId,
+      user.id,
+      body.teamCount ?? 2,
+      body.seed,
+    );
   }
 }

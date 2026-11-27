@@ -6,12 +6,23 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, In } from 'typeorm';
 import { Participation, TeamAssignment, User } from '@convocados/db';
-import { balanceTeams, type GameDetailDto } from '@convocados/shared';
+import {
+  balanceTeams,
+  type GameDetailDto,
+  type PreferredPosition,
+} from '@convocados/shared';
 import {
   lockGame,
   ParticipationsService,
 } from '../participations/participations.service.js';
 import { RatingsService } from '../ratings/ratings.service.js';
+
+const asPosition = (v: string | null): PreferredPosition | null => {
+  if (v === 'GK' || v === 'DEF' || v === 'MID' || v === 'FWD' || v === 'ANY') {
+    return v;
+  }
+  return null;
+};
 
 @Injectable()
 export class TeamsService {
@@ -22,17 +33,16 @@ export class TeamsService {
   ) {}
 
   /**
-   * O organizador gera as equipas com os confirmados de agora e guarda-as.
-   * Todos veem as mesmas equipas (no detalhe do jogo e pelo socket), e estas não mudam
-   * sozinhas quando alguém avalia: só quando o organizador as atualiza.
+   * O organizador gera as equipas equilibradas com os confirmados de agora e guarda-as.
+   * Todos veem as mesmas (detalhe + socket). Só mudam quando o organizador as atualiza.
    */
   async generate(
     gameId: string,
     organizerId: string,
     teamCount: number,
+    seed?: number,
   ): Promise<GameDetailDto> {
     await this.dataSource.transaction(async (manager) => {
-      // Trancado: ninguém confirma nem desiste enquanto as equipas são feitas.
       const game = await lockGame(manager, gameId);
       if (game.organizerId !== organizerId) {
         throw new ForbiddenException('Só o organizador pode fazer as equipas.');
@@ -53,16 +63,20 @@ export class TeamsService {
 
       const userIds = rows.map((r) => r.userId);
       const users = await manager.findBy(User, { id: In(userIds) });
-      const nameById = new Map(users.map((u) => [u.id, u.name]));
-      const skills = await this.ratings.averageScores(userIds);
+      const userById = new Map(users.map((u) => [u.id, u]));
+      const skills = await this.ratings.strengthScores(userIds);
 
       const teams = balanceTeams(
-        userIds.map((userId) => ({
-          userId,
-          name: nameById.get(userId) ?? 'Jogador',
-          skill: skills.get(userId) ?? 3,
-        })),
-        teamCount,
+        userIds.map((userId) => {
+          const u = userById.get(userId);
+          return {
+            userId,
+            name: u?.name ?? 'Jogador',
+            skill: skills.get(userId) ?? 3,
+            preferredPosition: asPosition(u?.preferredPosition ?? null),
+          };
+        }),
+        { teamCount, seed },
       );
 
       await manager.delete(TeamAssignment, { gameId });

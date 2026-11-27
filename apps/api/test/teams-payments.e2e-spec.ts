@@ -255,11 +255,40 @@ describe('pagamentos, avaliações e equipas (e2e)', () => {
       const detail = res.body as GameDetailDto;
       expect(detail.teams.map((x) => x.name)).toEqual(['A', 'B']);
       expect(detail.teams.map((x) => x.players.length)).toEqual([3, 3]);
-      expect(JSON.stringify(detail.teams)).not.toMatch(/skill/i);
+      expect(detail.teamsBalance).toMatchObject({
+        difference: expect.any(Number),
+        explanation: expect.stringMatching(/^Diferença de /),
+      });
+      for (const team of detail.teams) {
+        expect(team.totalStrength).toEqual(expect.any(Number));
+        for (const p of team.players) {
+          expect(p).toMatchObject({
+            userId: expect.any(String),
+            name: expect.any(String),
+            strength: expect.any(Number),
+            preferredPosition: null,
+          });
+        }
+      }
+      expect(JSON.stringify(detail)).not.toMatch(/@test\.local/);
 
       // Outro jogador vê as mesmas equipas.
       const seen = await as(t.P3!).get(`/games/${id}/detail`).expect(200);
       expect((seen.body as GameDetailDto).teams).toEqual(detail.teams);
+      expect((seen.body as GameDetailDto).teamsBalance).toEqual(
+        detail.teamsBalance,
+      );
+
+      // Mesma semente → mesmas equipas; outra semente → pedido aceite.
+      const again = await as(t.Org!)
+        .post(`/games/${id}/teams`)
+        .send({ seed: 42 })
+        .expect(200);
+      expect((again.body as GameDetailDto).teams).toHaveLength(2);
+      await as(t.Org!)
+        .post(`/games/${id}/teams`)
+        .send({ seed: 99 })
+        .expect(200);
     });
 
     it('equipas com o mesmo tamanho mesmo com um jogador muito mais forte', async () => {
