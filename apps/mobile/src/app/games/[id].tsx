@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Pressable, Share, Text, View } from "react-na
 import { useLocalSearchParams, router } from "expo-router";
 import {
   formatEuros,
+  initials,
   sharePerPlayerCents,
   sportLabel,
   type CreateGameInput,
@@ -32,14 +33,6 @@ import { Badge, Button, Card, CardTitle, Columns, Muted, Notice, Screen } from "
 import { radius, usePalette, useThemedStyles, type Palette } from "../../lib/theme";
 
 const TEAM_COLORS = ["#16a34a", "#0ea5e9", "#f59e0b", "#d946ef"];
-
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("");
 
 function formatWhen(iso: string) {
   const d = new Date(iso);
@@ -367,20 +360,26 @@ export default function GameDetailScreen() {
       ) : (
         confirmed.map((p, i) => (
           <View key={p.id} style={[s.person, i > 0 ? s.personBorder : null]}>
-            <View style={s.avatar}>
-              <Text style={s.avatarText}>{initials(p.userName)}</Text>
-            </View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={s.personName}>
-                {`${i + 1}. ${p.userName}`}
-              </Text>
-              {game.totalPriceCents > 0 ? (
-                <Badge
-                  tone={p.paid ? "ok" : "warn"}
-                  label={`${p.paid ? "pago" : "em falta"}${shareCents > 0 ? ` (${formatEuros(shareCents)})` : ""}`}
-                />
-              ) : null}
-            </View>
+            <Pressable
+              onPress={() => router.push({ pathname: "/players/[id]", params: { id: p.userId } })}
+              accessibilityRole="link"
+              style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}
+            >
+              <View style={s.avatar}>
+                <Text style={s.avatarText}>{initials(p.userName)}</Text>
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={s.personName}>
+                  {`${i + 1}. ${p.userName}`}
+                </Text>
+                {game.totalPriceCents > 0 ? (
+                  <Badge
+                    tone={p.paid ? "ok" : "warn"}
+                    label={`${p.paid ? "pago" : "em falta"}${shareCents > 0 ? ` (${formatEuros(shareCents)})` : ""}`}
+                  />
+                ) : null}
+              </View>
+            </Pressable>
             {isOrganizer && game.totalPriceCents > 0 ? (
               <Button
                 size="sm"
@@ -402,12 +401,17 @@ export default function GameDetailScreen() {
             <Muted>Vazia.</Muted>
           ) : (
             waiting.map((p, i) => (
-              <View key={p.id} style={s.waitingRow}>
+              <Pressable
+                key={p.id}
+                style={s.waitingRow}
+                onPress={() => router.push({ pathname: "/players/[id]", params: { id: p.userId } })}
+                accessibilityRole="link"
+              >
                 <View style={s.waitingNumber}>
                   <Text style={s.waitingNumberText}>{i + 1}</Text>
                 </View>
                 <Text style={s.personName}>{p.userName}</Text>
-              </View>
+              </Pressable>
             ))
           )}
         </View>

@@ -37,13 +37,18 @@ export default function GamesScreen() {
     }, [load]),
   );
 
-  // Uma só ação no cabeçalho (duas não cabiam na cápsula do iOS); "Sair" está nas Definições.
+  // Perfil + Definições no cabeçalho; "Sair" está nas Definições.
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable onPress={() => router.push("/settings")} hitSlop={10} accessibilityRole="link">
-          <Text style={s.headerLink}>Definições</Text>
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
+          <Pressable onPress={() => router.push("/profile")} hitSlop={10} accessibilityRole="link">
+            <Text style={s.headerLink}>Perfil</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push("/settings")} hitSlop={10} accessibilityRole="link">
+            <Text style={s.headerLink}>Definições</Text>
+          </Pressable>
+        </View>
       ),
     });
   }, [navigation, s]);

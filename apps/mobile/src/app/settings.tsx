@@ -108,6 +108,11 @@ export default function SettingsScreen() {
 
         <Card>
           <Button
+            label="O meu perfil"
+            variant="secondary"
+            onPress={() => router.push("/profile")}
+          />
+          <Button
             label="Terminar sessão"
             variant="secondary"
             onPress={() => void signOut().then(() => router.replace("/login"))}

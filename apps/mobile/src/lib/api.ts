@@ -26,6 +26,8 @@ import type {
   GroupDto,
   GameInviteDto,
   GroupInviteDto,
+  PlayerProfileDto,
+  UpdateProfileInput,
 } from "@convocados/shared";
 
 import { trackSlow } from "./slow-requests";
@@ -216,3 +218,10 @@ export const getGroupInvite = (code: string) =>
   request<GroupInviteDto>(`/group-invites/${encodeURIComponent(code)}`);
 export const joinGroup = (code: string) =>
   request<GroupDto>(`/group-invites/${encodeURIComponent(code)}/join`, { method: "POST" });
+
+// Perfil
+export const getMyProfile = () => request<PlayerProfileDto>("/me/profile");
+export const updateMyProfile = (input: UpdateProfileInput) =>
+  request<PlayerProfileDto>("/me/profile", json(input, "PATCH"));
+export const getPlayerProfile = (id: string) =>
+  request<PlayerProfileDto>(`/users/${id}/profile`);

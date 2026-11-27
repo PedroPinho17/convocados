@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Alert, Pressable, Share, Text, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { SPORTS, type CreateGameInput, type GroupDetailDto } from "@convocados/shared";
+import { SPORTS, initials, type CreateGameInput, type GroupDetailDto } from "@convocados/shared";
 import { ApiError, createGame, getGroup, getMe, leaveGroup, removeGroupMember } from "../../lib/api";
 import { GameCard } from "../../components/game-card";
 import { NewGame } from "../../components/new-game";
@@ -9,14 +9,6 @@ import { Badge, Button, Card, CardTitle, Columns, Muted, Notice, Screen } from "
 import { radius, usePalette, useThemedStyles, type Palette } from "../../lib/theme";
 
 const WEB_ORIGIN = (process.env.EXPO_PUBLIC_WEB_ORIGIN ?? "http://localhost:3000").replace(/\/$/, "");
-
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join("");
 
 export default function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

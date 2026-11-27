@@ -32,6 +32,8 @@ export default function RootLayout() {
         <Stack.Screen name="games/index" options={{ title: "Convocados" }} />
         {/* iPhone: o botão de voltar diz para onde vai ("Jogos"), não o título do ecrã anterior. */}
         <Stack.Screen name="games/[id]" options={{ title: "Jogo", headerBackTitle: "Jogos" }} />
+        <Stack.Screen name="profile" options={{ title: "Perfil", headerBackTitle: "Jogos" }} />
+        <Stack.Screen name="players/[id]" options={{ title: "Jogador", headerBackTitle: "Voltar" }} />
         <Stack.Screen name="settings" options={{ title: "Definições", headerBackTitle: "Jogos" }} />
         <Stack.Screen name="groups/index" options={{ title: "Grupos", headerBackTitle: "Jogos" }} />
         <Stack.Screen name="groups/[id]" options={{ title: "Grupo", headerBackTitle: "Grupos" }} />
