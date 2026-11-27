@@ -133,6 +133,15 @@ const SPORT_ALIASES: Record<string, string> = {
   andebol: 'handball',
   basquetebol: 'basketball',
   voleibol: 'volleyball',
+  // Variantes encontradas na importação de Portugal (nov 2026): sem isto, a pesquisa por
+  // desporto não as reconhecia (ex.: campos de padel etiquetados "paddle_tennis").
+  paddle_tennis: 'padel',
+  football: 'soccer',
+  'five-a-side': 'soccer',
+  futebol_de_5: 'soccer',
+  futebol_de_7: 'soccer',
+  street_soccer: 'soccer',
+  team_handball: 'handball',
 };
 /** Sem etiqueta sport, decide-se pelo nome. */
 const SPORT_NAME =

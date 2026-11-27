@@ -126,6 +126,8 @@ async function main() {
 }
 
 main().catch((err: unknown) => {
-  console.error((err as Error).message);
+  // Alguns erros do Node (ex.: ECONNREFUSED da base de dados) vêm com a mensagem vazia.
+  const e = err as Error & { code?: string };
+  console.error(e.message || e.code || String(err));
   process.exit(1);
 });
