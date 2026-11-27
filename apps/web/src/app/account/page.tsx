@@ -71,9 +71,14 @@ export default function AccountPage() {
               <p className="text-sm text-muted break-all">{me.email}</p>
             </div>
           </div>
-          <Link href="/privacidade" className="mt-4 inline-block text-sm font-medium text-brand-strong hover:underline">
-            Política de privacidade
-          </Link>
+          <div className="mt-4 flex flex-col gap-2 text-sm font-medium">
+            <Link href="/profile" className="text-brand-strong hover:underline">
+              Editar perfil de jogador
+            </Link>
+            <Link href="/privacidade" className="text-brand-strong hover:underline">
+              Política de privacidade
+            </Link>
+          </div>
         </Card>
 
         <Card className="border-danger/30">

@@ -23,6 +23,8 @@ import type {
   VenueDto,
   VenueSearchInput,
   CreateVenueInput,
+  PlayerProfileDto,
+  UpdateProfileInput,
 } from "@convocados/shared";
 import { trackSlow } from "./slow-requests";
 
@@ -165,3 +167,10 @@ export function searchVenues(input: VenueSearchInput, signal?: AbortSignal) {
   }
   return request<VenueDto[]>(`/venues?${params}`, { signal });
 }
+
+// Perfil
+export const getMyProfile = () => request<PlayerProfileDto>("/me/profile");
+export const updateMyProfile = (input: UpdateProfileInput) =>
+  request<PlayerProfileDto>("/me/profile", json(input, "PATCH"));
+export const getPlayerProfile = (id: string) =>
+  request<PlayerProfileDto>(`/users/${id}/profile`);

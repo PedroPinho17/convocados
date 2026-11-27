@@ -9,6 +9,7 @@ import { AppHeader, cn, navLinkClass } from "@/components/ui";
 const LINKS = [
   { href: "/games", label: "Jogos" },
   { href: "/groups", label: "Grupos" },
+  { href: "/profile", label: "Perfil" },
   { href: "/account", label: "Conta" },
 ];
 

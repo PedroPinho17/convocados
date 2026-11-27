@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   formatEuros,
+  initials,
   sharePerPlayerCents,
   type GameDetailDto,
   type UserDto,
@@ -21,14 +22,6 @@ type Props = {
   inviteCode?: string;
   onChange: (game: GameDetailDto) => void;
 };
-
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("");
 
 /** Vagas, preço por pessoa, confirmar/desistir e as listas. Usado no convite e no detalhe do jogo. */
 export function GameParticipation({ game, me, loginNext, inviteCode, onChange }: Props) {
@@ -204,7 +197,17 @@ export function GameParticipation({ game, me, loginNext, inviteCode, onChange }:
                   </span>
                   <span className="min-w-0">
                     <span className="block font-medium wrap-break-word">
-                      {i + 1}. {p.userName}
+                      {i + 1}.{" "}
+                      {me ? (
+                        <Link
+                          href={`/players/${p.userId}`}
+                          className="text-brand-strong hover:underline"
+                        >
+                          {p.userName}
+                        </Link>
+                      ) : (
+                        p.userName
+                      )}
                     </span>
                     {game.totalPriceCents > 0 ? (
                       <Badge tone={p.paid ? "ok" : "warn"} className="mt-0.5">
@@ -241,7 +244,16 @@ export function GameParticipation({ game, me, loginNext, inviteCode, onChange }:
                     <span className="grid size-7 place-items-center rounded-full bg-surface-2 text-xs font-semibold text-muted ring-1 ring-line">
                       {i + 1}
                     </span>
-                    {p.userName}
+                    {me ? (
+                      <Link
+                        href={`/players/${p.userId}`}
+                        className="font-medium text-brand-strong hover:underline"
+                      >
+                        {p.userName}
+                      </Link>
+                    ) : (
+                      p.userName
+                    )}
                   </li>
                 ))}
               </ol>
