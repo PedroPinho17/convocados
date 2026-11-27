@@ -103,9 +103,9 @@ App Android com Expo; quem usa iPhone entra pela versão web (sem a taxa da App 
 - **Cookies no mesmo site com dois domínios.** A web e a API estão em domínios diferentes do Render, por isso a
   web fala com a API por um proxy próprio em `/api/*` e o cookie da sessão fica no site da web. O socket do tempo
   real liga direto à API com um token curto e assinado.
-- **Limite de tentativas por pessoa, mesmo atrás do proxy.** Login e registo aceitam 10 tentativas por minuto
-  por IP; o proxy envia o IP de quem pede com um segredo partilhado, por isso um cabeçalho falsificado não fura
-  o limite.
+- **Limite de tentativas por pessoa, mesmo atrás do proxy.** Login aceita 10 tentativas por minuto por IP
+  (registo 30); o proxy envia o IP de quem pede com um segredo partilhado, por isso um cabeçalho falsificado
+  não fura o limite.
 - **Lembretes como notificações locais.** O alojamento gratuito da API adormece e um cron no servidor podia
   falhar a hora; os lembretes são agendados no telemóvel e voltam a ser agendados ao abrir a app. O push do
   servidor fica só para eventos.

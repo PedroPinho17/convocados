@@ -108,7 +108,7 @@ export function GameTeams({ game, me, onChange }: Props) {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {game.teams.map((team, i) => (
               <div key={team.name} className="rounded-xl border border-line bg-surface-2 p-3">
-                <p className="flex flex-wrap items-center gap-x-2 font-semibold">
+                <p className="flex min-w-0 flex-wrap items-center gap-x-2 font-semibold">
                   <span
                     aria-hidden="true"
                     className={cn(
@@ -117,7 +117,7 @@ export function GameTeams({ game, me, onChange }: Props) {
                     )}
                   />
                   Equipa {team.name}{" "}
-                  <span className="whitespace-nowrap text-sm font-normal text-muted">
+                  <span className="text-sm font-normal text-muted">
                     · {team.players.length}{" "}
                     {team.players.length === 1 ? "jogador" : "jogadores"} · força{" "}
                     {team.totalStrength.toFixed(1)}
@@ -127,12 +127,12 @@ export function GameTeams({ game, me, onChange }: Props) {
                   {team.players.map((p) => {
                     const pos = positionLabel(p.preferredPosition);
                     return (
-                      <li key={p.userId} className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span>
+                      <li key={p.userId} className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
+                        <span className="min-w-0 wrap-break-word">
                           {p.name}
                           {pos ? <span className="text-muted"> · {pos}</span> : null}
                         </span>
-                        <span className="tabular-nums text-muted">{p.strength.toFixed(1)}</span>
+                        <span className="shrink-0 tabular-nums text-muted">{p.strength.toFixed(1)}</span>
                       </li>
                     );
                   })}

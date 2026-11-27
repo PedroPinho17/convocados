@@ -25,8 +25,13 @@ import { AuthService } from './auth.service.js';
 import { CurrentUser, Public, type AuthedRequest } from './auth.decorators.js';
 import { PasswordResetService } from './password-reset.service.js';
 
-/** Login e registo: 10 tentativas por minuto e por IP (contra adivinhar passwords). */
-const AUTH_LIMIT = { default: { limit: 10, ttl: 60_000 } };
+/** Login: 10 tentativas por minuto e por IP (contra adivinhar passwords). */
+const LOGIN_LIMIT = { default: { limit: 10, ttl: 60_000 } };
+/**
+ * Registo: um pouco mais folgado que o login — os testes no browser criam várias contas
+ * no mesmo IP; 10/min falhava no meio da suite quando um teste anterior era repetido.
+ */
+const REGISTER_LIMIT = { default: { limit: 30, ttl: 60_000 } };
 /** Pedir o email de recuperação: poucos por minuto (cada um manda um email). */
 const FORGOT_LIMIT = { default: { limit: 5, ttl: 60_000 } };
 
@@ -38,7 +43,7 @@ export class AuthController {
   ) {}
 
   @Public()
-  @Throttle(AUTH_LIMIT)
+  @Throttle(REGISTER_LIMIT)
   @Post('register')
   async register(
     @Body({ schema: registerSchema }) body: RegisterInput,
@@ -48,7 +53,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle(AUTH_LIMIT)
+  @Throttle(LOGIN_LIMIT)
   @Post('login')
   @HttpCode(200)
   async login(
@@ -59,14 +64,14 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle(AUTH_LIMIT)
+  @Throttle(REGISTER_LIMIT)
   @Post('mobile/register')
   async mobileRegister(@Body({ schema: registerSchema }) body: RegisterInput) {
     return this.auth.startTokenSession(await this.auth.register(body));
   }
 
   @Public()
-  @Throttle(AUTH_LIMIT)
+  @Throttle(LOGIN_LIMIT)
   @Post('mobile/login')
   @HttpCode(200)
   async mobileLogin(@Body({ schema: loginSchema }) body: LoginInput) {
@@ -85,7 +90,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle(AUTH_LIMIT)
+  @Throttle(LOGIN_LIMIT)
   @Post('password/reset')
   @HttpCode(204)
   async resetPassword(

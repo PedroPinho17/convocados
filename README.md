@@ -103,8 +103,8 @@ Android app via Expo; iPhone users use the web app (no App Store fee).
 - **Same-site cookies across two domains.** The web and the API run on different Render domains, so the web
   talks to the API through its own `/api/*` proxy and the session cookie stays first-party. The real-time socket
   connects directly with a short-lived signed token.
-- **Rate limits per person behind the proxy.** Login and registration allow 10 attempts per minute per IP; the
-  proxy forwards the client IP with a shared secret, so a spoofed header cannot bypass the limit.
+- **Rate limits per person behind the proxy.** Login allows 10 attempts per minute per IP (registration 30);
+  the proxy forwards the client IP with a shared secret, so a spoofed header cannot bypass the limit.
 - **Reminders as local notifications.** The free API host sleeps, so a server cron could miss the time;
   reminders are scheduled on the phone and rescheduled when the app opens. Server push is only for events.
 - **AI that cannot break the app.** The pasted message goes to Groq with a Zod schema; each field is validated

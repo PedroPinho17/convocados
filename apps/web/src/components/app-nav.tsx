@@ -32,13 +32,13 @@ export function AppNav() {
             key={l.href}
             href={l.href}
             aria-current={active ? "page" : undefined}
-            className={cn(navLinkClass, "px-2.5 sm:px-3", active && "bg-brand-soft text-brand-strong")}
+            className={cn(navLinkClass, active && "bg-brand-soft text-brand-strong")}
           >
             {l.label}
           </Link>
         );
       })}
-      <button type="button" onClick={() => void onLogout()} className={cn(navLinkClass, "px-2.5 sm:px-3")}>
+      <button type="button" onClick={() => void onLogout()} className={navLinkClass}>
         Sair
       </button>
     </AppHeader>

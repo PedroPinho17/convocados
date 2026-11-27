@@ -132,7 +132,9 @@ export function GameResult({ game, me, onChange }: Props) {
         <div className="mt-4 flex flex-col gap-3">
           <h3 className="text-sm font-semibold">Crónica do jogo</h3>
           {game.summary ? (
-            <p className="whitespace-pre-wrap rounded-xl bg-surface-2 px-4 py-3 text-sm">{game.summary}</p>
+            <p className="max-w-full whitespace-pre-wrap break-words rounded-xl bg-surface-2 px-4 py-3 text-sm">
+              {game.summary}
+            </p>
           ) : (
             <p className="text-sm text-muted">Ainda sem crónica.</p>
           )}

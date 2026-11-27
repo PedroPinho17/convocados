@@ -55,7 +55,8 @@ function LoginForm() {
       }
       if (mode === "login") await login({ email, password });
       else await register({ name, email, password });
-      router.push(next);
+      // replace: a página de login não deve ficar no histórico depois de entrar.
+      router.replace(next);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Algo correu mal.");
     } finally {

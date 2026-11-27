@@ -109,8 +109,10 @@ export function GameDetailClient() {
             <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-7">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{game.title}</h1>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <h1 className="min-w-0 text-2xl font-bold tracking-tight wrap-break-word sm:text-3xl">
+                      {game.title}
+                    </h1>
                     {cancelled ? <Badge tone="danger">Cancelado</Badge> : null}
                   </div>
                   <p className="mt-2 text-base font-medium text-brand-strong">{formatGameDate(game.startsAt)}</p>
@@ -119,12 +121,12 @@ export function GameDetailClient() {
                     {game.groupName && inMyGroup ? (
                       <Link
                         href={`/groups/${game.groupId}`}
-                        className="font-medium text-brand-strong wrap-break-word hover:underline"
+                        className="min-w-0 font-medium text-brand-strong wrap-break-word hover:underline"
                       >
                         {game.groupName}
                       </Link>
                     ) : game.groupName ? (
-                      <span className="font-medium wrap-break-word">{game.groupName}</span>
+                      <span className="min-w-0 font-medium wrap-break-word">{game.groupName}</span>
                     ) : null}
                   </p>
                 </div>
@@ -137,7 +139,7 @@ export function GameDetailClient() {
               <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
                 <div className="flex min-w-0 gap-2">
                   <dt className="shrink-0 text-muted">Local</dt>
-                  <dd className="min-w-0 font-medium">
+                  <dd className="min-w-0 font-medium wrap-break-word">
                     {game.location}
                     {game.venueId ? <span className="ml-1 text-xs text-ok">✓</span> : null}
                   </dd>

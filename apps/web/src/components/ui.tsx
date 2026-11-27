@@ -126,8 +126,8 @@ export function Logo({ size = "sm" }: { size?: "sm" | "lg" }) {
 
 export function AppHeader({ children, brandHref = "/games" }: { children?: ReactNode; brandHref?: string }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+    <header className="sticky top-0 z-20 overflow-x-hidden border-b border-line bg-canvas/85 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
+      <div className="mx-auto flex min-h-14 w-full max-w-6xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
         <Link
           href={brandHref}
           aria-label="Convocados"
@@ -138,7 +138,10 @@ export function AppHeader({ children, brandHref = "/games" }: { children?: React
           <span className={cn("text-lg", children ? "hidden sm:inline" : undefined)}>Convocados</span>
         </Link>
         {children ? (
-          <nav aria-label="Principal" className="flex min-w-0 items-center gap-0.5 text-sm sm:gap-1">
+          <nav
+            aria-label="Principal"
+            className="flex min-w-0 max-w-full flex-1 flex-wrap items-center justify-end gap-0.5 text-sm sm:gap-1"
+          >
             {children}
           </nav>
         ) : null}
@@ -148,7 +151,7 @@ export function AppHeader({ children, brandHref = "/games" }: { children?: React
 }
 
 export const navLinkClass =
-  "inline-flex min-h-9 items-center rounded-lg px-3 font-medium text-muted transition hover:bg-surface-2 hover:text-ink";
+  "inline-flex min-h-9 items-center rounded-lg px-1.5 font-medium text-muted transition hover:bg-surface-2 hover:text-ink sm:px-3";
 
 /** Conteúdo da página: largura máxima e margens que crescem com o ecrã. */
 export function Page({
