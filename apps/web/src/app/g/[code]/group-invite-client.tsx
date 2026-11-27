@@ -78,7 +78,7 @@ export function GroupInviteClient() {
         ) : (
           <Link
             href={`/login?next=${encodeURIComponent(`/g/${code}`)}`}
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-brand px-4 font-semibold text-brand-ink hover:bg-brand-strong"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-brand px-4 font-semibold text-brand-ink hover:bg-brand-strong"
           >
             Entra ou cria conta para entrar
           </Link>

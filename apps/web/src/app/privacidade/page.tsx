@@ -18,9 +18,9 @@ export default function PrivacyPage() {
           Jogos
         </Link>
       </AppHeader>
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 leading-relaxed sm:px-6 sm:py-12">
+    <main id="main" className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 leading-relaxed sm:px-6 sm:py-12">
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Política de privacidade</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Política de privacidade</h1>
         <p className="text-sm text-muted">Última atualização: 26 de novembro de 2026</p>
         <p>
           O Convocados é uma app para organizar jogos de futebol entre amigos. Guarda só o que
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
         </p>
       </header>
 
-      <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6">
+      <section className="flex flex-col gap-2 rounded-3xl bg-surface p-5 shadow-[var(--shadow-card)] ring-1 ring-ink/5 sm:p-6">
         <h2 className="text-lg font-semibold">O que guardamos e para quê</h2>
         <ul className="list-disc space-y-2 pl-5 marker:text-brand">
           <li>
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
         </ul>
       </section>
 
-      <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6">
+      <section className="flex flex-col gap-2 rounded-3xl bg-surface p-5 shadow-[var(--shadow-card)] ring-1 ring-ink/5 sm:p-6">
         <h2 className="text-lg font-semibold">Quem mais trata os dados</h2>
         <ul className="list-disc space-y-2 pl-5 marker:text-brand">
           <li>
@@ -75,7 +75,7 @@ export default function PrivacyPage() {
         </ul>
       </section>
 
-      <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6">
+      <section className="flex flex-col gap-2 rounded-3xl bg-surface p-5 shadow-[var(--shadow-card)] ring-1 ring-ink/5 sm:p-6">
         <h2 className="text-lg font-semibold">Durante quanto tempo e como apagar</h2>
         <p>
           Os dados ficam enquanto tiveres conta. Podes apagá-la a qualquer momento em{" "}
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
         </p>
       </section>
 
-      <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-6">
+      <section className="flex flex-col gap-2 rounded-3xl bg-surface p-5 shadow-[var(--shadow-card)] ring-1 ring-ink/5 sm:p-6">
         <h2 className="text-lg font-semibold">Os teus direitos</h2>
         <p>
           Pelo RGPD, podes pedir acesso, correção ou eliminação dos teus dados, e reclamar à CNPD

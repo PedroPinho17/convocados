@@ -11,26 +11,30 @@ export function GameCard({ game, faded }: { game: GameDto; faded?: boolean }) {
   return (
     <li
       className={cn(
-        "group relative flex gap-4 rounded-2xl border border-line bg-surface p-4 shadow-sm transition hover:border-brand/50 hover:shadow",
+        "group relative flex gap-4 rounded-2xl bg-surface p-4 shadow-[var(--shadow-soft)] ring-1 ring-ink/5 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] sm:rounded-3xl",
         faded && "opacity-75",
       )}
     >
       <div
         aria-hidden="true"
         className={cn(
-          "flex w-14 shrink-0 flex-col items-center justify-center rounded-xl py-2",
-          cancelled ? "bg-surface-2 text-muted" : "bg-brand-soft text-brand-strong",
+          "flex w-14 shrink-0 flex-col items-center justify-center rounded-2xl py-2 ring-1",
+          cancelled
+            ? "bg-surface-2 text-muted ring-ink/5"
+            : "bg-surface-2 text-ink ring-ink/5",
         )}
       >
-        <span className="text-[0.7rem] font-semibold uppercase">{weekday.replace(".", "")}</span>
+        <span className="text-[0.7rem] font-semibold uppercase text-muted">
+          {weekday.replace(".", "")}
+        </span>
         <span className="text-xl font-bold leading-none">{day}</span>
-        <span className="text-[0.7rem] uppercase">{month.replace(".", "")}</span>
+        <span className="text-[0.7rem] uppercase text-muted">{month.replace(".", "")}</span>
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <Link
             href={`/games/${game.id}`}
-            className="min-w-0 line-clamp-2 font-semibold wrap-break-word after:absolute after:inset-0 after:rounded-2xl"
+            className="min-w-0 line-clamp-2 font-semibold wrap-break-word after:absolute after:inset-0 after:rounded-2xl sm:after:rounded-3xl"
           >
             {game.title}
           </Link>

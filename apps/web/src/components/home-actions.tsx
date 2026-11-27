@@ -6,9 +6,9 @@ import { getMe } from "@/lib/api";
 import { cn } from "@/components/ui";
 
 const primary =
-  "inline-flex min-h-12 items-center justify-center rounded-xl bg-brand px-6 text-base font-semibold text-brand-ink shadow-sm transition hover:bg-brand-strong";
+  "inline-flex min-h-12 items-center justify-center rounded-full bg-brand px-7 text-base font-semibold text-brand-ink shadow-[var(--shadow-soft)] transition hover:bg-brand-strong";
 const secondary =
-  "inline-flex min-h-12 items-center justify-center rounded-xl border border-line bg-surface px-6 text-base font-semibold text-ink transition hover:bg-surface-2";
+  "inline-flex min-h-12 items-center justify-center rounded-full border border-line bg-surface px-7 text-base font-semibold text-ink transition hover:bg-surface-2";
 
 /**
  * A página inicial tem vários sítios que dependem da sessão (topo, botões, rodapé):
@@ -78,7 +78,7 @@ export function HomeNavAction() {
   return (
     <Link
       href={loggedIn ? "/games" : "/login"}
-      className="inline-flex min-h-9 items-center rounded-lg px-3 text-sm font-semibold text-brand-strong hover:bg-brand-soft"
+      className="inline-flex min-h-9 items-center rounded-full px-3.5 text-sm font-semibold text-brand-strong hover:bg-brand-soft"
     >
       {loggedIn ? "Os meus jogos" : "Entrar"}
     </Link>

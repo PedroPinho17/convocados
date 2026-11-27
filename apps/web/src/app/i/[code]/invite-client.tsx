@@ -106,14 +106,16 @@ export function InviteClient() {
     <>
       {header}
       <Page>
-        <section className="flex flex-col gap-2 rounded-2xl bg-brand p-5 text-brand-ink shadow-sm sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-wide opacity-80">Foste convocado</p>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{summary.title}</h1>
-          <p className="text-base font-medium">{formatGameDate(summary.startsAt)}</p>
+        <section className="flex flex-col gap-2 rounded-3xl bg-surface p-5 shadow-[var(--shadow-card)] ring-1 ring-ink/5 sm:p-7">
+          <p className="text-sm font-semibold text-brand-strong">Foste convocado</p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            {summary.title}
+          </h1>
+          <p className="text-base font-medium text-ink">{formatGameDate(summary.startsAt)}</p>
           <p className="mt-1">
             <Badge tone="brand">{sportLabel(summary.sport)}</Badge>
           </p>
-          <p className="text-sm opacity-90">
+          <p className="text-sm text-muted">
             {summary.location} · total {formatEuros(summary.totalPriceCents)}
           </p>
           {summary.status === "cancelled" ? (

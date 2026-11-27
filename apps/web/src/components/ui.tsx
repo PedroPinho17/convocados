@@ -17,14 +17,14 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const VARIANTS = {
-  primary: "bg-brand text-brand-ink hover:bg-brand-strong shadow-sm",
+  primary: "bg-brand text-brand-ink hover:bg-brand-strong shadow-[var(--shadow-soft)]",
   secondary: "border border-line bg-surface text-ink hover:bg-surface-2",
   danger: "border border-danger/40 bg-surface text-danger hover:bg-danger-soft",
   ghost: "text-muted hover:bg-surface-2 hover:text-ink",
 };
 const SIZES = {
-  sm: "min-h-9 px-3 text-sm",
-  md: "min-h-11 px-4 text-base",
+  sm: "min-h-9 px-3.5 text-sm",
+  md: "min-h-11 px-5 text-base",
 };
 
 export function Button({ variant = "primary", size = "md", className, type, ...props }: ButtonProps) {
@@ -32,7 +32,7 @@ export function Button({ variant = "primary", size = "md", className, type, ...p
     <button
       type={type ?? "button"}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
         VARIANTS[variant],
         SIZES[size],
         className,
@@ -45,7 +45,10 @@ export function Button({ variant = "primary", size = "md", className, type, ...p
 export function Card({ className, ...props }: HTMLAttributes<HTMLElement>) {
   return (
     <section
-      className={cn("rounded-2xl border border-line bg-surface p-4 shadow-sm sm:p-6", className)}
+      className={cn(
+        "rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)] ring-1 ring-ink/5 sm:rounded-3xl sm:p-6",
+        className,
+      )}
       {...props}
     />
   );
@@ -64,6 +67,7 @@ const TONES = {
   neutral: "bg-surface-2 text-muted border-line",
   brand: "bg-brand-soft text-brand-strong border-transparent",
   warn: "bg-warn-soft text-warn border-transparent",
+  accent: "bg-terracotta-soft text-terracotta border-transparent",
   danger: "bg-danger-soft text-danger border-transparent",
   ok: "bg-ok-soft text-ok border-transparent",
 };
@@ -91,7 +95,7 @@ export function Notice({
   children,
   role,
 }: {
-  tone: "danger" | "warn" | "ok" | "brand";
+  tone: "danger" | "warn" | "ok" | "brand" | "accent";
   children: ReactNode;
   role?: "status" | "alert";
 }) {
@@ -100,6 +104,7 @@ export function Notice({
     warn: "bg-warn-soft text-warn",
     ok: "bg-ok-soft text-ok",
     brand: "bg-brand-soft text-brand-strong",
+    accent: "bg-terracotta-soft text-terracotta",
   }[tone];
   return (
     <p role={role} className={cn("rounded-xl px-3.5 py-2.5 text-sm", cls)}>
@@ -108,15 +113,14 @@ export function Notice({
   );
 }
 
-/** Barra de cima: marca e navegação. Fica presa no topo e tem fundo translúcido. */
-/** Marca: um "C" em verde, igual para todos os desportos. */
+/** Marca: círculo com “C”, menos genérico que um tile quadrado. */
 export function Logo({ size = "sm" }: { size?: "sm" | "lg" }) {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "grid place-items-center bg-brand font-black text-brand-ink shadow-sm",
-        size === "sm" ? "size-8 rounded-lg text-lg" : "size-14 rounded-2xl text-3xl",
+        "grid place-items-center bg-brand font-display font-semibold text-brand-ink shadow-[var(--shadow-soft)]",
+        size === "sm" ? "size-8 rounded-full text-base" : "size-14 rounded-full text-2xl",
       )}
     >
       C
@@ -126,16 +130,21 @@ export function Logo({ size = "sm" }: { size?: "sm" | "lg" }) {
 
 export function AppHeader({ children, brandHref = "/games" }: { children?: ReactNode; brandHref?: string }) {
   return (
-    <header className="sticky top-0 z-20 overflow-x-hidden border-b border-line bg-canvas/85 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
+    <header className="sticky top-0 z-20 overflow-x-hidden border-b border-line/80 bg-surface/95 shadow-[var(--shadow-soft)] backdrop-blur supports-[backdrop-filter]:bg-surface/90">
+      <a href="#main" className="skip-link">
+        Saltar para o conteúdo
+      </a>
       <div className="mx-auto flex min-h-14 w-full max-w-6xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
         <Link
           href={brandHref}
           aria-label="Convocados"
-          className="flex shrink-0 items-center gap-2 font-bold tracking-tight"
+          className="flex shrink-0 items-center gap-2.5 font-semibold tracking-tight"
         >
           <Logo size="sm" />
           {/* Com navegação, no telemóvel só cabe o logo: o nome volta a partir de 640 px. */}
-          <span className={cn("text-lg", children ? "hidden sm:inline" : undefined)}>Convocados</span>
+          <span className={cn("font-display text-lg", children ? "hidden sm:inline" : undefined)}>
+            Convocados
+          </span>
         </Link>
         {children ? (
           <nav
@@ -151,7 +160,7 @@ export function AppHeader({ children, brandHref = "/games" }: { children?: React
 }
 
 export const navLinkClass =
-  "inline-flex min-h-9 items-center rounded-lg px-1.5 font-medium text-muted transition hover:bg-surface-2 hover:text-ink sm:px-3";
+  "inline-flex min-h-9 items-center rounded-full px-2 font-medium text-muted transition hover:bg-surface-2 hover:text-ink sm:px-3";
 
 /** Conteúdo da página: largura máxima e margens que crescem com o ecrã. */
 export function Page({
@@ -165,6 +174,7 @@ export function Page({
 }) {
   return (
     <main
+      id="main"
       className={cn(
         "mx-auto flex w-full flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-10",
         width === "narrow" ? "max-w-md" : "max-w-6xl",
@@ -179,16 +189,18 @@ export function Page({
 /** Ecrã de entrada (login, password nova): centrado, com a marca em cima. */
 export function AuthShell({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
-    <main className="flex min-h-full flex-1 items-center justify-center px-4 py-10">
+    <main id="main" className="flex min-h-full flex-1 items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <Link href="/" aria-label="Convocados: página inicial">
             <Logo size="lg" />
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
           {subtitle ? <p className="text-muted">{subtitle}</p> : null}
         </div>
-        <div className="rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-7">{children}</div>
+        <div className="rounded-3xl bg-surface p-5 shadow-[var(--shadow-card)] ring-1 ring-ink/5 sm:p-7">
+          {children}
+        </div>
       </div>
     </main>
   );
@@ -199,7 +211,7 @@ export function BackLink({ href, label = "Voltar" }: { href: string; label?: str
   return (
     <Link
       href={href}
-      className="group inline-flex min-h-10 items-center gap-2 self-start rounded-full border border-line bg-surface py-1.5 pl-2 pr-4 text-sm font-semibold text-ink shadow-sm transition hover:border-brand/50 hover:text-brand-strong"
+      className="group inline-flex min-h-10 items-center gap-2 self-start rounded-full border border-line bg-surface py-1.5 pl-2 pr-4 text-sm font-semibold text-ink shadow-[var(--shadow-soft)] transition hover:border-brand/40 hover:text-brand-strong"
     >
       <span
         aria-hidden="true"

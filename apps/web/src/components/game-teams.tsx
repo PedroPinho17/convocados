@@ -16,8 +16,8 @@ type Props = {
   onChange: (game: GameDetailDto) => void;
 };
 
-/** Cores das equipas (A, B, C, D), para se distinguirem à primeira vista. */
-const TEAM_COLORS = ["bg-brand", "bg-sky-500", "bg-amber-500", "bg-fuchsia-500"];
+/** Cores das equipas: A = marca, B = terracota (nunca decoração), C/D = neutros. */
+const TEAM_COLORS = ["bg-brand", "bg-terracotta", "bg-muted", "bg-ink/40"];
 
 const positionLabel = (pos: PreferredPosition | null) =>
   pos && pos !== "ANY" ? PREFERRED_POSITION_LABELS[pos] : null;
@@ -107,7 +107,7 @@ export function GameTeams({ game, me, onChange }: Props) {
         {hasTeams ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {game.teams.map((team, i) => (
-              <div key={team.name} className="rounded-xl border border-line bg-surface-2 p-3">
+              <div key={team.name} className="rounded-2xl bg-surface-2 p-3 ring-1 ring-ink/5">
                 <p className="flex min-w-0 flex-wrap items-center gap-x-2 font-semibold">
                   <span
                     aria-hidden="true"

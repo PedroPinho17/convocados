@@ -34,7 +34,7 @@ export function InviteShare({ inviteCode }: Props) {
       <CardTitle>Convite</CardTitle>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center lg:flex-col lg:items-stretch xl:flex-row xl:items-center">
         {/* O QR precisa de fundo claro para ser lido, também no modo escuro. */}
-        <div className="self-center rounded-xl bg-white p-3 shadow-sm ring-1 ring-line">
+        <div className="self-center rounded-xl bg-white p-3 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <QRCodeSVG value={url} size={132} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-3">

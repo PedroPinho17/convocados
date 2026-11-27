@@ -98,7 +98,7 @@ export function GameParticipation({ game, me, loginNext, inviteCode, onChange }:
                 confirmados
               </p>
               {game.subs > 0 ? (
-                <span className="text-sm text-muted">
+                <span className="text-sm text-terracotta">
                   {game.waitingCount}/{game.subs} em lista de espera
                 </span>
               ) : null}
@@ -210,7 +210,7 @@ export function GameParticipation({ game, me, loginNext, inviteCode, onChange }:
                       )}
                     </span>
                     {game.totalPriceCents > 0 ? (
-                      <Badge tone={p.paid ? "ok" : "warn"} className="mt-0.5">
+                      <Badge tone={p.paid ? "ok" : "accent"} className="mt-0.5">
                         {p.paid ? "pago" : "em falta"}
                         {shareCents > 0 ? ` (${formatEuros(shareCents)})` : null}
                       </Badge>
@@ -234,14 +234,14 @@ export function GameParticipation({ game, me, loginNext, inviteCode, onChange }:
 
         {game.subs > 0 ? (
           <div className="mt-5 border-t border-line pt-4">
-            <h2 className="mb-2 text-base font-semibold">Lista de espera</h2>
+            <h2 className="mb-2 text-base font-semibold text-terracotta">Lista de espera</h2>
             {waiting.length === 0 ? (
               <p className="text-sm text-muted">Vazia.</p>
             ) : (
               <ol className="flex flex-col gap-1.5">
                 {waiting.map((p, i) => (
                   <li key={p.id} className="flex items-center gap-3 text-sm">
-                    <span className="grid size-7 place-items-center rounded-full bg-surface-2 text-xs font-semibold text-muted ring-1 ring-line">
+                    <span className="grid size-7 place-items-center rounded-full bg-terracotta-soft text-xs font-semibold text-terracotta">
                       {i + 1}
                     </span>
                     {me ? (

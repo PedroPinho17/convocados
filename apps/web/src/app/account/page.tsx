@@ -56,7 +56,7 @@ export default function AccountPage() {
     <>
       {header}
       <Page width="narrow">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Conta</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Conta</h1>
 
         <Card>
           <div className="flex items-center gap-4">

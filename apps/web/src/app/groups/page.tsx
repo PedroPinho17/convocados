@@ -47,7 +47,7 @@ export default function GroupsPage() {
       <AppNav />
       <Page>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Os meus grupos</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Os meus grupos</h1>
           <p className="mt-1 text-muted">
             Um grupo junta as mesmas pessoas de sempre: a futebolada de quinta, o padel da empresa.
             Os jogos do grupo aparecem a todos os membros.
@@ -75,11 +75,11 @@ export default function GroupsPage() {
                 {groups.map((g) => (
                   <li
                     key={g.id}
-                    className="relative flex items-center gap-4 rounded-2xl border border-line bg-surface p-4 shadow-sm transition hover:border-brand/50 hover:shadow"
+                    className="relative flex items-center gap-4 rounded-2xl bg-surface p-4 shadow-[var(--shadow-soft)] ring-1 ring-ink/5 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] sm:rounded-3xl"
                   >
                     <span
                       aria-hidden="true"
-                      className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand-soft text-2xl"
+                      className="grid size-12 shrink-0 place-items-center rounded-2xl bg-surface-2 text-2xl ring-1 ring-ink/5"
                     >
                       {SPORTS[g.sport].emoji}
                     </span>

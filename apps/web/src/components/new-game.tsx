@@ -73,9 +73,9 @@ export function NewGame({ onCreate, groups, groupId }: Props) {
       aria-controls={`new-game-panel-${value}`}
       onClick={() => setMode(value)}
       className={cn(
-        "min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold transition",
+        "min-h-10 flex-1 rounded-full px-3 text-sm font-semibold transition",
         mode === value
-          ? "bg-surface text-brand-strong shadow-sm ring-1 ring-brand/40"
+          ? "bg-surface text-brand-strong shadow-[var(--shadow-soft)] ring-1 ring-brand/30"
           : "text-muted hover:text-ink",
       )}
     >

@@ -57,15 +57,12 @@ export default function GamesPage() {
     <>
       <AppNav />
       <Page>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Os meus jogos</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Os meus jogos</h1>
         {/* Atalho para os grupos: um cartão claro, não um link de texto perdido no canto. */}
         <Link
           href="/groups"
-          className="group flex items-center gap-4 rounded-2xl border border-line bg-surface p-4 shadow-sm transition hover:border-brand/50 hover:shadow"
+          className="group flex items-center gap-4 rounded-2xl bg-surface p-4 shadow-[var(--shadow-soft)] ring-1 ring-ink/5 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] sm:rounded-3xl"
         >
-          <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand-soft text-2xl">
-            👥
-          </span>
           <span className="min-w-0 flex-1">
             <span className="block font-semibold">{groups.length > 0 ? "Os meus grupos" : "Criar um grupo"}</span>
             <span className="block line-clamp-2 text-sm text-muted">
@@ -90,7 +87,7 @@ export default function GamesPage() {
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_28rem]">
           <div className="flex min-w-0 flex-col gap-6">
             <section aria-labelledby="upcoming-title" className="flex flex-col gap-3">
-              <h2 id="upcoming-title" className="text-sm font-semibold uppercase tracking-wide text-muted">
+              <h2 id="upcoming-title" className="text-sm font-semibold tracking-wide text-muted">
                 Próximos
               </h2>
               {games === null ? (
@@ -113,7 +110,7 @@ export default function GamesPage() {
 
             {past.length > 0 ? (
               <section aria-labelledby="past-title" className="flex flex-col gap-3">
-                <h2 id="past-title" className="text-sm font-semibold uppercase tracking-wide text-muted">
+                <h2 id="past-title" className="text-sm font-semibold tracking-wide text-muted">
                   Anteriores
                 </h2>
                 <ul className="flex flex-col gap-3">

@@ -33,7 +33,7 @@ export function PlayerProfileView({ profile }: { profile: PlayerProfileDto }) {
             {profile.initials}
           </span>
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight wrap-break-word sm:text-3xl">
+            <h1 className="font-display text-2xl font-semibold tracking-tight wrap-break-word sm:text-3xl">
               {profile.displayName}
             </h1>
             <div className="mt-2 flex flex-wrap gap-2">

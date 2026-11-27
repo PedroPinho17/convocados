@@ -31,7 +31,7 @@ export function InvitePreview({ invite, loginNext }: Props) {
                 confirmados
               </p>
               {invite.subs > 0 ? (
-                <span className="text-sm text-muted">
+                <span className="text-sm text-terracotta">
                   {invite.waitingCount}/{invite.subs} em lista de espera
                 </span>
               ) : null}
@@ -81,7 +81,7 @@ export function InvitePreview({ invite, loginNext }: Props) {
 
         {invite.subs > 0 ? (
           <div className="mt-5 border-t border-line pt-4">
-            <h2 className="mb-2 text-base font-semibold">Lista de espera</h2>
+            <h2 className="mb-2 text-base font-semibold text-terracotta">Lista de espera</h2>
             {waiting.length === 0 ? (
               <p className="text-sm text-muted">Vazia.</p>
             ) : (

@@ -41,7 +41,7 @@ function ResetForm() {
         </Notice>
         <Link
           href="/login"
-          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand px-4 font-semibold text-brand-ink hover:bg-brand-strong"
+          className="inline-flex min-h-11 items-center justify-center rounded-full bg-brand px-4 font-semibold text-brand-ink hover:bg-brand-strong"
         >
           Entrar
         </Link>

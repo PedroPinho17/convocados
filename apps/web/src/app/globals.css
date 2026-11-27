@@ -1,47 +1,59 @@
 @import "tailwindcss";
 
 /*
- * Cores do Convocados: desportivo e limpo, verde relvado como cor principal.
- * Tudo em variáveis, para o modo escuro (automático, pelo sistema) trocar só aqui.
+ * Convocados: papel quente, verde de ação (não de decoração), terracota só
+ * para espera / por pagar / Equipa B. Modo escuro mantém contraste AA.
  */
 :root {
-  --canvas: #f4f7f3;
+  --canvas: #f7f4ee;
   --surface: #ffffff;
-  --surface-2: #f8faf7;
-  --ink: #101814;
-  --muted: #5d6b63;
-  --line: #e1e8e0;
-  --brand: #15803d;
-  --brand-strong: #116632;
+  --surface-2: #eeebe3;
+  --ink: #1a1c16;
+  --muted: #4a5348;
+  --line: #e3dfd4;
+  --brand: #245c38;
+  --brand-strong: #1b4a2c;
   --brand-ink: #ffffff;
-  --brand-soft: #e3f5e8;
-  --warn: #a15c07;
-  --warn-soft: #fdf3e2;
+  --brand-soft: #e4efe6;
+  --wash-cream: #f3ede3;
+  --wash-sage: #e8f0e6;
+  --terracotta: #b4472a;
+  --terracotta-soft: #f6ede6;
+  --warn: #8a5a12;
+  --warn-soft: #f7efdf;
   --danger: #b42318;
   --danger-soft: #fdecea;
-  --ok: #157f3c;
-  --ok-soft: #e6f6ec;
+  --ok: #1f6b3a;
+  --ok-soft: #e6f3ea;
+  --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.06);
+  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.04);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #0b1210;
-    --surface: #121c18;
-    --surface-2: #0f1814;
-    --ink: #e7efe9;
-    --muted: #97a69d;
-    --line: #23322b;
-    --brand: #2fbf62;
-    --brand-strong: #4fd57c;
-    --brand-ink: #06140c;
-    --brand-soft: #143322;
-    --warn: #f0b45a;
-    --warn-soft: #2e230f;
+    --canvas: #141610;
+    --surface: #1c1e18;
+    --surface-2: #262820;
+    --ink: #f0eee6;
+    --muted: #a8aea3;
+    --line: #34362e;
+    --brand: #6fbf84;
+    --brand-strong: #8fd4a0;
+    --brand-ink: #0d1a12;
+    --brand-soft: #1e3324;
+    --wash-cream: #1a1814;
+    --wash-sage: #1a221c;
+    --terracotta: #e08a6e;
+    --terracotta-soft: #3a241c;
+    --warn: #e0b56a;
+    --warn-soft: #2e2414;
     --danger: #f2877d;
-    --danger-soft: #331715;
-    --ok: #57d488;
-    --ok-soft: #12301f;
+    --danger-soft: #3a1a18;
+    --ok: #7dcf96;
+    --ok-soft: #1a3022;
+    --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.35);
+    --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.25);
     color-scheme: dark;
   }
 }
@@ -57,14 +69,18 @@
   --color-brand-strong: var(--brand-strong);
   --color-brand-ink: var(--brand-ink);
   --color-brand-soft: var(--brand-soft);
+  --color-wash-cream: var(--wash-cream);
+  --color-wash-sage: var(--wash-sage);
+  --color-terracotta: var(--terracotta);
+  --color-terracotta-soft: var(--terracotta-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--font-source-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
 }
 
 body {
@@ -74,18 +90,81 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Foco visível para quem usa teclado, em todos os elementos interativos. */
+/* Foco visível para teclado. */
 :where(a, button, input, select, textarea, summary):focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
   border-radius: 0.5rem;
 }
 
+/* iOS: evita zoom no foco; área de toque confortável. */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+    min-height: 44px;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.65s ease-out both;
+}
+
+.animate-rise-delay {
+  animation: rise 0.75s ease-out 0.1s both;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: 0;
+  z-index: 60;
+  transform: translateY(-120%);
+  border-radius: 9999px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  transform: translateY(0.75rem);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   *,
   *::before,
   *::after {
-    transition: none !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .animate-rise,
+  .animate-rise-delay {
     animation: none !important;
+    opacity: 1;
+    transform: none;
   }
 }

@@ -30,7 +30,7 @@ export function GroupInvite({ inviteCode, groupName }: { inviteCode: string; gro
       <CardTitle>Convidar para o grupo</CardTitle>
       <div className="flex flex-col items-center gap-4 sm:flex-row lg:flex-col">
         {/* O QR precisa de fundo claro para ser lido, também no modo escuro. */}
-        <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-line">
+        <div className="rounded-xl bg-white p-3 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <QRCodeSVG value={url} size={120} />
         </div>
         <div className="flex w-full min-w-0 flex-col gap-3">

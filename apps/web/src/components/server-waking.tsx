@@ -19,7 +19,7 @@ export function ServerWaking() {
       <p
         role="status"
         aria-live="polite"
-        className="pointer-events-auto flex items-center gap-2 rounded-full border border-warn/30 bg-warn-soft px-4 py-2 text-sm font-medium text-warn shadow-sm"
+        className="pointer-events-auto flex items-center gap-2 rounded-full border border-warn/30 bg-warn-soft px-4 py-2 text-sm font-medium text-warn shadow-[var(--shadow-soft)]"
       >
         <span
           aria-hidden

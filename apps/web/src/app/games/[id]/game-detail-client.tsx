@@ -106,11 +106,11 @@ export function GameDetailClient() {
           </Card>
         ) : (
           <>
-            <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-7">
+            <section className="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-[var(--shadow-card)] ring-1 ring-ink/5 sm:p-7">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <h1 className="min-w-0 text-2xl font-bold tracking-tight wrap-break-word sm:text-3xl">
+                    <h1 className="font-display min-w-0 text-2xl font-semibold tracking-tight wrap-break-word sm:text-3xl">
                       {game.title}
                     </h1>
                     {cancelled ? <Badge tone="danger">Cancelado</Badge> : null}

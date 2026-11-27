@@ -114,12 +114,12 @@ export function GroupDetailClient() {
       <Page>
         <BackLink href="/groups" label="Voltar aos grupos" />
 
-        <section className="flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-surface p-5 shadow-sm sm:p-7">
-          <span aria-hidden="true" className="grid size-14 shrink-0 place-items-center rounded-2xl bg-brand-soft text-3xl">
+        <section className="flex flex-wrap items-center gap-4 rounded-3xl bg-surface p-5 shadow-[var(--shadow-card)] ring-1 ring-ink/5 sm:p-7">
+          <span aria-hidden="true" className="grid size-14 shrink-0 place-items-center rounded-2xl bg-surface-2 text-3xl ring-1 ring-ink/5">
             {sport.emoji}
           </span>
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold wrap-break-word tracking-tight sm:text-3xl">{group.name}</h1>
+            <h1 className="font-display text-2xl font-semibold wrap-break-word tracking-tight sm:text-3xl">{group.name}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
               {sport.label} · {group.memberCount} {group.memberCount === 1 ? "membro" : "membros"}
               {isAdmin ? <Badge tone="brand">És admin</Badge> : null}
@@ -136,7 +136,7 @@ export function GroupDetailClient() {
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <div className="flex min-w-0 flex-col gap-6">
             <section aria-labelledby="group-upcoming" className="flex flex-col gap-3">
-              <h2 id="group-upcoming" className="text-sm font-semibold uppercase tracking-wide text-muted">
+              <h2 id="group-upcoming" className="text-sm font-semibold tracking-wide text-muted">
                 Próximos jogos
               </h2>
               {upcoming.length === 0 ? (
@@ -160,7 +160,7 @@ export function GroupDetailClient() {
 
             {past.length > 0 ? (
               <section aria-labelledby="group-past" className="flex flex-col gap-3">
-                <h2 id="group-past" className="text-sm font-semibold uppercase tracking-wide text-muted">
+                <h2 id="group-past" className="text-sm font-semibold tracking-wide text-muted">
                   Anteriores
                 </h2>
                 <ul className="flex flex-col gap-3">
