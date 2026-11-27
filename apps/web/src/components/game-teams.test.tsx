@@ -17,9 +17,24 @@ const four = [player("a", "Rui"), player("b", "Tó"), player("c", "Zé"), player
 const withTeams = game({
   participations: four,
   teams: [
-    { name: "A", players: [{ userId: "a", name: "Rui" }, { userId: "d", name: "Bia" }] },
-    { name: "B", players: [{ userId: "b", name: "Tó" }, { userId: "c", name: "Zé" }] },
+    {
+      name: "A",
+      totalStrength: 7.2,
+      players: [
+        { userId: "a", name: "Rui", preferredPosition: "MID", strength: 3.6 },
+        { userId: "d", name: "Bia", preferredPosition: null, strength: 3.6 },
+      ],
+    },
+    {
+      name: "B",
+      totalStrength: 7.0,
+      players: [
+        { userId: "b", name: "Tó", preferredPosition: "DEF", strength: 3.5 },
+        { userId: "c", name: "Zé", preferredPosition: "GK", strength: 3.5 },
+      ],
+    },
   ],
+  teamsBalance: { difference: 0.2, explanation: "Diferença de 0,2 pontos" },
 });
 
 describe("GameTeams", () => {
@@ -30,35 +45,44 @@ describe("GameTeams", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("organizador: faz as equipas e guarda-as", async () => {
+  it("organizador: gera as equipas equilibradas", async () => {
     api.generateTeams.mockResolvedValue(withTeams);
     render(<GameTeams game={game({ participations: four })} me={ORGANIZER} onChange={onChange} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Fazer equipas" }));
-    expect(api.generateTeams).toHaveBeenCalledWith("g1", { teamCount: 2 });
+    await userEvent.click(screen.getByRole("button", { name: "Gerar equipas equilibradas" }));
+    expect(api.generateTeams).toHaveBeenCalledWith("g1", { teamCount: 2, seed: undefined });
     expect(onChange).toHaveBeenCalledWith(withTeams);
   });
 
-  it("organizador com menos de 2 confirmados: não deixa fazer equipas", () => {
+  it("organizador com menos de 2 confirmados: não deixa gerar", () => {
     render(
       <GameTeams game={game({ participations: [player("a", "Rui")] })} me={ORGANIZER} onChange={onChange} />,
     );
-    expect(screen.getByRole("button", { name: "Fazer equipas" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Gerar equipas equilibradas" })).toBeDisabled();
     expect(screen.getByText("Precisas de pelo menos 2 confirmados.")).toBeInTheDocument();
   });
 
-  it("jogador vê as equipas guardadas, só com nomes (sem avaliações)", () => {
+  it("jogador vê as equipas, forças e a diferença", () => {
     render(<GameTeams game={withTeams} me={PLAYER} onChange={onChange} />);
     expect(screen.getByText("Equipa A")).toBeInTheDocument();
     expect(screen.getByText("Rui")).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/skill|\(\d(\.\d)?\)/i);
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByText(/Diferença de 0,2 pontos/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Gerar/ })).not.toBeInTheDocument();
   });
 
-  it("quem confirmou depois aparece como sem equipa; o organizador pode atualizar", () => {
+  it("organizador pode gerar outra vez com semente", async () => {
+    api.generateTeams.mockResolvedValue(withTeams);
+    render(<GameTeams game={withTeams} me={ORGANIZER} onChange={onChange} />);
+    await userEvent.click(screen.getByRole("button", { name: "Gerar outra vez" }));
+    expect(api.generateTeams).toHaveBeenCalledWith(
+      "g1",
+      expect.objectContaining({ teamCount: 2, seed: expect.any(Number) }),
+    );
+  });
+
+  it("quem confirmou depois aparece como sem equipa", () => {
     const later = { ...withTeams, participations: [...four, player("e", "Leo")], confirmedCount: 5 };
     render(<GameTeams game={later} me={ORGANIZER} onChange={onChange} />);
     expect(screen.getByText(/Sem equipa: Leo\./)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Atualizar equipas" })).toBeEnabled();
   });
 });

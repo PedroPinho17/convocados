@@ -40,6 +40,7 @@ export function game(overrides: Partial<GameDetailDto> = {}): GameDetailDto {
     confirmedCount: participations.filter((p) => p.status === "confirmed").length,
     waitingCount: participations.filter((p) => p.status === "waiting").length,
     teams: [],
+    teamsBalance: null,
     sport: "football",
     venueId: null,
     groupId: null,

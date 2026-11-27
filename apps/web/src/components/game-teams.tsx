@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { GameDetailDto, UserDto } from "@convocados/shared";
+import {
+  PREFERRED_POSITION_LABELS,
+  type GameDetailDto,
+  type PreferredPosition,
+  type UserDto,
+} from "@convocados/shared";
 import { ApiError, generateTeams } from "@/lib/api";
 import { Button, Card, CardTitle, Notice, cn } from "@/components/ui";
 
@@ -14,9 +19,11 @@ type Props = {
 /** Cores das equipas (A, B, C, D), para se distinguirem à primeira vista. */
 const TEAM_COLORS = ["bg-brand", "bg-sky-500", "bg-amber-500", "bg-fuchsia-500"];
 
+const positionLabel = (pos: PreferredPosition | null) =>
+  pos && pos !== "ANY" ? PREFERRED_POSITION_LABELS[pos] : null;
+
 /**
- * Equipas guardadas pelo organizador. Todos veem as mesmas (chegam pelo socket).
- * Sem avaliações à vista: são privadas de quem as deu.
+ * Equipas equilibradas pelo organizador. Todos veem as mesmas (chegam pelo socket).
  */
 export function GameTeams({ game, me, onChange }: Props) {
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +39,16 @@ export function GameTeams({ game, me, onChange }: Props) {
 
   if (!hasTeams && !isOrganizer) return null;
 
-  async function generate() {
+  async function generate(again: boolean) {
     setError(null);
     setPending(true);
     try {
-      onChange(await generateTeams(game.id, { teamCount: 2 }));
+      onChange(
+        await generateTeams(game.id, {
+          teamCount: 2,
+          seed: again ? Date.now() : undefined,
+        }),
+      );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível fazer as equipas.");
     } finally {
@@ -49,9 +61,26 @@ export function GameTeams({ game, me, onChange }: Props) {
       <CardTitle
         aside={
           isOrganizer ? (
-            <Button size="sm" variant="secondary" disabled={pending || !canGenerate} onClick={() => void generate()}>
-              {pending ? "A fazer equipas…" : hasTeams ? "Atualizar equipas" : "Fazer equipas"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={pending || !canGenerate}
+                onClick={() => void generate(false)}
+              >
+                {pending ? "A gerar…" : "Gerar equipas equilibradas"}
+              </Button>
+              {hasTeams ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={pending || !canGenerate}
+                  onClick={() => void generate(true)}
+                >
+                  Gerar outra vez
+                </Button>
+              ) : null}
+            </div>
           ) : null
         }
       >
@@ -63,7 +92,8 @@ export function GameTeams({ game, me, onChange }: Props) {
         ) : null}
         {isOrganizer && !hasTeams && canGenerate ? (
           <p className="text-sm text-muted">
-            Equilibradas pelas avaliações dos jogadores. Todos veem as equipas que guardares.
+            Equilibradas pela força (avaliações com prior) e pela posição preferida. Todos veem as
+            equipas que guardares.
           </p>
         ) : null}
         {error ? (
@@ -71,21 +101,41 @@ export function GameTeams({ game, me, onChange }: Props) {
             {error}
           </Notice>
         ) : null}
+        {hasTeams && game.teamsBalance ? (
+          <p className="text-sm text-muted">{game.teamsBalance.explanation}.</p>
+        ) : null}
         {hasTeams ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {game.teams.map((team, i) => (
               <div key={team.name} className="rounded-xl border border-line bg-surface-2 p-3">
                 <p className="flex flex-wrap items-center gap-x-2 font-semibold">
-                  <span aria-hidden="true" className={cn("size-3 shrink-0 rounded-full", TEAM_COLORS[i % TEAM_COLORS.length])} />
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "size-3 shrink-0 rounded-full",
+                      TEAM_COLORS[i % TEAM_COLORS.length],
+                    )}
+                  />
                   Equipa {team.name}{" "}
                   <span className="whitespace-nowrap text-sm font-normal text-muted">
-                    · {team.players.length} {team.players.length === 1 ? "jogador" : "jogadores"}
+                    · {team.players.length}{" "}
+                    {team.players.length === 1 ? "jogador" : "jogadores"} · força{" "}
+                    {team.totalStrength.toFixed(1)}
                   </span>
                 </p>
                 <ol className="mt-2 flex flex-col gap-1 text-sm">
-                  {team.players.map((p) => (
-                    <li key={p.userId}>{p.name}</li>
-                  ))}
+                  {team.players.map((p) => {
+                    const pos = positionLabel(p.preferredPosition);
+                    return (
+                      <li key={p.userId} className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span>
+                          {p.name}
+                          {pos ? <span className="text-muted"> · {pos}</span> : null}
+                        </span>
+                        <span className="tabular-nums text-muted">{p.strength.toFixed(1)}</span>
+                      </li>
+                    );
+                  })}
                 </ol>
               </div>
             ))}
@@ -94,7 +144,7 @@ export function GameTeams({ game, me, onChange }: Props) {
         {hasTeams && withoutTeam.length > 0 ? (
           <Notice tone="warn">
             Sem equipa: {withoutTeam.map((p) => p.userName).join(", ")}.
-            {isOrganizer ? " Atualiza as equipas para os incluir." : ""}
+            {isOrganizer ? " Gera outra vez para os incluir." : ""}
           </Notice>
         ) : null}
       </div>
