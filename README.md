@@ -74,6 +74,14 @@ Each player has an optional profile on top of the existing account name: preferr
 participations and ratings that already exist — no duplicated data. The public profile never
 exposes email or other private fields.
 
+### AI features
+
+Free-tier Groq (same daily quota as paste-to-form): after the organiser records the A–B score,
+they can generate a short pt-PT match chronicle once (or again, counting against the quota),
+then copy or share it on WhatsApp. Separately, a lightweight logistic model in the API predicts
+show-up for confirmed players from history (show-up rate, lead time, weekday, hour, group games)
+and flags when the expected turnout may not fill the slots.
+
 ### Balanced teams
 
 Strength is a Bayesian average of ratings received in games that have already kicked off

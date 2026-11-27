@@ -74,6 +74,14 @@ Cada jogador tem um perfil opcional sobre o nome da conta: posição preferida n
 vêm das participações e avaliações que já existem — sem dados duplicados. O perfil público nunca
 mostra o email nem outros dados privados.
 
+### Funcionalidades de IA
+
+Groq no plano gratuito (a mesma quota diária do «colar mensagem»): depois de o organizador
+registar o resultado A–B, pode gerar uma crónica curta em pt-PT (ou outra vez, a contar para a
+quota) e copiar ou partilhar no WhatsApp. À parte, um modelo logístico leve na API estima o
+comparecimento dos confirmados a partir do histórico (taxa de presença, antecedência, dia, hora,
+jogos do grupo) e avisa se o jogo pode não encher.
+
 ### Equipas equilibradas
 
 A força é uma média Bayesian das avaliações recebidas em jogos já começados
