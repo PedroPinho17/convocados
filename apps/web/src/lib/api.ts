@@ -25,6 +25,9 @@ import type {
   CreateVenueInput,
   PlayerProfileDto,
   UpdateProfileInput,
+  SetGameResultInput,
+  MatchSummaryDto,
+  AttendanceForecastDto,
 } from "@convocados/shared";
 import { trackSlow } from "./slow-requests";
 
@@ -142,6 +145,13 @@ export const deleteAccount = (input: DeleteAccountInput) =>
 /** Só o organizador. */
 export const cancelGame = (gameId: string) =>
   request<GameDetailDto>(`/games/${gameId}/cancel`, { method: "POST" });
+
+export const setGameResult = (gameId: string, input: SetGameResultInput) =>
+  request<GameDetailDto>(`/games/${gameId}/result`, json(input, "PATCH"));
+export const generateMatchSummary = (gameId: string) =>
+  request<MatchSummaryDto>(`/games/${gameId}/summary`, { method: "POST" });
+export const getAttendanceForecast = (gameId: string) =>
+  request<AttendanceForecastDto>(`/games/${gameId}/attendance-forecast`);
 
 // Grupos
 export const listGroups = () => request<GroupDto[]>("/groups");

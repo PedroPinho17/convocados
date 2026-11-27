@@ -45,6 +45,9 @@ export function game(overrides: Partial<GameDetailDto> = {}): GameDetailDto {
     venueId: null,
     groupId: null,
     groupName: null,
+    scoreA: null,
+    scoreB: null,
+    summary: null,
     ...overrides,
     participations,
   };

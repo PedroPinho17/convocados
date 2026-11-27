@@ -13,6 +13,8 @@ import { InviteShare } from "@/components/invite-share";
 import { CancelGame } from "@/components/cancel-game";
 import { GameRatings } from "@/components/game-ratings";
 import { GameTeams } from "@/components/game-teams";
+import { GameResult } from "@/components/game-result";
+import { AttendanceForecast } from "@/components/attendance-forecast";
 import { BackLink, Badge, Button, Card, CardTitle, Notice, Page } from "@/components/ui";
 import { AppNav } from "@/components/app-nav";
 
@@ -156,7 +158,16 @@ export function GameDetailClient() {
               <GameParticipation game={game} me={me} loginNext={`/games/${id}`} onChange={setGame} />
               <div className="flex flex-col gap-6">
                 {isOrganizer && !cancelled ? <InviteShare inviteCode={game.inviteCode} /> : null}
+                {!cancelled ? (
+                  <AttendanceForecast
+                    gameId={game.id}
+                    me={me}
+                    organizerId={game.organizerId}
+                    cancelled={cancelled}
+                  />
+                ) : null}
                 {!cancelled ? <GameTeams game={game} me={me} onChange={setGame} /> : null}
+                {!cancelled ? <GameResult game={game} me={me} onChange={setGame} /> : null}
                 {!cancelled ? <GameRatings game={game} me={me} /> : null}
                 {isOrganizer && game.status === "open" ? <CancelGame game={game} onChange={setGame} /> : null}
               </div>
