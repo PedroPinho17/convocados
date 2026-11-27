@@ -5,14 +5,12 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, IsNull, MoreThan } from 'typeorm';
 import { PasswordReset, User } from '@convocados/db';
 import type { Env } from '../config.js';
+import { passwordResetEmail } from '../mail/templates/password-reset.js';
 import { AuthService } from './auth.service.js';
 import { MailerService } from './mailer.service.js';
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 export const RESET_TTL_MS = 30 * 60_000;
-
-const escapeHtml = (s: string) =>
-  s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /**
  * Recuperar a password por email:
@@ -55,12 +53,12 @@ export class PasswordResetService {
     });
 
     const link = `${this.appUrl}/reset-password?token=${token}`;
-    void this.mailer.send({
-      to: user.email,
-      subject: 'Repor a password do Convocados',
-      text: `Olá ${user.name}. Para escolheres uma password nova, abre este link (vale 30 minutos): ${link}\n\nSe não foste tu a pedir, ignora este email: a tua password continua igual.`,
-      html: `<p>Olá ${escapeHtml(user.name)}.</p><p>Para escolheres uma password nova, abre este link (vale 30 minutos):</p><p><a href="${link}">Repor a password</a></p><p>Se não foste tu a pedir, ignora este email: a tua password continua igual.</p>`,
+    const mail = passwordResetEmail({
+      name: user.name,
+      resetUrl: link,
+      appUrl: this.appUrl,
     });
+    void this.mailer.send({ to: user.email, ...mail });
   }
 
   async reset(token: string, password: string): Promise<void> {
