@@ -11,5 +11,5 @@ next-env.d.ts
 *.tsbuildinfo
 *.apk
 google-services.json
-*-firebase-adminsdk-*.json
-service-account*.json
+*firebase-adminsdk*.json
+*service-account*.json

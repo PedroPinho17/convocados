@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "com.pedropinho.convocados",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#15803d",
