@@ -1,0 +1,73 @@
+# Render Blueprint: the API and the web app as they run today (Frankfurt, free plan).
+# https://render.com/docs/blueprint-spec
+#
+# Secrets and per-environment values use `sync: false`: Render asks for them when the
+# Blueprint is first applied and never overwrites them afterwards. No values live here.
+#
+# The Postgres database (convocados-db, Frankfurt, free) is NOT declared here on purpose:
+# it already exists, and declaring it would let the Blueprint create or manage a second
+# one. DATABASE_URL is set by hand to the database's Internal Database URL.
+#
+# Render's free instances have a read-only global npm/corepack (EROFS), so pnpm runs
+# through `npx --yes pnpm@<version>` instead of `corepack enable`.
+
+services:
+  - type: web
+    name: convocados-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    buildCommand: npx --yes pnpm@12.18.0 install --frozen-lockfile && npx --yes pnpm@12.18.0 turbo build --filter=api
+    startCommand: npx --yes pnpm@12.18.0 --filter api start:prod
+    # /health also checks the database; the keep-alive ping uses /health/live instead.
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_SYNCHRONIZE
+        value: "false"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DATABASE_URL
+        sync: false
+      - key: PROXY_SECRET
+        sync: false
+      - key: WEB_ORIGIN
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: ALLOW_REGISTRATION
+        sync: false
+      - key: SOCKET_TOKEN_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+
+  - type: web
+    name: convocados-web
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    buildCommand: npx --yes pnpm@12.18.0 install --frozen-lockfile && npx --yes pnpm@12.18.0 turbo build --filter=web
+    startCommand: npx --yes pnpm@12.18.0 --filter web start
+    healthCheckPath: /
+    envVars:
+      - key: TRUST_PROXY
+        value: "1"
+      - key: API_URL
+        sync: false
+      # Read at build time by Next.js (inlined into the browser bundle for the socket).
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: PROXY_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_CONTACT_EMAIL
+        sync: false

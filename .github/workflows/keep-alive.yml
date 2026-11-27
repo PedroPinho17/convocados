@@ -8,8 +8,10 @@ name: Keep Render awake
 # da conta. API + web acordadas o mês inteiro seriam ~1440 h; ao passar das 750 h, o
 # Render suspende os serviços gratuitos até ao fim do mês. Das 17h às 23h são ~360 h.
 #
-# A API é chamada em /health/live, que não toca na base de dados: assim o Neon continua a
-# adormecer e não gasta as horas de computação do plano gratuito.
+# A API é chamada em /health/live, que não toca na base de dados (Render Postgres): o ping
+# só precisa de manter o processo da API acordado, e não falha nem carrega a base de dados
+# por causa de um problema que não é dele. O /health (com a base de dados) fica para o
+# health check do deploy no Render.
 on:
   schedule:
     # A cada 10 min, das 17:00 às 22:50 UTC (em Portugal: a mesma hora no inverno, +1 h no verão).

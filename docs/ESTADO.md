@@ -1,78 +1,25 @@
-# Convocados — estado (pós-Claude + Fase 6)
+# Convocados — estado atual
 
-**Atualizado:** 26 Nov 2026  
+**Atualizado:** 27 Nov 2026  
 **Repo:** https://github.com/PedroPinho17/convocados (`main`)
 
-Este documento cobre o que foi fechado depois do Claude ter esgotado o limite, o deploy da Fase 6, e o que ainda falta nessa fase.
+Resumo do que está feito, do que está em produção e do que falta. As fases 0–5 (monorepo/CI, auth + jogos, convites/espera, tempo real + push, pagamentos/avaliações/equipas, IA) estão fechadas; a Fase 6 (deploy) está quase fechada; a próxima é a app instalável (EAS/APK).
 
 ---
 
-## 1. O que o Claude tinha começado (e ficou a meio)
+## 1. Em produção (Render, Frankfurt, plano gratuito)
 
-O Claude já tinha no working tree (ainda sem commit final estável / incompleto no mobile):
-
-- Homepage marketing multi-desporto (`apps/web/src/app/page.tsx`)
-- Grupos como tenants (API `GroupsModule`, entidades `Group` / `GroupMember`, migração `GroupsSportsVenues`)
-- Desporto por jogo (`sport` em shared + BD)
-- Venue picker na web + `GET /venues`
-- Layout web (nav, cards, `BackLink` melhorado)
-- Páginas `/groups`, `/g/[code]`, formulário com desporto/grupo/local
-
-**Faltava sobretudo:** fechar o mobile ao schema novo, polish, validar testes, commit/push, e depois a Fase 6.
-
----
-
-## 2. O que foi terminado depois do Claude
-
-### Produto / código
-
-| Item | O quê |
-|---|---|
-| Mobile alinhado ao multi-desporto | Selector de desporto no `GameForm`, `sport`/`venueId` no submit |
-| Venue picker no mobile | `apps/mobile/src/components/venue-picker.tsx` + `searchVenues` na API client |
-| Lista / detalhe mobile | Mostra desporto (e grupo, se existir) |
-| Convite web | Badge do desporto |
-| Metadata | Descrição multi-desporto no `layout.tsx` |
-| Date/time nativo (já em curso) | `@react-native-community/datetimepicker` no formulário mobile |
-| Lint CI | Fix `react-hooks/set-state-in-effect` no venue-picker mobile |
-
-### Commits (autor: Pedro Pinho)
-
-| Commit | Mensagem |
-|---|---|
-| `774e4b9` | `feat: multi-sport groups, venue search, homepage and layout polish` |
-| `b0a7d2d` | `fix(mobile): avoid setState in venue picker effect for lint` |
-
-Ambos em `origin/main`. CI a verde após o fix de lint.
-
-### O que passou a existir no produto (resumo)
-
-- Plataforma **multi-desporto** (futebol, futsal, padel, ténis, basquetebol, voleibol, outro)
-- **Grupos** (web): criar, convite `/g/:code`, membros, jogos do grupo
-- **Campos** pesquisáveis (lista OSM) na criação de jogos (web + mobile)
-- Homepage pública
-- Layout / botão Voltar mais claros
-
----
-
-## 3. Fase 6 — o que já está feito
-
-**Objectivo mínimo:** API + Postgres + web na cloud, utilizáveis por link real.
-
-### Produção (Render)
-
-| Serviço | URL / nome |
+| Serviço | Onde |
 |---|---|
 | Web | https://convocados-web.onrender.com |
 | API | https://convocados-api.onrender.com |
-| Health | https://convocados-api.onrender.com/health → `{"status":"ok"}` |
-| Postgres | `convocados-db` (Frankfurt, Free) |
+| Health (com base de dados) | https://convocados-api.onrender.com/health → `{"status":"ok"}` |
+| Health (só a API, para o ping) | https://convocados-api.onrender.com/health/live |
+| Postgres | `convocados-db` (Render Postgres, Frankfurt, Free) |
 
-### Validado manualmente
-
-- Registo / login na web de produção
-- Criar jogo
-- Fluxo básico a funcionar com o proxy same-site (`PROXY_SECRET` partilhado)
+- A configuração dos dois serviços está descrita em [`render.yaml`](../render.yaml) (Blueprint), sem valores secretos.
+- **Manter acordado:** `.github/workflows/keep-alive.yml` faz ping à API (`/health/live`) e à web a cada 10 min, das 17:00 às 22:50 UTC (~360 h/mês, dentro das 750 h grátis da conta).
+- **Arranque a frio:** fora dessas horas o Render adormece os serviços (~50 s a acordar). A web e o mobile esperam até 90 s e mostram "A acordar o servidor… pode demorar até 1 minuto" quando um pedido passa dos 3 s.
 
 ### Build/start no Render (não esquecer)
 
@@ -88,34 +35,63 @@ Não usar `corepack enable` nem `npm i -g pnpm` (EROFS no Free).
 - Build: `npx --yes pnpm@12.18.0 install --frozen-lockfile && npx --yes pnpm@12.18.0 turbo build --filter=web`
 - Start: `npx --yes pnpm@12.18.0 --filter web start`
 
-### Env essenciais
+### Variáveis de ambiente
 
-- **API:** `NODE_ENV`, `DATABASE_URL` (Internal da BD), `DB_SYNCHRONIZE=false`, `TRUST_PROXY=1`, `PROXY_SECRET`, `WEB_ORIGIN` e `APP_URL` = URL da web, `ALLOW_REGISTRATION`
-- **Web:** `API_URL` + `NEXT_PUBLIC_API_URL` = URL da API, mesmo `PROXY_SECRET`, `TRUST_PROXY=1`
+- **API:** `NODE_ENV=production`, `DATABASE_URL` (Internal Database URL), `DB_SYNCHRONIZE=false`, `TRUST_PROXY=1`, `PROXY_SECRET`, `WEB_ORIGIN` e `APP_URL` (= URL da web), `ALLOW_REGISTRATION`. Opcionais: `SOCKET_TOKEN_SECRET`, `RESEND_API_KEY` + `EMAIL_FROM` (recuperar password), `GROQ_API_KEY` (IA).
+- **Web:** `API_URL` e `NEXT_PUBLIC_API_URL` (= URL da API), o mesmo `PROXY_SECRET`, `TRUST_PROXY=1`. Opcional: `NEXT_PUBLIC_CONTACT_EMAIL`.
+- `RATE_LIMIT_DISABLED` é só para testes: com `NODE_ENV=production` a API não arranca se estiver a `true`.
 
-Segredos só no Render (e nota privada) — nunca no Git.
+Segredos só no Render (e numa nota privada), nunca no Git. Ver `.env.example` (raiz e `apps/web`).
 
 ---
 
-## 4. Fase 6 — o que ainda falta
+## 2. O que está feito
 
-Isto **não** bloqueia o uso da web em produção; completa a fase “deploy + utilizadores / app”.
+### Produto
+
+- **Multi-desporto:** futebol, futsal, padel, ténis, basquetebol, voleibol e outro.
+- **Jogos:** criar (à mão ou a partir de uma mensagem colada, com IA), convite por link e QR, confirmar, lista de espera com ordem de chegada, cancelar com aviso por push, lembretes.
+- **Pagamentos, avaliações e equipas:** o organizador marca quem pagou; os confirmados avaliam-se (1–5, privado) só depois de o jogo começar; equipas equilibradas pelas avaliações.
+- **Grupos — web e mobile:** criar, convite `/g/:code` (no mobile também colando o link), membros (o admin remove), jogos do grupo, sair do grupo.
+- **Campos (venues):**
+  - importação do OpenStreetMap de **todo o Portugal** (continente, Madeira, Açores): `pnpm --filter api venues:import --portugal`, retoma onde parou se o Overpass falhar, e `--save` guarda o resultado num ficheiro para correr em produção sem depender do Overpass;
+  - `POST /venues`: guardar um campo escrito à mão (sem coordenadas); o mesmo nome e localidade devolve o existente;
+  - pesquisa de campos na web e no mobile, com botão para guardar o que foi escrito quando não há resultados.
+- **Mobile:** grupos, cartões de jogo, QR do convite no ecrã do organizador, aviso de servidor a acordar.
+- **Web:** homepage, favicon e ícones, layout sem scroll horizontal no telemóvel.
+
+### Segurança (revisão de 27 Nov 2026)
+
+- **Acesso aos jogos:** detalhe, `GET /games/:id`, confirmar, desistir e a sala do Socket.IO só para o organizador, confirmados, lista de espera, membros do grupo do jogo ou quem traz o código do convite (`?invite=<código>`). Os outros recebem 404, como se o jogo não existisse.
+- **Convite público** (`GET /invites/:code`): só o resumo do jogo, sem pagamentos, ids de utilizadores nem o código.
+- **Quota de IA:** depois de 10 pedidos por dia o contador deixa de subir e o pedido é recusado (429).
+- **Cabeçalhos HTTP:** helmet na API (CSP fechada para JSON, nosniff, HSTS), sem `X-Powered-By`.
+- Cookie de sessão httpOnly + SameSite=Lax via proxy same-site, `PROXY_SECRET` obrigatório em produção, limite de pedidos por IP.
+
+### Qualidade
+
+CI a verde em cada push: lint, typecheck, testes unitários (shared, API, web, mobile), e2e da API com Postgres real e testes no browser (Playwright).
+
+---
+
+## 3. O que falta
 
 | Item | Estado | Notas |
 |---|---|---|
-| Mobile a falar com a API de produção | Em falta | `EXPO_PUBLIC_API_URL` / `EXPO_PUBLIC_WEB_ORIGIN` a apontar para os URLs Render |
-| EAS Build / `projectId` estável | Em falta | Push Expo fiável fora do Expo Go |
-| App nas stores (ou build interno) | Em falta | Opcional; web já serve iPhone |
-| Import de venues OSM na BD de produção | Em falta | `pnpm --filter api venues:import` contra a BD Render (ou script one-off) |
-| Resend + domínio próprio | Em falta | Reset password em prod (sem key, em dev o link vai ao log) |
-| Plano pago / sem sleep | Opcional | Free adormece ~50s+ após inactividade |
-| Domínio custom (ex. convocados.app) | Opcional | DNS → Render |
-| Grupos completos na app mobile | Em falta / parcial | Fluxo de grupos está sobretudo na web |
-| Primeiros utilizadores reais + feedback | Em curso | Partilhar o link da web |
+| App instalável (EAS Build / APK, `eas.json`, package Android, `projectId`) | **Próximo passo** | Inclui o `slug`/`scheme`/package em `app.json` (o nome visível já é "Convocados"). Push fiável fora do Expo Go. |
+| Mobile a apontar para produção | Por confirmar | `EXPO_PUBLIC_API_URL` / `EXPO_PUBLIC_WEB_ORIGIN` com os URLs do Render no build. |
+| Importar os campos na BD de produção | Em falta | `venues:import --portugal` contra a BD do Render (é upsert, pode repetir-se). |
+| Recuperar password em produção | Por confirmar | `RESEND_API_KEY` e `EMAIL_FROM` no Render; testar o email de reset. Domínio próprio no Resend para enviar a qualquer pessoa. |
+| Validade do Postgres gratuito do Render | Por confirmar | Confirmar no dashboard se a BD gratuita tem data de expiração e planear o upgrade ou um backup antes dela. |
+| Cabeçalhos de segurança na web | Opcional | O proxy não reencaminha os do helmet; seriam configurados no `next.config`. |
+| Editar/cancelar jogo alheio dá 403 | Opcional | Revela que o jogo existe; poderia passar a 404 como o resto. |
+| Domínio próprio | Opcional | DNS → Render. |
+| Plano pago (sem adormecer) | Opcional | Hoje: keep-alive nas horas de jogo + aviso de "a acordar". |
+| Primeiros utilizadores reais + feedback | Em curso | Partilhar o link da web. |
 
 ---
 
-## 5. Em casa — arranque local
+## 4. Arranque local
 
 ```powershell
 cd "C:\Users\Pedro Pinho\Documents\My Projects\convocados"
@@ -129,10 +105,6 @@ pnpm --filter mobile start:tunnel
 - API: http://localhost:3001
 - Web: http://localhost:3000
 
-Push a `main` → redeploy no Render (se Auto-Deploy estiver ligado).
+Verificações antes de um commit: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e` (com Docker) e `pnpm test:browser`.
 
----
-
-## 6. Fases 0–5 (contexto rápido)
-
-Todas **fechadas** no código antes desta ronda: monorepo/CI, auth+jogos, convites/espera, realtime+push, pagos/ratings/equipas, IA parse-game.
+Push a `main` → redeploy no Render (Auto-Deploy).

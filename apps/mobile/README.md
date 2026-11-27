@@ -1,56 +1,33 @@
-# Welcome to your Expo app 👋
+# Convocados — app mobile (Expo)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The iOS and Android app of Convocados, built with Expo Router. It talks to the same NestJS API as the web app.
 
-## Get started
+## Run it
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+From the repository root:
 
 ```bash
-npm run reset-project
+pnpm install
+pnpm db:up                     # Postgres in Docker (port 5435)
+pnpm --filter api start:dev    # API on http://localhost:3001
+pnpm mobile                    # builds packages/* and starts Expo
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+`pnpm --filter mobile start:tunnel` starts Expo through a tunnel when the phone is not on the same Wi-Fi.
 
-### Other setup steps
+## Configuration
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Copy `.env.example` to `.env` and set:
 
-## Learn more
+- `EXPO_PUBLIC_API_URL`: the API as seen from the phone (your PC's Wi-Fi IP in development, the Render URL in production).
+- `EXPO_PUBLIC_WEB_ORIGIN`: the web app, used for the invite links and the privacy policy.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Checks
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+pnpm --filter mobile lint
+pnpm --filter mobile typecheck
+pnpm --filter mobile test
+```
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Add native packages with `npx expo install <package>` so they match the Expo SDK.

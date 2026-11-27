@@ -16,9 +16,9 @@ export class HealthController {
   }
 
   /**
-   * Só a API, sem tocar na base de dados: é a que o ping de "manter acordado" usa
-   * (.github/workflows/keep-alive.yml). Se fosse o /health, o Neon nunca adormecia e
-   * gastava as horas de computação do plano gratuito.
+   * Só a API, sem tocar na base de dados (Render Postgres): é a que o ping de "manter
+   * acordado" usa (.github/workflows/keep-alive.yml). O ping só precisa do processo da API;
+   * não deve carregar a base de dados a cada 10 min nem falhar por causa dela.
    */
   @Public()
   @Get('live')

@@ -15,7 +15,7 @@ describe('HealthController', () => {
     expect(db.query).toHaveBeenCalledWith('SELECT 1');
   });
 
-  it('/health/live responde sem tocar na base de dados (o ping não acorda o Neon)', async () => {
+  it('/health/live responde sem tocar na base de dados (o ping não carrega o Render Postgres)', async () => {
     const db = { query: vi.fn() };
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HealthController],
