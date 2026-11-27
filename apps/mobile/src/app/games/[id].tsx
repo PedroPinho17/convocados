@@ -4,10 +4,12 @@ import { useLocalSearchParams, router } from "expo-router";
 import {
   formatEuros,
   initials,
+  PREFERRED_POSITION_LABELS,
   sharePerPlayerCents,
   sportLabel,
   type CreateGameInput,
   type GameDetailDto,
+  type PreferredPosition,
   type RatingDto,
 } from "@convocados/shared";
 import {
@@ -211,11 +213,16 @@ export default function GameDetailScreen() {
     }
   }
 
-  async function onGenerateTeams() {
+  async function onGenerateTeams(again = false) {
     setActionError(null);
     setPending(true);
     try {
-      setGame(await generateTeams(id, { teamCount: 2 }));
+      setGame(
+        await generateTeams(id, {
+          teamCount: 2,
+          seed: again ? Date.now() : undefined,
+        }),
+      );
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Não foi possível fazer as equipas.");
     } finally {
@@ -432,44 +439,71 @@ export default function GameDetailScreen() {
       </Card>
     ) : null;
 
+  const positionLabel = (pos: PreferredPosition | null) =>
+    pos && pos !== "ANY" ? PREFERRED_POSITION_LABELS[pos] : null;
+
   const teams =
     !cancelled && (hasTeams || isOrganizer) ? (
       <Card>
-        <CardTitle
-          aside={
-            isOrganizer ? (
+        <CardTitle>Equipas</CardTitle>
+        {isOrganizer ? (
+          <View style={{ gap: 8 }}>
+            <Button
+              size="sm"
+              variant="secondary"
+              label={pending ? "A gerar…" : "Gerar equipas equilibradas"}
+              disabled={pending || game.confirmedCount < 2}
+              onPress={() => void onGenerateTeams(false)}
+            />
+            {hasTeams ? (
               <Button
                 size="sm"
-                variant="secondary"
-                label={hasTeams ? "Atualizar equipas" : "Fazer equipas"}
+                variant="ghost"
+                label="Gerar outra vez"
                 disabled={pending || game.confirmedCount < 2}
-                onPress={() => void onGenerateTeams()}
+                onPress={() => void onGenerateTeams(true)}
               />
-            ) : null
-          }
-        >
-          Equipas
-        </CardTitle>
-        {isOrganizer && game.confirmedCount < 2 ? <Muted>Precisas de pelo menos 2 confirmados.</Muted> : null}
+            ) : null}
+          </View>
+        ) : null}
+        {isOrganizer && game.confirmedCount < 2 ? (
+          <Muted>Precisas de pelo menos 2 confirmados.</Muted>
+        ) : null}
+        {isOrganizer && !hasTeams && game.confirmedCount >= 2 ? (
+          <Muted>
+            Equilibradas pela força (avaliações com prior) e pela posição preferida.
+          </Muted>
+        ) : null}
+        {hasTeams && game.teamsBalance ? (
+          <Muted>{game.teamsBalance.explanation}.</Muted>
+        ) : null}
         {game.teams.map((team, i) => (
           <View key={team.name} style={s.team}>
             <View style={s.teamTitleRow}>
               <View style={[s.teamDot, { backgroundColor: TEAM_COLORS[i % TEAM_COLORS.length] }]} />
               <Text style={s.subTitle}>
-                Equipa {team.name} · {team.players.length} jogadores
+                Equipa {team.name} · {team.players.length} jogadores · força{" "}
+                {team.totalStrength.toFixed(1)}
               </Text>
             </View>
-            {team.players.map((p) => (
-              <Text key={p.userId} style={s.teamPlayer}>
-                {p.name}
-              </Text>
-            ))}
+            {team.players.map((p) => {
+              const pos = positionLabel(p.preferredPosition);
+              return (
+                <View key={p.userId} style={s.teamPlayerRow}>
+                  <Text style={s.teamPlayer}>
+                    {p.name}
+                    {pos ? ` · ${pos}` : ""}
+                  </Text>
+                  <Text style={s.teamStrength}>{p.strength.toFixed(1)}</Text>
+                </View>
+              );
+            })}
           </View>
         ))}
         {hasTeams && withoutTeam.length > 0 ? (
           <Notice
             tone="warn"
-            text={`Sem equipa: ${withoutTeam.map((p) => p.userName).join(", ")}.${isOrganizer ? " Atualiza as equipas para os incluir." : ""}`}
+            text={`Sem equipa: ${withoutTeam.map((p) => p.userName).join(", ")}.${isOrganizer ? " Gera outra vez para os incluir." : ""}`}
           />
         ) : null}
       </Card>
@@ -596,7 +630,14 @@ const styles = (c: Palette) => ({
   team: { backgroundColor: c.surface2, borderRadius: radius.md, padding: 12, gap: 4, borderWidth: 1, borderColor: c.line },
   teamTitleRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 8 },
   teamDot: { width: 12, height: 12, borderRadius: 6 },
-  teamPlayer: { color: c.ink, fontSize: 15 },
+  teamPlayerRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "baseline" as const,
+    gap: 8,
+  },
+  teamPlayer: { color: c.ink, fontSize: 15, flexShrink: 1 },
+  teamStrength: { color: c.muted, fontSize: 14, fontVariant: ["tabular-nums"] as const },
   scores: { flexDirection: "row" as const, gap: 8, flexWrap: "wrap" as const },
   scoreBtn: {
     width: 44,

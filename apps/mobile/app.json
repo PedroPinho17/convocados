@@ -2,7 +2,7 @@
   "expo": {
     "name": "Convocados",
     "slug": "convocados",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "convocados",
@@ -18,7 +18,7 @@
     "android": {
       "package": "com.pedropinho.convocados",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#15803d",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
