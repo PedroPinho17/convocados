@@ -60,6 +60,8 @@ describe("ServerWaking", () => {
   it("mostra o aviso só enquanto há um pedido lento", async () => {
     render(<ServerWaking />);
     expect(screen.queryByText(SERVER_WAKING_TEXT)).not.toBeInTheDocument();
+    // Sem pedidos lentos não fica nenhum role="status" vazio a competir com os da página.
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
 
     const d = deferred();
     const tracked = trackSlow(d.promise);
