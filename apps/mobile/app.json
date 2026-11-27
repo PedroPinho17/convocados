@@ -29,7 +29,10 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "category": ["BROWSABLE", "DEFAULT"],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
           "data": [
             {
               "scheme": "https",
@@ -62,7 +65,15 @@
       "reactCompiler": true
     },
     "extra": {
-      "eas": {}
-    }
+      "eas": {
+        "projectId": "432471e0-d992-454d-8735-47c59ea020b8"
+      },
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      }
+    },
+    "owner": "pedropinho19"
   }
 }
