@@ -513,3 +513,83 @@ export const foldText = (s: string) =>
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
+
+// ---------------------------------------------------------------------------
+// Perfil do jogador: campos opcionais + estatísticas a partir de jogos/avaliações.
+// O nome de apresentação reutiliza `User.name` (não há coluna displayName).
+// ---------------------------------------------------------------------------
+
+export const PREFERRED_POSITIONS = ["GK", "DEF", "MID", "FWD", "ANY"] as const;
+export type PreferredPosition = (typeof PREFERRED_POSITIONS)[number];
+export const preferredPositionSchema = z.enum(PREFERRED_POSITIONS);
+
+export const PREFERRED_FEET = ["LEFT", "RIGHT", "BOTH"] as const;
+export type PreferredFoot = (typeof PREFERRED_FEET)[number];
+export const preferredFootSchema = z.enum(PREFERRED_FEET);
+
+export const PREFERRED_POSITION_LABELS: Record<PreferredPosition, string> = {
+  GK: "Guarda-redes",
+  DEF: "Defesa",
+  MID: "Médio",
+  FWD: "Avançado",
+  ANY: "Qualquer",
+};
+
+export const PREFERRED_FOOT_LABELS: Record<PreferredFoot, string> = {
+  LEFT: "Esquerdo",
+  RIGHT: "Direito",
+  BOTH: "Ambos",
+};
+
+/** Iniciais a partir do nome (máx. 2 palavras). */
+export function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+}
+
+/**
+ * PATCH /me/profile — todos os campos opcionais; `null` limpa posição/pé/cidade/bio.
+ * `displayName` atualiza o `name` do utilizador.
+ */
+export const updateProfileSchema = z.object({
+  displayName: z.string().trim().min(1, "O nome não pode ficar vazio.").max(80).optional(),
+  preferredPosition: preferredPositionSchema.nullable().optional(),
+  preferredFoot: preferredFootSchema.nullable().optional(),
+  city: z.string().trim().max(80).nullable().optional(),
+  bio: z.string().trim().max(280).nullable().optional(),
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export type PlayerRecentGameDto = {
+  id: string;
+  startsAt: string; // ISO
+  /** Nome do campo (venue) ou o local escrito no jogo. */
+  venueName: string;
+  /** Ainda não há resultados de jogo na plataforma. */
+  result: string | null;
+};
+
+export type PlayerStatsDto = {
+  gamesPlayed: number;
+  gamesOrganized: number;
+  /** null quando ainda não há avaliações (depois do kick-off). */
+  averageRating: number | null;
+  ratingsCount: number;
+  recentGames: PlayerRecentGameDto[];
+};
+
+/** GET /me/profile e GET /users/:id/profile — sem email nem dados privados. */
+export type PlayerProfileDto = {
+  id: string;
+  displayName: string;
+  initials: string;
+  preferredPosition: PreferredPosition | null;
+  preferredFoot: PreferredFoot | null;
+  city: string | null;
+  bio: string | null;
+  stats: PlayerStatsDto;
+};

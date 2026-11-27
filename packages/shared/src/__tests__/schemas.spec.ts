@@ -4,6 +4,7 @@ import {
   generateTeamsSchema,
   registerPushTokenSchema,
   registerSchema,
+  updateProfileSchema,
   upsertRatingSchema,
 } from '../index';
 
@@ -64,5 +65,27 @@ describe('schemas partilhados', () => {
     expect(ok('ExponentPushToken[abcdefghijklmnopqrstuv]')).toBe(true);
     expect(ok('ExpoPushToken[abcdefghijklmnopqrstuvwx]')).toBe(true);
     expect(ok('https://evil.example/abcdefghijklmnop')).toBe(false);
+  });
+
+  it('updateProfileSchema: posição, pé e limites de cidade/bio', () => {
+    expect(
+      updateProfileSchema.safeParse({
+        displayName: ' Ana ',
+        preferredPosition: 'GK',
+        preferredFoot: 'LEFT',
+        city: 'Porto',
+        bio: 'Olá',
+      }).success,
+    ).toBe(true);
+    expect(updateProfileSchema.safeParse({ preferredPosition: 'WINGER' }).success).toBe(
+      false,
+    );
+    expect(updateProfileSchema.safeParse({ preferredFoot: 'CENTER' }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ displayName: '' }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ city: 'x'.repeat(81) }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ bio: 'x'.repeat(281) }).success).toBe(false);
+    expect(updateProfileSchema.safeParse({ preferredPosition: null, city: null }).success).toBe(
+      true,
+    );
   });
 });

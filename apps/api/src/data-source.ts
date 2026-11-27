@@ -28,6 +28,7 @@ import { AddPasswordResets1795750000000 } from './migrations/1795750000000-AddPa
 import { AddVenues1795760000000 } from './migrations/1795760000000-AddVenues.js';
 import { GroupsSportsVenues1795770000000 } from './migrations/1795770000000-GroupsSportsVenues.js';
 import { UserVenues1795780000000 } from './migrations/1795780000000-UserVenues.js';
+import { UserProfile1795790000000 } from './migrations/1795790000000-UserProfile.js';
 
 export const entities = [
   User,
@@ -57,6 +58,7 @@ export const migrations = [
   AddVenues1795760000000,
   GroupsSportsVenues1795770000000,
   UserVenues1795780000000,
+  UserProfile1795790000000,
 ];
 
 try {

@@ -18,6 +18,7 @@ import { AiModule } from './ai/ai.module.js';
 import { AccountModule } from './account/account.module.js';
 import { GroupsModule } from './groups/groups.module.js';
 import { VenuesModule } from './venues/venues.module.js';
+import { ProfilesModule } from './profiles/profiles.module.js';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { VenuesModule } from './venues/venues.module.js';
     AccountModule,
     GroupsModule,
     VenuesModule,
+    ProfilesModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ClientIpThrottlerGuard }],
