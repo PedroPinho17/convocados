@@ -24,6 +24,7 @@ import type {
   CreateGroupInput,
   GroupDetailDto,
   GroupDto,
+  GameInviteDto,
   GroupInviteDto,
 } from "@convocados/shared";
 
@@ -31,6 +32,9 @@ import { trackSlow } from "./slow-requests";
 
 const API = process.env.EXPO_PUBLIC_API_URL;
 const TOKEN_KEY = "session_token";
+
+const withInvite = (path: string, inviteCode?: string) =>
+  inviteCode ? `${path}?invite=${encodeURIComponent(inviteCode)}` : path;
 
 export const REQUEST_TIMEOUT_MS = 90_000;
 export const TIMEOUT_MESSAGE =
@@ -142,12 +146,16 @@ export const createGame = (input: CreateGameInput) =>
 export const updateGame = (id: string, input: UpdateGameInput) =>
   request<GameDto>(`/games/${id}`, json(input, "PATCH"));
 
-/** Jogo + confirmados + lista de espera. */
-export const getGameDetail = (id: string) => request<GameDetailDto>(`/games/${id}/detail`);
-export const confirmGame = (id: string) =>
-  request<GameDetailDto>(`/games/${id}/confirm`, { method: "POST" });
-export const leaveGame = (id: string) =>
-  request<GameDetailDto>(`/games/${id}/leave`, { method: "POST" });
+/** Jogo + confirmados + lista de espera. O código do convite dá acesso a quem ainda não está no jogo. */
+export const getGameDetail = (id: string, inviteCode?: string) =>
+  request<GameDetailDto>(withInvite(`/games/${id}/detail`, inviteCode));
+export const confirmGame = (id: string, inviteCode?: string) =>
+  request<GameDetailDto>(withInvite(`/games/${id}/confirm`, inviteCode), { method: "POST" });
+export const leaveGame = (id: string, inviteCode?: string) =>
+  request<GameDetailDto>(withInvite(`/games/${id}/leave`, inviteCode), { method: "POST" });
+/** Público: resumo do jogo a partir do link /i/<código>. */
+export const getInvite = (code: string) =>
+  request<GameInviteDto>(`/invites/${encodeURIComponent(code)}`);
 export const setPaid = (gameId: string, userId: string, paid: boolean) =>
   request<GameDetailDto>(
     `/games/${gameId}/participations/${userId}/paid`,

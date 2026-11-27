@@ -14,7 +14,8 @@ Notifications.setNotificationHandler({
   }),
 });
 
-function projectId(): string | undefined {
+/** EAS project id from `eas init` (`extra.eas.projectId` / easConfig). */
+function easProjectId(): string | undefined {
   return (
     Constants.easConfig?.projectId ??
     (Constants.expoConfig?.extra?.eas as { projectId?: string } | undefined)?.projectId
@@ -43,10 +44,14 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return true;
 }
 
-/** Token Expo deste dispositivo (precisa de um projectId do EAS: `eas init`). */
-async function devicePushToken(): Promise<string> {
-  const id = projectId();
-  const push = await Notifications.getExpoPushTokenAsync(id ? { projectId: id } : undefined);
+/**
+ * Token Expo deste dispositivo. Precisa do projectId do EAS (`eas init`) e, em builds
+ * nativos Android, das credenciais FCM V1. Sem projectId devolve null (a app continua).
+ */
+async function devicePushToken(): Promise<string | null> {
+  const projectId = easProjectId();
+  if (!projectId) return null;
+  const push = await Notifications.getExpoPushTokenAsync({ projectId });
   return push.data;
 }
 
@@ -55,12 +60,14 @@ export async function ensurePushRegistration(): Promise<void> {
   try {
     if (!(await getToken())) return;
     if (!(await ensureNotificationPermission())) return;
+    const token = await devicePushToken();
+    if (!token) return;
     await registerPushToken({
-      token: await devicePushToken(),
+      token,
       platform: Platform.OS === "ios" ? "ios" : "android",
     });
   } catch {
-    // Sem projectId EAS / Expo Go / rede: a app continua a funcionar sem push.
+    // Sem projectId EAS / FCM / Expo Go / rede: a app continua a funcionar sem push.
   }
 }
 
@@ -70,7 +77,9 @@ export async function unregisterPush(): Promise<void> {
     if (!(await getToken())) return;
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== "granted") return;
-    await unregisterPushToken({ token: await devicePushToken() });
+    const token = await devicePushToken();
+    if (!token) return;
+    await unregisterPushToken({ token });
   } catch {
     // Sem token / rede: nada a fazer.
   }

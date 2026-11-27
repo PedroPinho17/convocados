@@ -36,6 +36,7 @@ export default function RootLayout() {
         <Stack.Screen name="groups/index" options={{ title: "Grupos", headerBackTitle: "Jogos" }} />
         <Stack.Screen name="groups/[id]" options={{ title: "Grupo", headerBackTitle: "Grupos" }} />
         <Stack.Screen name="g/[code]" options={{ title: "Convite", headerBackTitle: "Grupos" }} />
+        <Stack.Screen name="i/[code]" options={{ title: "Convite", headerBackTitle: "Jogos" }} />
       </Stack>
       <ServerWaking />
     </>

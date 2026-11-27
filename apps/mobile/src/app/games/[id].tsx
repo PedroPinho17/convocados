@@ -51,7 +51,8 @@ function formatWhen(iso: string) {
 export default function GameDetailScreen() {
   const s = useThemedStyles(styles);
   const c = usePalette();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, invite: inviteParam } = useLocalSearchParams<{ id: string; invite?: string }>();
+  const inviteCode = typeof inviteParam === "string" ? inviteParam : undefined;
   const [game, setGame] = useState<GameDetailDto | null>(null);
   const [meId, setMeId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -63,19 +64,22 @@ export default function GameDetailScreen() {
   const [openedAt] = useState(() => Date.now());
 
   useEffect(() => {
-    Promise.all([getGameDetail(id), getMe()])
+    Promise.all([getGameDetail(id, inviteCode), getMe()])
       .then(([g, me]) => {
         setGame(g);
         setMeId(me.id);
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
-          router.replace("/login");
+          router.replace({
+            pathname: "/login",
+            params: { next: inviteCode ? `/i/${inviteCode}` : `/games/${id}` },
+          });
           return;
         }
         setError(err instanceof ApiError ? err.message : "Erro");
       });
-  }, [id]);
+  }, [id, inviteCode]);
 
   useEffect(() => {
     if (!id) return;
@@ -168,7 +172,7 @@ export default function GameDetailScreen() {
   async function onSave(input: CreateGameInput) {
     await updateGame(id, input);
     // Mudar vagas pode promover quem está em espera: recarregar as listas.
-    setGame(await getGameDetail(id));
+    setGame(await getGameDetail(id, inviteCode));
     setEditing(false);
   }
 
@@ -340,7 +344,7 @@ export default function GameDetailScreen() {
           label="Desistir"
           variant="secondary"
           disabled={pending}
-          onPress={() => run(leaveGame, "Não foi possível desistir.")}
+          onPress={() => run((gid) => leaveGame(gid, inviteCode), "Não foi possível desistir.")}
         />
       ) : (
         <Button
@@ -348,7 +352,7 @@ export default function GameDetailScreen() {
           label={confirmLabel}
           loading={pending}
           disabled={full || started || cancelled}
-          onPress={() => run(confirmGame, "Não foi possível confirmar.")}
+          onPress={() => run((gid) => confirmGame(gid, inviteCode), "Não foi possível confirmar.")}
         />
       )}
       {actionError ? <Notice tone="danger" text={actionError} /> : null}

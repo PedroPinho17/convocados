@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams, type Href } from "expo-router";
 import { ApiError, forgotPassword, login, register } from "../lib/api";
 import { ensurePushRegistration } from "../lib/push";
 import { syncReminders } from "../lib/reminders";
@@ -25,10 +25,18 @@ const SUBTITLE: Record<Mode, string> = {
   forgot: "Recebe um link por email para escolheres uma password nova",
 };
 
+/** Só caminhos internos da app (evita open redirects). */
+function safeNext(raw: string | undefined): string | null {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+}
+
 export default function LoginScreen() {
   const s = useThemedStyles(styles);
   const c = usePalette();
   const { gutter } = useLayout();
+  const { next: nextParam } = useLocalSearchParams<{ next?: string }>();
+  const next = safeNext(typeof nextParam === "string" ? nextParam : undefined);
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -61,7 +69,7 @@ export default function LoginScreen() {
       else await register({ name: name.trim(), email: cleanEmail, password });
       await ensurePushRegistration();
       void syncReminders();
-      router.replace("/games");
+      router.replace((next ?? "/games") as Href);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Algo correu mal.");
     } finally {
