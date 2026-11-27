@@ -25,7 +25,7 @@ equipas equilibradas e de quem já pagou.
 
 **[convocados-web.onrender.com](https://convocados-web.onrender.com)**
 
-**[Descarregar para Android](https://github.com/PedroPinho17/convocados/releases/latest/download/convocados-1.0.0.apk)** (Android 8+; no iPhone usa a versão web)
+**[Descarregar para Android](https://github.com/PedroPinho17/convocados/releases/latest/download/convocados.apk)** (Android 8+; no iPhone usa a versão web)
 
 1. Cria uma conta e um jogo.
 2. Abre o link de convite do jogo noutro browser (ou no telemóvel) e confirma com uma segunda conta.

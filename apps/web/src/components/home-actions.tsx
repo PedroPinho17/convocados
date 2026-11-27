@@ -97,7 +97,7 @@ export function HomeFooterLink() {
 
 /** APK estável no GitHub Releases (nome do ficheiro fixo em cada v1.x). */
 export const ANDROID_APK_URL =
-  "https://github.com/PedroPinho17/convocados/releases/latest/download/convocados-1.0.0.apk";
+  "https://github.com/PedroPinho17/convocados/releases/latest/download/convocados.apk";
 
 const emptySubscribe = () => () => {};
 const readIsIos = () => /iPad|iPhone|iPod/i.test(navigator.userAgent);
