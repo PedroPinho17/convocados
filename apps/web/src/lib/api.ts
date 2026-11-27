@@ -23,6 +23,7 @@ import type {
   VenueSearchInput,
   CreateVenueInput,
 } from "@convocados/shared";
+import { trackSlow } from "./slow-requests";
 
 /**
  * A web fala com a API pelo proxy em /api (mesmo site: o cookie da sessão funciona em
@@ -44,7 +45,8 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API}${path}`, { ...init, credentials: "include" });
+    // Se demorar (API a acordar no Render), aparece o aviso: ver components/server-waking.tsx.
+    res = await trackSlow(fetch(`${API}${path}`, { ...init, credentials: "include" }));
   } catch (err) {
     if (init?.signal?.aborted) throw err;
     throw new ApiError("Sem ligação. Confirma a internet e tenta outra vez.", 0);

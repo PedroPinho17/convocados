@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { ServerWaking } from "../components/server-waking";
 import { ensurePushRegistration } from "../lib/push";
 import { syncReminders } from "../lib/reminders";
 import { usePalette } from "../lib/theme";
@@ -36,6 +37,7 @@ export default function RootLayout() {
         <Stack.Screen name="groups/[id]" options={{ title: "Grupo", headerBackTitle: "Grupos" }} />
         <Stack.Screen name="g/[code]" options={{ title: "Convite", headerBackTitle: "Grupos" }} />
       </Stack>
+      <ServerWaking />
     </>
   );
 }

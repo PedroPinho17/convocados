@@ -27,8 +27,16 @@ import type {
   GroupInviteDto,
 } from "@convocados/shared";
 
+import { trackSlow } from "./slow-requests";
+
 const API = process.env.EXPO_PUBLIC_API_URL;
 const TOKEN_KEY = "session_token";
+
+export const REQUEST_TIMEOUT_MS = 90_000;
+export const TIMEOUT_MESSAGE =
+  "O servidor demorou demasiado a responder. Tenta outra vez daqui a um minuto.";
+export const OFFLINE_MESSAGE =
+  "Não foi possível ligar ao servidor. Confirma a ligação à internet e tenta outra vez.";
 
 export class ApiError extends Error {
   constructor(
@@ -59,19 +67,32 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers.set("Content-Type", "application/json");
   }
 
+  // Timeout: sem ele o pedido pode ficar preso para sempre (rede má). Tem de chegar para a
+  // API acordar no Render gratuito (~50 s). O signal de quem chama (ex.: pesquisa de campos)
+  // também cancela o pedido.
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, REQUEST_TIMEOUT_MS);
+  const callerSignal = init?.signal;
+  const abortFromCaller = () => controller.abort();
+  if (callerSignal?.aborted) controller.abort();
+  else callerSignal?.addEventListener("abort", abortFromCaller);
+
   let res: Response;
   try {
-    // Timeout: no iPhone o pedido pode ficar preso (firewall / Wi‑Fi) sem nunca falhar.
-    res = await fetch(`${API}${path}`, {
-      ...init,
-      headers,
-      signal: AbortSignal.timeout(12_000),
-    });
-  } catch {
-    throw new ApiError(
-      `Não foi possível ligar à API (${API}). PC e telemóvel na mesma Wi‑Fi? API a correr na porta 3001?`,
-      0,
+    // Se demorar (API a acordar), aparece o aviso: ver components/server-waking.tsx.
+    res = await trackSlow(
+      fetch(`${API}${path}`, { ...init, headers, signal: controller.signal }),
     );
+  } catch (err) {
+    if (callerSignal?.aborted) throw err;
+    throw new ApiError(timedOut ? TIMEOUT_MESSAGE : OFFLINE_MESSAGE, 0);
+  } finally {
+    clearTimeout(timer);
+    callerSignal?.removeEventListener("abort", abortFromCaller);
   }
 
   if (!res.ok) {
