@@ -15,10 +15,13 @@ import { fetchOverpass } from '../venues/overpass.js';
  * Importa locais do OpenStreetMap para a tabela "venues".
  *
  *   pnpm --filter api venues:import                      (Lourosa/Fiães, 10 km)
- *   pnpm --filter api venues:import -- --lat 40.946 --lng -8.470 --radius-km 5
- *   pnpm --filter api venues:import -- --portugal --save pt.json   (Portugal inteiro, ~27 blocos)
- *   pnpm --filter api venues:import -- --save osm.json   (guarda a resposta do Overpass)
- *   pnpm --filter api venues:import -- --file osm.json   (sem rede: usa a resposta guardada)
+ *   pnpm --filter api venues:import --lat 40.946 --lng -8.470 --radius-km 5
+ *   pnpm --filter api venues:import --portugal --save pt.json   (Portugal inteiro, ~27 blocos)
+ *   pnpm --filter api venues:import --save osm.json   (guarda a resposta do Overpass)
+ *   pnpm --filter api venues:import --file osm.json   (sem rede: usa a resposta guardada)
+ *
+ * Sem "--" antes das opções: o pnpm passaria o "--" ao script e o parseArgs recusava-o.
+ * Os caminhos de --save/--file são relativos a apps/api (de preferência fora do repo).
  *
  * Pode correr várias vezes: grava por osmId (insere ou atualiza), um só pedido ao Overpass
  * por execução, e nunca mexe nos locais acrescentados pelos utilizadores.
