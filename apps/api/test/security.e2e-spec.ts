@@ -9,6 +9,7 @@ import { PushToken } from '@convocados/db';
 import type { GameDetailDto, GroupDto } from '@convocados/shared';
 import { AppModule } from './../src/app.module.js';
 import { confirmPath, rememberInvite } from './invites.js';
+import { applySecurityHeaders } from '../src/security-headers.js';
 
 /**
  * Segurança num só sítio: autenticação, autorização (ninguém mexe no que não é seu),
@@ -25,6 +26,7 @@ describe('segurança (e2e)', () => {
     }).compile();
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new StandardSchemaValidationPipe());
+    applySecurityHeaders(app);
     await app.init();
   });
 
@@ -434,6 +436,30 @@ describe('segurança (e2e)', () => {
       const cookie = String(res.headers['set-cookie']);
       expect(cookie).toMatch(/HttpOnly/i);
       expect(cookie).toMatch(/SameSite=Lax/i);
+    });
+  });
+
+  describe('cabeçalhos de segurança (helmet)', () => {
+    it('respostas JSON com CSP fechada, nosniff, HSTS e sem X-Powered-By', async () => {
+      const t = await users('A');
+      for (const res of [
+        await request(server()).get('/health/live'),
+        await as(t.A!).get('/auth/me').expect(200),
+        await request(server()).get('/auth/me').expect(401),
+      ]) {
+        expect(res.headers['x-powered-by']).toBeUndefined();
+        expect(res.headers['content-security-policy']).toContain(
+          "default-src 'none'",
+        );
+        expect(res.headers['content-security-policy']).toContain(
+          "frame-ancestors 'none'",
+        );
+        expect(res.headers['x-content-type-options']).toBe('nosniff');
+        expect(res.headers['strict-transport-security']).toMatch(/max-age=/);
+        expect(res.headers['cross-origin-resource-policy']).toBe(
+          'cross-origin',
+        );
+      }
     });
   });
 

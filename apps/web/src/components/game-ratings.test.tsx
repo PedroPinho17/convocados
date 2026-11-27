@@ -25,9 +25,22 @@ const rating = (toUserId: string, toUserName: string, score: number) => ({
   createdAt: "2030-01-01T10:00:00.000Z",
 });
 
+/** As avaliações só abrem depois de o jogo começar. */
+const STARTED = "2020-01-10T21:00:00.000Z";
+
 describe("GameRatings", () => {
+  it("antes de o jogo começar não aparece (nem pede as avaliações)", () => {
+    const g = game({ participations: [player("a", "Rui"), player(PLAYER.id, "Ana")] });
+    const { container } = render(<GameRatings game={g} me={PLAYER} />);
+    expect(container).toBeEmptyDOMElement();
+    expect(api.listMyRatings).not.toHaveBeenCalled();
+  });
+
   it("quem não está confirmado não avalia (nem pede as avaliações)", () => {
-    const g = game({ participations: [player("a", "Rui"), player(PLAYER.id, "Ana", "waiting")] });
+    const g = game({
+      startsAt: STARTED,
+      participations: [player("a", "Rui"), player(PLAYER.id, "Ana", "waiting")],
+    });
     const { container } = render(<GameRatings game={g} me={PLAYER} />);
     expect(container).toBeEmptyDOMElement();
     expect(api.listMyRatings).not.toHaveBeenCalled();
@@ -35,7 +48,7 @@ describe("GameRatings", () => {
 
   it("confirmado: avalia os outros, nunca a si próprio, e vê as notas que já deu", async () => {
     api.listMyRatings.mockResolvedValue([rating("a", "Rui", 4)]);
-    const g = game({ participations: [player("a", "Rui"), player(PLAYER.id, "Ana")] });
+    const g = game({ startsAt: STARTED, participations: [player("a", "Rui"), player(PLAYER.id, "Ana")] });
     render(<GameRatings game={g} me={PLAYER} />);
 
     const rows = screen.getAllByRole("listitem");
@@ -48,7 +61,7 @@ describe("GameRatings", () => {
 
   it("dar uma nota chama a API com o jogador e a nota", async () => {
     api.upsertRating.mockResolvedValue(rating("a", "Rui", 5));
-    const g = game({ participations: [player("a", "Rui"), player(PLAYER.id, "Ana")] });
+    const g = game({ startsAt: STARTED, participations: [player("a", "Rui"), player(PLAYER.id, "Ana")] });
     render(<GameRatings game={g} me={PLAYER} />);
 
     await userEvent.click(await screen.findByRole("button", { name: "5" }));

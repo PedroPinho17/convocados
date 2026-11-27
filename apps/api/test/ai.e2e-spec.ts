@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { INestApplication, StandardSchemaValidationPipe } from '@nestjs/common';
+import { getDataSourceToken } from '@nestjs/typeorm';
 import request from 'supertest';
+import type { DataSource } from 'typeorm';
 import { App } from 'supertest/types.js';
 import type { ParseGameResultDto } from '@convocados/shared';
 
@@ -81,11 +83,21 @@ describe('IA: criar jogo a partir de uma mensagem (e2e)', () => {
       })
       .expect(201);
     const token = res.body.token as string;
-    return (message: string) =>
+    const userId = res.body.user.id as string;
+    const parse = (message: string) =>
       request(server())
         .post('/ai/parse-game')
         .set('Authorization', `Bearer ${token}`)
         .send({ message });
+    return Object.assign(parse, { userId });
+  }
+
+  /** O contador de hoje gravado na base de dados. */
+  async function usedToday(userId: string): Promise<number> {
+    const rows: { count: number }[] = await app
+      .get<DataSource>(getDataSourceToken())
+      .query(`SELECT "count" FROM "ai_usage" WHERE "userId" = $1`, [userId]);
+    return rows[0]?.count ?? 0;
   }
 
   const MESSAGE = 'Quinta às 21h no pavilhão de Arrifana, somos 10, campo 30€';
@@ -151,6 +163,11 @@ describe('IA: criar jogo a partir de uma mensagem (e2e)', () => {
 
     const blocked = results.find((r) => r.status === 429)!;
     expect(blocked.body.message).toContain('3 pedidos de IA');
+
+    // Os pedidos recusados não contam: o contador fica no limite, não sobe para 6.
+    expect(await usedToday(parse.userId)).toBe(3);
+    await parse(MESSAGE).expect(429);
+    expect(await usedToday(parse.userId)).toBe(3);
   });
 
   it('valida a mensagem e exige sessão', async () => {

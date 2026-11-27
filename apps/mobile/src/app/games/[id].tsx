@@ -24,6 +24,7 @@ import {
 } from "../../lib/api";
 import { priceRangeText } from "../../lib/price";
 import { GameForm } from "../../components/game-form";
+import { InviteQr } from "../../components/invite-qr";
 import { subscribeGame } from "../../lib/socket";
 import { syncReminders } from "../../lib/reminders";
 import { WEB_ORIGIN } from "../../lib/links";
@@ -109,7 +110,9 @@ export default function GameDetailScreen() {
 
   useEffect(() => {
     // Sem poder avaliar a secção não aparece, por isso não é preciso limpar a lista.
-    if (!id || !meId || myStatus !== "confirmed") return;
+    // Só se avalia depois de o jogo começar (a API recusa antes).
+    const hasStarted = !!startsAt && new Date(startsAt).getTime() <= openedAt;
+    if (!id || !meId || myStatus !== "confirmed" || !hasStarted) return;
     let cancelled = false;
     listMyRatings(id)
       .then((rows) => {
@@ -121,7 +124,7 @@ export default function GameDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id, meId, myStatus, game?.confirmedCount]);
+  }, [id, meId, myStatus, startsAt, openedAt, game?.confirmedCount]);
 
   if (error) {
     return (
@@ -412,10 +415,12 @@ export default function GameDetailScreen() {
     isOrganizer && game.status === "open" ? (
       <Card>
         <CardTitle>Convite</CardTitle>
+        <InviteQr url={inviteUrl} />
         <Text style={s.link} selectable>
           {inviteUrl}
         </Text>
         <Button label="Partilhar convite" onPress={onShare} />
+        <Muted>Código: {game.inviteCode}</Muted>
       </Card>
     ) : null;
 
@@ -463,7 +468,7 @@ export default function GameDetailScreen() {
     ) : null;
 
   const ratings =
-    !cancelled && mine?.status === "confirmed" && confirmed.some((p) => p.userId !== meId) ? (
+    !cancelled && started && mine?.status === "confirmed" && confirmed.some((p) => p.userId !== meId) ? (
       <Card>
         <CardTitle>Avaliar jogadores (1–5)</CardTitle>
         <Muted>Ajuda a equilibrar as equipas. Só tu vês as notas que dás.</Muted>

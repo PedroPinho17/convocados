@@ -50,7 +50,7 @@ export class AiService {
     }
 
     const used = await this.consume(userId, now);
-    if (used > this.dailyLimit) {
+    if (used === null) {
       throw new HttpException(
         `Já usaste os ${this.dailyLimit} pedidos de IA de hoje. Preenche o formulário à mão.`,
         HttpStatus.TOO_MANY_REQUESTS,
@@ -81,18 +81,21 @@ export class AiService {
   }
 
   /**
-   * Conta mais um pedido e devolve quantos já houve hoje, numa só instrução SQL.
+   * Conta mais um pedido e devolve quantos já houve hoje, numa só instrução SQL; null se
+   * o limite já foi atingido. Nesse caso o contador NÃO sobe: o `WHERE` do
+   * `ON CONFLICT` deixa a linha como está e o `RETURNING` não devolve nada.
    * Ler e depois gravar deixava dois pedidos ao mesmo tempo passar do limite
    * (ou chocar no índice único no primeiro pedido do dia).
    */
-  private async consume(userId: string, now: Date): Promise<number> {
+  private async consume(userId: string, now: Date): Promise<number | null> {
     const rows: { count: number }[] = await this.dataSource.query(
       `INSERT INTO "ai_usage" ("userId", "day", "count") VALUES ($1, $2, 1)
        ON CONFLICT ("userId", "day") DO UPDATE SET "count" = "ai_usage"."count" + 1
+         WHERE "ai_usage"."count" < $3
        RETURNING "count"`,
-      [userId, utcDay(now)],
+      [userId, utcDay(now), this.dailyLimit],
     );
-    return rows[0]!.count;
+    return rows[0]?.count ?? null;
   }
 
   private async chat(message: string, now: Date): Promise<string> {

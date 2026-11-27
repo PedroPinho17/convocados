@@ -48,6 +48,7 @@ export class RatingsService {
     gameId: string,
     fromUserId: string,
     input: UpsertRatingInput,
+    now = new Date(),
   ): Promise<RatingDto> {
     if (input.toUserId === fromUserId) {
       throw new BadRequestException('Não podes avaliar-te a ti próprio.');
@@ -56,6 +57,12 @@ export class RatingsService {
     const manager = this.dataSource.manager;
     const game = await manager.findOneBy(Game, { id: gameId });
     if (!game) throw new NotFoundException('Jogo não encontrado.');
+    // Avalia-se como cada um jogou: só depois de o jogo começar.
+    if (game.startsAt.getTime() > now.getTime()) {
+      throw new ConflictException(
+        'Só podes avaliar depois de o jogo começar.',
+      );
+    }
 
     const [fromPart, toPart] = await Promise.all([
       manager.findOneBy(Participation, {

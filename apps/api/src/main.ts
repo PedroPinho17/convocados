@@ -5,12 +5,14 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
 import type { Env } from './config.js';
 import { CorsIoAdapter } from './realtime/cors-io.adapter.js';
+import { applySecurityHeaders } from './security-headers.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get<ConfigService<Env, true>>(ConfigService);
 
-  app.disable('x-powered-by');
+  // helmet + sem X-Powered-By (ver security-headers.ts).
+  applySecurityHeaders(app);
   const trustProxy = config.get('TRUST_PROXY', { infer: true });
   if (trustProxy > 0) app.set('trust proxy', trustProxy);
 

@@ -82,6 +82,16 @@ describe('pagamentos, avaliações e equipas (e2e)', () => {
     return id;
   }
 
+  /** Põe o jogo a começar há 1 h (só se avalia depois de o jogo começar). */
+  async function start(gameId: string) {
+    await app
+      .get<DataSource>(getDataSourceToken())
+      .query(
+        `UPDATE "games" SET "startsAt" = now() - interval '1 hour' WHERE "id" = $1`,
+        [gameId],
+      );
+  }
+
   describe('pagamentos', () => {
     it('só o organizador marca, e só jogadores confirmados', async () => {
       const t = await users('Org', 'B', 'C');
@@ -121,9 +131,27 @@ describe('pagamentos, avaliações e equipas (e2e)', () => {
   });
 
   describe('avaliações', () => {
+    it('só depois de o jogo começar', async () => {
+      const t = await users('A', 'B');
+      const id = await gameWith(t, 'A', ['A', 'B']);
+
+      const early = await as(t.A!)
+        .post(`/games/${id}/ratings`)
+        .send({ toUserId: t.B!.id, score: 4 })
+        .expect(409);
+      expect(early.body.message).toContain('depois de o jogo começar');
+
+      await start(id);
+      await as(t.A!)
+        .post(`/games/${id}/ratings`)
+        .send({ toUserId: t.B!.id, score: 4 })
+        .expect(201);
+    });
+
     it('não te avalias a ti próprio; só entre confirmados', async () => {
       const t = await users('A', 'B', 'Fora');
       const id = await gameWith(t, 'A', ['A', 'B']);
+      await start(id);
 
       await as(t.A!)
         .post(`/games/${id}/ratings`)
@@ -146,6 +174,7 @@ describe('pagamentos, avaliações e equipas (e2e)', () => {
     it('avaliar outra vez atualiza a nota em vez de duplicar', async () => {
       const t = await users('A', 'B');
       const id = await gameWith(t, 'A', ['A', 'B']);
+      await start(id);
 
       await as(t.A!)
         .post(`/games/${id}/ratings`)
@@ -165,6 +194,7 @@ describe('pagamentos, avaliações e equipas (e2e)', () => {
     it('vários pedidos ao mesmo tempo não dão erro nem duplicam', async () => {
       const t = await users('A', 'B');
       const id = await gameWith(t, 'A', ['A', 'B']);
+      await start(id);
 
       const results = await Promise.all(
         [1, 2, 3, 4, 5, 1, 2, 3].map((score) =>
@@ -186,6 +216,7 @@ describe('pagamentos, avaliações e equipas (e2e)', () => {
     it('as avaliações são privadas: cada um só vê as que deu', async () => {
       const t = await users('A', 'B', 'C');
       const id = await gameWith(t, 'A', ['A', 'B', 'C']);
+      await start(id);
       await as(t.A!)
         .post(`/games/${id}/ratings`)
         .send({ toUserId: t.C!.id, score: 5 })
@@ -246,6 +277,7 @@ describe('pagamentos, avaliações e equipas (e2e)', () => {
       ];
       const t = await users(...names);
       const id = await gameWith(t, 'Org', names);
+      await start(id);
       // Toda a gente dá 5 ao Org e 1 aos outros.
       for (const rater of names) {
         for (const rated of names) {

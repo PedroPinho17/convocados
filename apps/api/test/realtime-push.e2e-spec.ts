@@ -12,6 +12,7 @@ import { PushToken } from '@convocados/db';
 import type { GameDetailDto, RemindersDto } from '@convocados/shared';
 import { AppModule } from './../src/app.module.js';
 import { confirmPath, rememberInvite } from './invites.js';
+import { applySecurityHeaders } from '../src/security-headers.js';
 
 // URL de um pedido do fetch, seja string, URL ou Request.
 const urlOf = (input: string | URL | Request) =>
@@ -65,6 +66,8 @@ describe('tempo real e notificações (e2e)', () => {
     }).compile();
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new StandardSchemaValidationPipe());
+    // Como em produção: o Socket.IO tem de funcionar com o helmet ligado.
+    applySecurityHeaders(app);
     await app.listen(0, '127.0.0.1');
     const address = (
       server() as unknown as HttpServer

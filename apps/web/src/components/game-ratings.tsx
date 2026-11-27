@@ -14,11 +14,15 @@ export function GameRatings({ game, me }: Props) {
   const [mine, setMine] = useState<RatingDto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Hora fixada ao abrir (o render tem de ser puro); a API volta a validar ao gravar.
+  const [openedAt] = useState(() => Date.now());
 
   const myParticipation = me
     ? game.participations.find((p) => p.userId === me.id)
     : undefined;
-  const canRate = myParticipation?.status === "confirmed";
+  // Avalia-se como cada um jogou: só confirmados e só depois de o jogo começar.
+  const started = new Date(game.startsAt).getTime() <= openedAt;
+  const canRate = myParticipation?.status === "confirmed" && started;
   const others = game.participations.filter(
     (p) => p.status === "confirmed" && p.userId !== me?.id,
   );
