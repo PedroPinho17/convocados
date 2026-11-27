@@ -54,7 +54,8 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "eas-build-post-install": "cd ../.. && pnpm --filter @convocados/shared build"
   },
   "private": true,
   "jest": {
