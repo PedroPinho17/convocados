@@ -10,10 +10,13 @@ import {
 } from '@nestjs/common';
 import {
   createGameSchema,
+  setGameResultSchema,
   updateGameSchema,
   type CreateGameInput,
   type GameDetailDto,
   type GameDto,
+  type MatchSummaryDto,
+  type SetGameResultInput,
   type UpdateGameInput,
   type UserDto,
 } from '@convocados/shared';
@@ -53,6 +56,26 @@ export class GamesController {
     @CurrentUser() user: UserDto,
   ): Promise<GameDetailDto> {
     return this.games.cancel(id, user.id);
+  }
+
+  /** Resultado A vs B, só depois do kick-off. */
+  @Patch(':id/result')
+  setResult(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UserDto,
+    @Body({ schema: setGameResultSchema }) body: SetGameResultInput,
+  ): Promise<GameDetailDto> {
+    return this.games.setResult(id, user.id, body);
+  }
+
+  /** Crónica IA (quota diária). Exige resultado. */
+  @Post(':id/summary')
+  @HttpCode(200)
+  summary(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UserDto,
+  ): Promise<MatchSummaryDto> {
+    return this.games.generateSummary(id, user.id);
   }
 
   @Patch(':id')

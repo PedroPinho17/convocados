@@ -177,8 +177,8 @@ describe('perfil do jogador (e2e)', () => {
     expect(pub.body.stats.recentGames[0]).toMatchObject({
       id: gameId,
       venueName: 'Pavilhão',
-      result: null,
     });
+    expect(pub.body.stats.recentGames[0].result).toBeNull();
     expect(pub.body).not.toHaveProperty('email');
     expect(JSON.stringify(pub.body)).not.toContain(t.B!.email);
 

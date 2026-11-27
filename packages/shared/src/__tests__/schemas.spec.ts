@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   createGameSchema,
+  formatPlayerGameResult,
   generateTeamsSchema,
   registerPushTokenSchema,
   registerSchema,
+  setGameResultSchema,
   updateProfileSchema,
   upsertRatingSchema,
 } from '../index';
@@ -68,6 +70,20 @@ describe('schemas partilhados', () => {
     expect(ok('ExponentPushToken[abcdefghijklmnopqrstuv]')).toBe(true);
     expect(ok('ExpoPushToken[abcdefghijklmnopqrstuvwx]')).toBe(true);
     expect(ok('https://evil.example/abcdefghijklmnop')).toBe(false);
+  });
+
+  it('setGameResultSchema: marcador inteiro ≥ 0', () => {
+    expect(setGameResultSchema.safeParse({ scoreA: 2, scoreB: 1 }).success).toBe(true);
+    expect(setGameResultSchema.safeParse({ scoreA: -1, scoreB: 0 }).success).toBe(false);
+    expect(setGameResultSchema.safeParse({ scoreA: 1.5, scoreB: 0 }).success).toBe(false);
+  });
+
+  it('formatPlayerGameResult: V/E/D conforme a equipa', () => {
+    expect(formatPlayerGameResult(3, 1, 'A')).toBe('V 3-1');
+    expect(formatPlayerGameResult(3, 1, 'B')).toBe('D 3-1');
+    expect(formatPlayerGameResult(2, 2, 'A')).toBe('E 2-2');
+    expect(formatPlayerGameResult(1, 0, null)).toBe('1-0');
+    expect(formatPlayerGameResult(null, 1, 'A')).toBeNull();
   });
 
   it('updateProfileSchema: posição, pé e limites de cidade/bio', () => {

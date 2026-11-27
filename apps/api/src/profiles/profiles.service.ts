@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { Game, Participation, Rating, User } from '@convocados/db';
+import { Game, Participation, Rating, TeamAssignment, User } from '@convocados/db';
 import {
+  formatPlayerGameResult,
   initials,
   PREFERRED_FEET,
   PREFERRED_POSITIONS,
@@ -13,6 +14,7 @@ import {
   type PreferredPosition,
   type UpdateProfileInput,
 } from '@convocados/shared';
+import { In } from 'typeorm';
 
 const asPosition = (v: string | null): PreferredPosition | null =>
   v && (PREFERRED_POSITIONS as readonly string[]).includes(v)
@@ -117,14 +119,26 @@ export class ProfilesService {
         ? Math.round(Number(ratingRow.avg) * 10) / 10
         : null;
 
+    const gameIds = recentParts.map((p) => p.gameId);
+    const assignments =
+      gameIds.length === 0
+        ? []
+        : await manager.find(TeamAssignment, {
+            where: { userId, gameId: In(gameIds) },
+          });
+    const teamByGame = new Map(
+      assignments.map((a) => [a.gameId, a.team as 'A' | 'B']),
+    );
+
     const recentGames: PlayerRecentGameDto[] = recentParts.map((p) => {
       const game = p.game;
       const venue = game.venue;
+      const team = teamByGame.get(game.id) ?? null;
       return {
         id: game.id,
         startsAt: game.startsAt.toISOString(),
         venueName: venue?.name ?? game.location,
-        result: null,
+        result: formatPlayerGameResult(game.scoreA, game.scoreB, team),
       };
     });
 

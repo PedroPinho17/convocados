@@ -13,9 +13,17 @@ const GROQ_TIMEOUT_MS = 15_000;
 /** Dia UTC (AAAA-MM-DD): o limite diário renova à meia-noite UTC. */
 const utcDay = (now: Date) => now.toISOString().slice(0, 10);
 
+export type ChatOptions = {
+  system: string;
+  user: string;
+  /** Por defeito true (parse-game). A crónica pode ser texto simples. */
+  json?: boolean;
+  temperature?: number;
+};
+
 /**
- * Criar um jogo a partir de uma mensagem colada. A IA nunca é obrigatória:
- * sem chave, sem quota ou se o Groq falhar, devolve ok:false e o formulário fica manual.
+ * Pedidos à IA (Groq). A IA nunca é obrigatória: sem chave ou se falhar,
+ * o resto da app continua a funcionar. A quota diária é partilhada.
  */
 @Injectable()
 export class AiService {
@@ -33,12 +41,76 @@ export class AiService {
     this.model = config.get('GROQ_MODEL', { infer: true });
   }
 
+  get hasApiKey(): boolean {
+    return this.apiKey.length > 0;
+  }
+
+  get limit(): number {
+    return this.dailyLimit;
+  }
+
+  async remainingToday(userId: string, now = new Date()): Promise<number> {
+    return this.remaining(userId, now);
+  }
+
+  /**
+   * Gasta 1 da quota. Devolve remainingToday, ou null se já estava no limite (429).
+   * Sem chave Groq: não gasta e devolve remaining.
+   */
+  async tryConsume(
+    userId: string,
+    now = new Date(),
+  ): Promise<{ remainingToday: number } | null> {
+    if (!this.apiKey) {
+      return { remainingToday: await this.remaining(userId, now) };
+    }
+    const used = await this.consume(userId, now);
+    if (used === null) return null;
+    return { remainingToday: this.dailyLimit - used };
+  }
+
+  async chat(opts: ChatOptions): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('A IA não está ligada neste servidor.');
+    }
+    const body: Record<string, unknown> = {
+      model: this.model,
+      temperature: opts.temperature ?? 0,
+      messages: [
+        { role: 'system', content: opts.system },
+        { role: 'user', content: opts.user },
+      ],
+    };
+    if (opts.json !== false) {
+      body.response_format = { type: 'json_object' };
+    }
+
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(GROQ_TIMEOUT_MS),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Groq respondeu ${res.status}`);
+    }
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Groq sem conteúdo');
+    return content;
+  }
+
   async parseGame(
     userId: string,
     message: string,
     now = new Date(),
   ): Promise<ParseGameResultDto> {
-    // Sem chave não há pedido ao Groq: não gasta a quota de ninguém.
     if (!this.apiKey) {
       return {
         ok: false,
@@ -59,7 +131,11 @@ export class AiService {
     const remainingToday = this.dailyLimit - used;
 
     try {
-      const content = await this.chat(message, now);
+      const content = await this.chat({
+        system: buildSystemPrompt(now),
+        user: message,
+        json: true,
+      });
       const draft = toDraft(JSON.parse(content) as unknown, now);
       return { ok: isUsable(draft), draft, remainingToday };
     } catch (err) {
@@ -80,13 +156,6 @@ export class AiService {
     return Math.max(0, this.dailyLimit - (rows[0]?.count ?? 0));
   }
 
-  /**
-   * Conta mais um pedido e devolve quantos já houve hoje, numa só instrução SQL; null se
-   * o limite já foi atingido. Nesse caso o contador NÃO sobe: o `WHERE` do
-   * `ON CONFLICT` deixa a linha como está e o `RETURNING` não devolve nada.
-   * Ler e depois gravar deixava dois pedidos ao mesmo tempo passar do limite
-   * (ou chocar no índice único no primeiro pedido do dia).
-   */
   private async consume(userId: string, now: Date): Promise<number | null> {
     const rows: { count: number }[] = await this.dataSource.query(
       `INSERT INTO "ai_usage" ("userId", "day", "count") VALUES ($1, $2, 1)
@@ -96,36 +165,5 @@ export class AiService {
       [userId, utcDay(now), this.dailyLimit],
     );
     return rows[0]?.count ?? null;
-  }
-
-  private async chat(message: string, now: Date): Promise<string> {
-    const res = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        temperature: 0,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: buildSystemPrompt(now) },
-          { role: 'user', content: message },
-        ],
-      }),
-      signal: AbortSignal.timeout(GROQ_TIMEOUT_MS),
-    });
-
-    if (!res.ok) {
-      // Só o estado: o corpo de erro pode repetir a mensagem do utilizador.
-      throw new Error(`Groq respondeu ${res.status}`);
-    }
-    const data = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error('Groq sem conteúdo');
-    return content;
   }
 }

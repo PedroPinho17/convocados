@@ -19,6 +19,7 @@ import { AccountModule } from './account/account.module.js';
 import { GroupsModule } from './groups/groups.module.js';
 import { VenuesModule } from './venues/venues.module.js';
 import { ProfilesModule } from './profiles/profiles.module.js';
+import { AttendanceModule } from './attendance/attendance.module.js';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { ProfilesModule } from './profiles/profiles.module.js';
     GroupsModule,
     VenuesModule,
     ProfilesModule,
+    AttendanceModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ClientIpThrottlerGuard }],

@@ -66,6 +66,11 @@ export type GameDto = {
   venueId: string | null;
   groupId: string | null;
   groupName: string | null;
+  /** Resultado equipa A (null = ainda sem resultado). */
+  scoreA: number | null;
+  scoreB: number | null;
+  /** Crónica IA guardada no jogo (null = ainda não gerada). */
+  summary: string | null;
 };
 
 /** confirmed = vaga; waiting = lista de espera; left = desistiu */
@@ -764,8 +769,54 @@ export type PlayerRecentGameDto = {
   startsAt: string; // ISO
   /** Nome do campo (venue) ou o local escrito no jogo. */
   venueName: string;
-  /** Ainda não há resultados de jogo na plataforma. */
+  /** Ex.: "V 3-1", "E 2-2", "D 0-2", ou só "3-1" sem equipa; null sem resultado. */
   result: string | null;
+};
+
+/**
+ * Resultado visto pelo jogador: Vitória / Empate / Derrota + marcador.
+ * Sem equipa conhecida → só o marcador.
+ */
+export function formatPlayerGameResult(
+  scoreA: number | null | undefined,
+  scoreB: number | null | undefined,
+  team: "A" | "B" | null,
+): string | null {
+  if (scoreA == null || scoreB == null) return null;
+  const score = `${scoreA}-${scoreB}`;
+  if (!team) return score;
+  if (scoreA === scoreB) return `E ${score}`;
+  const won =
+    (team === "A" && scoreA > scoreB) || (team === "B" && scoreB > scoreA);
+  return won ? `V ${score}` : `D ${score}`;
+}
+
+/** PATCH /games/:id/result — só o organizador, depois do kick-off. */
+export const setGameResultSchema = z.object({
+  scoreA: z.number().int().min(0).max(99),
+  scoreB: z.number().int().min(0).max(99),
+});
+export type SetGameResultInput = z.infer<typeof setGameResultSchema>;
+
+/** POST /games/:id/summary — resposta da crónica IA. */
+export type MatchSummaryDto = {
+  summary: string;
+  remainingToday: number;
+  ok: boolean;
+};
+
+/** GET /games/:id/attendance-forecast — previsão do organizador. */
+export type AttendanceForecastDto = {
+  expectedPlayers: number;
+  neededPlayers: number;
+  /** true quando a soma das probabilidades < vagas necessárias. */
+  riskOfNotFilling: boolean;
+  players: {
+    userId: string;
+    name: string;
+    /** Probabilidade de comparecer, 0–1. */
+    probability: number;
+  }[];
 };
 
 export type PlayerStatsDto = {

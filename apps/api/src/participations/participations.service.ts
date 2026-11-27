@@ -50,6 +50,9 @@ export const toGameDto = (g: Game): GameDto => ({
   groupId: g.groupId ?? null,
   // Só quando a relação vem carregada (lista, detalhe); nas outras respostas fica null.
   groupName: g.group?.name ?? null,
+  scoreA: g.scoreA ?? null,
+  scoreB: g.scoreB ?? null,
+  summary: g.summary ?? null,
 });
 
 const toParticipationDto = (

@@ -19,10 +19,13 @@ function setup(user: Record<string, unknown> | null) {
     getRawOne: vi.fn().mockResolvedValue({ avg: '4.5', count: '2' }),
     getMany: vi.fn().mockResolvedValue([
       {
+        gameId: 'g1',
         game: {
           id: 'g1',
           startsAt: new Date('2030-01-09T21:00:00.000Z'),
           location: 'Pavilhão',
+          scoreA: null,
+          scoreB: null,
           venue: { name: 'Campo Municipal' },
         },
       },
@@ -31,6 +34,7 @@ function setup(user: Record<string, unknown> | null) {
 
   const manager = {
     findOneBy: vi.fn(async () => user),
+    find: vi.fn(async () => []),
     save: vi.fn(async (u: unknown) => u),
     count: vi.fn().mockResolvedValue(1),
     createQueryBuilder: vi.fn(() => qb),
@@ -81,7 +85,6 @@ describe('ProfilesService', () => {
     expect(dto.stats.recentGames[0]).toMatchObject({
       id: 'g1',
       venueName: 'Campo Municipal',
-      result: null,
     });
   });
 

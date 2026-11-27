@@ -29,6 +29,7 @@ import { AddVenues1795760000000 } from './migrations/1795760000000-AddVenues.js'
 import { GroupsSportsVenues1795770000000 } from './migrations/1795770000000-GroupsSportsVenues.js';
 import { UserVenues1795780000000 } from './migrations/1795780000000-UserVenues.js';
 import { UserProfile1795790000000 } from './migrations/1795790000000-UserProfile.js';
+import { GameResultSummary1795800000000 } from './migrations/1795800000000-GameResultSummary.js';
 
 export const entities = [
   User,
@@ -59,6 +60,7 @@ export const migrations = [
   GroupsSportsVenues1795770000000,
   UserVenues1795780000000,
   UserProfile1795790000000,
+  GameResultSummary1795800000000,
 ];
 
 try {

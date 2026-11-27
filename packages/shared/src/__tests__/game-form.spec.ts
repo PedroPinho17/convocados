@@ -25,6 +25,9 @@ const game: GameDto = {
   venueId: null,
   groupId: null,
   groupName: null,
+  scoreA: null,
+  scoreB: null,
+  summary: null,
 };
 
 describe('initialGameForm', () => {

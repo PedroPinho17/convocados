@@ -76,4 +76,16 @@ export class Game {
 
   @Column({ type: 'uuid', nullable: true })
   venueId!: string | null;
+
+  /** Resultado: golos/pontos da equipa A (null = ainda sem resultado). */
+  @Column({ type: 'int', nullable: true })
+  scoreA!: number | null;
+
+  /** Resultado: golos/pontos da equipa B. */
+  @Column({ type: 'int', nullable: true })
+  scoreB!: number | null;
+
+  /** Crónica curta gerada pela IA (pt-PT), guardada para não gastar quota outra vez. */
+  @Column({ type: 'varchar', length: 800, nullable: true })
+  summary!: string | null;
 }

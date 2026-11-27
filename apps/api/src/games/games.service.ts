@@ -3,17 +3,29 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { Brackets, DataSource } from 'typeorm';
-import { Game, Group, Venue } from '@convocados/db';
+import { Brackets, DataSource, In } from 'typeorm';
+import {
+  Game,
+  Group,
+  Participation,
+  Rating,
+  TeamAssignment,
+  User,
+  Venue,
+} from '@convocados/db';
 import type {
   CreateGameInput,
   GameDetailDto,
   GameDto,
+  MatchSummaryDto,
+  SetGameResultInput,
   UpdateGameInput,
 } from '@convocados/shared';
 import {
@@ -25,6 +37,12 @@ import {
 } from '../participations/participations.service.js';
 import { GroupsService } from '../groups/groups.service.js';
 import { PushService } from '../push/push.service.js';
+import { AiService } from '../ai/ai.service.js';
+import {
+  buildMatchSummaryUserPrompt,
+  cleanMatchSummary,
+  MATCH_SUMMARY_SYSTEM,
+} from '../ai/match-summary.js';
 import { assertGameAccess } from './game-access.js';
 
 /** 12 hex = 48 bits: curto para o link/QR e impossível de adivinhar à força (ver game-access.ts). */
@@ -41,6 +59,7 @@ export class GamesService {
     private readonly participations: ParticipationsService,
     private readonly groups: GroupsService,
     private readonly push: PushService,
+    private readonly ai: AiService,
   ) {}
 
   /** O campo escolhido tem de existir (senão a FK dava erro 500). */
@@ -235,5 +254,190 @@ export class GamesService {
     return changed
       ? this.participations.afterGameCancelled(id, userId)
       : this.participations.getDetail(id);
+  }
+
+  /**
+   * O organizador regista o resultado (equipa A vs B) depois do kick-off.
+   * Limpa a crónica antiga se o marcador mudar. Marca o jogo como "done".
+   */
+  async setResult(
+    id: string,
+    userId: string,
+    input: SetGameResultInput,
+    now = new Date(),
+  ): Promise<GameDetailDto> {
+    await this.dataSource.transaction(async (manager) => {
+      const game = await lockGame(manager, id);
+      if (game.organizerId !== userId) {
+        throw new ForbiddenException(
+          'Só o organizador pode registar o resultado.',
+        );
+      }
+      if (game.status === 'cancelled') {
+        throw new ConflictException('Este jogo foi cancelado.');
+      }
+      if (game.startsAt.getTime() > now.getTime()) {
+        throw new ConflictException(
+          'Só podes registar o resultado depois de o jogo começar.',
+        );
+      }
+      const changed =
+        game.scoreA !== input.scoreA || game.scoreB !== input.scoreB;
+      game.scoreA = input.scoreA;
+      game.scoreB = input.scoreB;
+      if (changed) game.summary = null;
+      if (game.status === 'open') game.status = 'done';
+      await manager.save(game);
+    });
+    return this.participations.publish(id);
+  }
+
+  /**
+   * Gera (ou regenera) a crónica IA do jogo. Conta para a quota diária.
+   * Exige resultado já registado. Guarda o texto no jogo.
+   */
+  async generateSummary(
+    id: string,
+    userId: string,
+    now = new Date(),
+  ): Promise<MatchSummaryDto> {
+    const game = await this.dataSource.manager.findOneBy(Game, { id });
+    if (!game) throw new NotFoundException('Jogo não encontrado.');
+    if (game.organizerId !== userId) {
+      throw new ForbiddenException(
+        'Só o organizador pode gerar a crónica do jogo.',
+      );
+    }
+    if (game.status === 'cancelled') {
+      throw new ConflictException('Este jogo foi cancelado.');
+    }
+    if (game.scoreA == null || game.scoreB == null) {
+      throw new ConflictException(
+        'Regista o resultado antes de gerar a crónica.',
+      );
+    }
+
+    const consumed = await this.ai.tryConsume(userId, now);
+    if (consumed === null) {
+      throw new HttpException(
+        `Já usaste os ${this.ai.limit} pedidos de IA de hoje. Tenta amanhã.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    if (!this.ai.hasApiKey) {
+      return {
+        ok: false,
+        summary:
+          'A IA não está ligada neste servidor. A crónica não foi gerada.',
+        remainingToday: consumed.remainingToday,
+      };
+    }
+
+    try {
+      const prompt = await this.buildSummaryPrompt(game);
+      const raw = await this.ai.chat({
+        system: MATCH_SUMMARY_SYSTEM,
+        user: prompt,
+        json: false,
+        temperature: 0.7,
+      });
+      const summary = cleanMatchSummary(raw);
+      if (!summary) throw new Error('Crónica vazia');
+      game.summary = summary;
+      await this.dataSource.manager.save(game);
+      await this.participations.publish(id);
+      return {
+        ok: true,
+        summary,
+        remainingToday: consumed.remainingToday,
+      };
+    } catch (err) {
+      this.logger.warn(`generateSummary falhou: ${(err as Error).message}`);
+      return {
+        ok: false,
+        summary:
+          'A IA não conseguiu escrever a crónica. Tenta outra vez daqui a pouco.',
+        remainingToday: consumed.remainingToday,
+      };
+    }
+  }
+
+  private async buildSummaryPrompt(game: Game): Promise<string> {
+    const manager = this.dataSource.manager;
+    const assignments = await manager.findBy(TeamAssignment, {
+      gameId: game.id,
+    });
+    const userIds = [...new Set(assignments.map((a) => a.userId))];
+    const users =
+      userIds.length === 0
+        ? []
+        : await manager.findBy(User, { id: In(userIds) });
+    const nameById = new Map(users.map((u) => [u.id, u.name]));
+
+    const ratingRows =
+      userIds.length === 0
+        ? []
+        : await manager
+            .createQueryBuilder(Rating, 'r')
+            .select('r.toUserId', 'userId')
+            .addSelect('AVG(r.score)', 'avg')
+            .where('r.gameId = :gameId', { gameId: game.id })
+            .andWhere('r.toUserId IN (:...userIds)', { userIds })
+            .groupBy('r.toUserId')
+            .getRawMany<{ userId: string; avg: string }>();
+    const avgById = new Map(
+      ratingRows.map((r) => [r.userId, Number(r.avg)] as const),
+    );
+
+    const player = (userId: string) => ({
+      name: nameById.get(userId) ?? 'Jogador',
+      avgRating: avgById.get(userId) ?? null,
+    });
+
+    const teamA = assignments
+      .filter((a) => a.team === 'A')
+      .map((a) => player(a.userId));
+    const teamB = assignments
+      .filter((a) => a.team === 'B')
+      .map((a) => player(a.userId));
+
+    // Sem equipas guardadas: usa os confirmados sem notas de equipa.
+    if (teamA.length === 0 && teamB.length === 0) {
+      const confirmed = await manager.find(Participation, {
+        where: { gameId: game.id, status: 'confirmed' },
+        order: { position: 'ASC' },
+      });
+      const ids = confirmed.map((p) => p.userId);
+      const names =
+        ids.length === 0
+          ? []
+          : await manager.findBy(User, { id: In(ids) });
+      const nmap = new Map(names.map((u) => [u.id, u.name]));
+      const half = Math.ceil(confirmed.length / 2);
+      const list = confirmed.map((p) => ({
+        name: nmap.get(p.userId) ?? 'Jogador',
+        avgRating: null as number | null,
+      }));
+      return buildMatchSummaryUserPrompt({
+        title: game.title,
+        sport: game.sport,
+        location: game.location,
+        scoreA: game.scoreA!,
+        scoreB: game.scoreB!,
+        teamA: list.slice(0, half),
+        teamB: list.slice(half),
+      });
+    }
+
+    return buildMatchSummaryUserPrompt({
+      title: game.title,
+      sport: game.sport,
+      location: game.location,
+      scoreA: game.scoreA!,
+      scoreB: game.scoreB!,
+      teamA,
+      teamB,
+    });
   }
 }
