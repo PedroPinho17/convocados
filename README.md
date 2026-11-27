@@ -52,8 +52,8 @@ servers wake up.
 - **Confirm and leave, with an automatic waiting list.** When someone leaves, the first person waiting moves up
   and gets a notification.
 - **Live updates.** Every open screen shows the same list as soon as someone confirms or leaves.
-- **Balanced teams in one click.** Players rate each other from 1 to 5 in private; teams always have the same
-  size (at most one player apart) and the closest possible strength.
+- **Balanced teams in one click.** Players rate each other from 1 to 5 in private; the organiser generates two
+  teams with the closest possible strength (see below).
 - **Payments.** The pitch cost is split between the confirmed players; the organiser marks who paid and sees
   what is missing.
 - **Groups.** A group is the same people every week. Games in a group show up for every member, and a new game
@@ -73,6 +73,15 @@ Each player has an optional profile on top of the existing account name: preferr
 (GK / DEF / MID / FWD / ANY), preferred foot, city and a short bio. Stats are computed from
 participations and ratings that already exist — no duplicated data. The public profile never
 exposes email or other private fields.
+
+### Balanced teams
+
+Strength is a Bayesian average of ratings received in games that have already kicked off
+(`(sum + prior×3) / (count + 3)`), so players with few ratings stay near the group average.
+The organiser’s “Gerar equipas equilibradas” runs a snake draft, then local search (swaps) to
+minimise the strength gap; preferred positions (at most one GK per team, spread DEF/MID/FWD)
+are soft preferences only. “Gerar outra vez” uses a new seed for a different but still balanced
+split. Everyone in the game room sees the result in real time.
 
 Android app via Expo; iPhone users use the web app (no App Store fee).
 

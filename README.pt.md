@@ -53,8 +53,8 @@ cerca de um minuto, enquanto os servidores acordam.
   recebe uma notificação.
 - **Atualizações em tempo real.** Todos os ecrãs abertos mostram a mesma lista assim que alguém confirma ou
   desiste.
-- **Equipas equilibradas num clique.** Os jogadores avaliam-se de 1 a 5, em privado; as equipas têm sempre o
-  mesmo tamanho (no máximo um jogador de diferença) e a força mais parecida possível.
+- **Equipas equilibradas num clique.** Os jogadores avaliam-se de 1 a 5, em privado; o organizador gera duas
+  equipas com a força mais parecida possível (ver abaixo).
 - **Pagamentos.** O custo do campo é dividido pelos confirmados; o organizador marca quem pagou e vê quanto falta.
 - **Grupos.** Um grupo são as mesmas pessoas de todas as semanas. Os jogos do grupo aparecem a todos os membros,
   e cada jogo novo avisa toda a gente.
@@ -73,6 +73,15 @@ Cada jogador tem um perfil opcional sobre o nome da conta: posição preferida n
 (GR / Defesa / Médio / Avançado / Qualquer), pé preferido, cidade e uma bio curta. As estatísticas
 vêm das participações e avaliações que já existem — sem dados duplicados. O perfil público nunca
 mostra o email nem outros dados privados.
+
+### Equipas equilibradas
+
+A força é uma média Bayesian das avaliações recebidas em jogos já começados
+(`(soma + prior×3) / (n + 3)`), para quem tem poucas notas ficar perto da média do grupo.
+O botão «Gerar equipas equilibradas» faz um snake draft e depois pesquisa local (trocas) para
+minimizar a diferença de força; as posições preferidas (no máximo um GR por equipa, espalhar
+DEF/MID/FWD) são só preferências suaves. «Gerar outra vez» usa uma semente nova para outra
+divisão ainda equilibrada. Quem está na sala do jogo vê o resultado em tempo real.
 
 App Android com Expo; quem usa iPhone entra pela versão web (sem a taxa da App Store).
 
